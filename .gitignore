@@ -1,0 +1,34 @@
+# IDEs
+.vscode/
+.idea/
+*.iml
+.settings/
+.classpath
+.project
+.factorypath
+bin/
+
+# Maven
+target/
+dependency-reduced-pom.xml
+
+# Game Data & Assets (Private)
+# 公開リポジトリでは素材・データを非公開にします
+src/main/resources/data/
+userdata/
+portable/
+
+# Agent & Docs
+.agent/
+!.agent/workflows/
+kikaku/
+隔離/
+dir_list.txt
+project_structure.txt
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Git backup
+.git_old/

@@ -1,0 +1,58 @@
+================================================================================
+THIRD-PARTY SOFTWARE NOTICES AND INFORMATION
+================================================================================
+
+This software incorporates components from the following third-party libraries:
+
+--------------------------------------------------------------------------------
+Gson
+--------------------------------------------------------------------------------
+Copyright 2008-2023 Google Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+The full text of the Apache License 2.0 can be found in:
+THIRD_PARTY_LICENSES/Apache-2.0.txt
+
+--------------------------------------------------------------------------------
+JavaFX (OpenJFX)
+--------------------------------------------------------------------------------
+Copyright (c) 2013, 2023, Oracle and/or its affiliates. All rights reserved.
+
+Licensed under the GNU General Public License version 2 with the Classpath
+Exception. This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License as published
+by the Free Software Foundation, version 2.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+The full text of the GPL v2 with Classpath Exception can be found in:
+THIRD_PARTY_LICENSES/GPL-2.0-with-Classpath-Exception.txt
+
+You can also obtain a copy at:
+https://openjdk.org/legal/gplv2+ce.html
+
+--------------------------------------------------------------------------------
+
+このソフトウェアは以下のサードパーティライブラリを使用しています:
+
+1. Gson - Apache License 2.0
+   Copyright 2008-2023 Google Inc.
+
+2. JavaFX (OpenJFX) - GPL v2 with Classpath Exception
+   Copyright (c) 2013, 2023, Oracle and/or its affiliates.
+
+詳細なライセンステキストは THIRD_PARTY_LICENSES/ フォルダをご覧ください。
