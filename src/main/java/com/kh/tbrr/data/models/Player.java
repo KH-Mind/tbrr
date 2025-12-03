@@ -190,6 +190,15 @@ public class Player {
         if (itemId.equals("torch") && inventory.contains("magic_staff")) {
             return true;
         }
+        if (itemId.equals("dagger") && inventory.contains("thieves_tools")) {
+            return true;
+        }
+        if (itemId.equals("expedition_map") && inventory.contains("merchant_ledger")) {
+            return true;
+        }
+        if (itemId.equals("pouch") && inventory.contains("performance_kit")) {
+            return true;
+        }
 
         return false;
     }

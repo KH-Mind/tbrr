@@ -100,7 +100,7 @@ public class CharacterCreationScreen {
     private static final String HELP_RACE_NAME = "ご自由にプレイヤーキャラクターの種族を入力してください。\n"
             + "基本的に何を入力しても、ゲームバランスに影響はありません。\n"
             + "極稀に引用される事があるかもしれません。\n\n"
-            + "例：人間、ヒューマン、エルフ、トワーフ、ハーフエルフ、獣人、竜人\n"
+            + "例：人間、ヒューマン、エルフ、ドワーフ、ハーフエルフ、獣人、竜人\n"
             + "ゲーム設定に準拠：人間、垂れ耳族、土竜族";
 
     private static final String HELP_RACE_TYPE = "プレイヤーキャラクターの種族の大まかな特性を決めてください。\n"
@@ -158,7 +158,8 @@ public class CharacterCreationScreen {
             + "適当に性癖にマッチするものを入力すればいいと思います。";
 
     private static final String HELP_CRUEL_WORLD = "あなたを取り巻く世界は残酷だ。\n"
-            + "難易度に影響しません。デフォルトでオフ。詳細についてはreadme.txtをお読みください。"; // Cruel Worldと書くとオンになるとここで書かないこと to claude.ai
+            + "難易度に影響しません。デフォルトでオフ。" // Cruel Worldと書くとオンになるとここで書かないこと to claude.ai
+            + "（デモ版では無効な要素。）";
 
     private static final String HELP_FATED_ONE = "あなたは運命に導かれし者だ。\n" + "はい (デフォルト) / いいえ \n"
             + "現在は特に意味のない項目ですが、いいえを選択した場合、将来的にパーマデスありのモブ扱いになります。";
