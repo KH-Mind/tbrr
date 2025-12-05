@@ -258,6 +258,16 @@ public class EventProcessor {
 			}
 		}
 
+		// スキルロスト（複数対応）
+		if (effects.getSkillsLost() != null && !effects.getSkillsLost().isEmpty()) {
+			for (String skillName : effects.getSkillsLost()) {
+				player.removeSkill(skillName);
+				String logMessage = "【技能「" + skillName + "」を失った】";
+				printFloorDividerIfNeeded(gameState);
+				ui.printImportantLog(logMessage);
+			}
+		}
+
 		// 状態異常変化
 		if (effects.getStatusEffectChanges() != null) {
 			for (java.util.Map.Entry<String, Object> entry : effects.getStatusEffectChanges().entrySet()) {
@@ -980,6 +990,24 @@ public class EventProcessor {
 			for (String skillName : result.getSkillsGained()) {
 				player.addSkill(skillName);
 				ui.print("【技能「" + skillName + "」を習得した】");
+			}
+		}
+
+		// 単一スキルロスト
+		if (result.getSkillLost() != null && !result.getSkillLost().isEmpty()) {
+			player.removeSkill(result.getSkillLost());
+			String logMessage = "【技能「" + result.getSkillLost() + "」を失った】";
+			printFloorDividerIfNeeded(gameState);
+			ui.printImportantLog(logMessage);
+		}
+
+		// 複数スキルロスト
+		if (result.getSkillsLost() != null && !result.getSkillsLost().isEmpty()) {
+			for (String skillName : result.getSkillsLost()) {
+				player.removeSkill(skillName);
+				String logMessage = "【技能「" + skillName + "」を失った】";
+				printFloorDividerIfNeeded(gameState);
+				ui.printImportantLog(logMessage);
 			}
 		}
 

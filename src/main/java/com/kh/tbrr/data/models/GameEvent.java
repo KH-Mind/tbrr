@@ -224,6 +224,7 @@ public class GameEvent {
 		private List<String> itemsGained; // 入手するアイテムリスト
 		private List<String> itemsLost; // 失うアイテムリスト
 		private List<String> skillsGained; // 習得するスキルリスト
+		private List<String> skillsLost; // 失うスキルリスト
 		private List<String> flagsToAdd; // 追加するフラグ
 		private List<String> flagsToRemove; // 削除するフラグ
 		private Object hpChange; // HP変化
@@ -236,6 +237,7 @@ public class GameEvent {
 			this.itemsGained = new ArrayList<>();
 			this.itemsLost = new ArrayList<>();
 			this.skillsGained = new ArrayList<>();
+			this.skillsLost = new ArrayList<>();
 			this.flagsToAdd = new ArrayList<>();
 			this.flagsToRemove = new ArrayList<>();
 		}
@@ -279,6 +281,14 @@ public class GameEvent {
 
 		public void setSkillsGained(List<String> skillsGained) {
 			this.skillsGained = skillsGained;
+		}
+
+		public List<String> getSkillsLost() {
+			return skillsLost;
+		}
+
+		public void setSkillsLost(List<String> skillsLost) {
+			this.skillsLost = skillsLost;
 		}
 
 		public Object getHpChange() {
@@ -492,7 +502,9 @@ public class GameEvent {
 		private String itemLostRandom; // ランダム喪失 (例: "common", "magic")
 		private List<String> itemLostRandomList; // 複数ランダム喪失 (例: ["common", "common", "magic"])
 		private String skillGained;
+		private String skillLost; // 単一スキル喪失
 		private List<String> skillsGained; // 複数スキル習得
+		private List<String> skillsLost; // 複数スキル喪失
 		private int chance;
 		private String condition;
 		private String nextEventId;
@@ -535,6 +547,7 @@ public class GameEvent {
 			this.itemsGained = new ArrayList<>();
 			this.itemsLost = new ArrayList<>();
 			this.skillsGained = new ArrayList<>();
+			this.skillsLost = new ArrayList<>();
 			this.flagsToAdd = new ArrayList<>();
 			this.flagsToRemove = new ArrayList<>();
 		}
@@ -646,6 +659,14 @@ public class GameEvent {
 			this.skillGained = skillGained;
 		}
 
+		public String getSkillLost() {
+			return skillLost;
+		}
+
+		public void setSkillLost(String skillLost) {
+			this.skillLost = skillLost;
+		}
+
 		public List<String> getItemLostRandomList() {
 			return itemLostRandomList;
 		}
@@ -661,6 +682,14 @@ public class GameEvent {
 
 		public void setSkillsGained(List<String> skillsGained) {
 			this.skillsGained = skillsGained;
+		}
+
+		public List<String> getSkillsLost() {
+			return skillsLost;
+		}
+
+		public void setSkillsLost(List<String> skillsLost) {
+			this.skillsLost = skillsLost;
 		}
 
 		public int getChance() {

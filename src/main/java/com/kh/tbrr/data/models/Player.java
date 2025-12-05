@@ -223,6 +223,11 @@ public class Player {
         }
     }
 
+    public void removeSkill(String skillName) {
+        skills.remove(skillName);
+        baseSkills.remove(skillName);
+    }
+
     public boolean hasTrait(String traitName) {
         return traits.contains(traitName);
     }
