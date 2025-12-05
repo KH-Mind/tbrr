@@ -361,4 +361,30 @@ public class EventManager {
 
 		return pool;
 	}
+
+	// ========== Static Access for SaveManager ==========
+
+	/**
+	 * IDからイベントを取得する（静的アクセス用）
+	 * SaveManagerから利用されることを想定
+	 * 注意: DataManagerのインスタンスが必要なため、
+	 * アプリケーション起動時にインスタンスを登録する仕組みが必要。
+	 * ここでは簡易的に、DataManagerがシングルトン的に振る舞うか、
+	 * あるいはロード時に一時的にダミーを返す実装とする。
+	 * 
+	 * 現状のアーキテクチャでは静的アクセスが難しいため、
+	 * SaveManager側で「IDだけ保持したダミーイベント」を返し、
+	 * 実際のゲーム再開時にイベントを再ロードする設計を推奨するが、
+	 * GameStateがGameEventオブジェクトを保持しているため、
+	 * ここでは「IDだけ入ったGameEvent」を返す。
+	 */
+	public static GameEvent getEventById(String id) {
+		// 本来はDataManager.loadEvent(id)を呼びたいが、static参照がない。
+		// そのため、IDだけセットしたオブジェクトを返す。
+		// 実際のデータはゲーム進行時に再取得されることを期待する。
+		GameEvent event = new GameEvent();
+		event.setId(id);
+		event.setTitle("Loading...");
+		return event;
+	}
 }

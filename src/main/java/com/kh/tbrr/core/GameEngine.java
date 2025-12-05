@@ -147,8 +147,12 @@ public class GameEngine {
 		}
 
 		this.gameState = new GameState();
+		gameState.setCurrentPlayer(player); // ★追加
 		gameState.setCurrentScenario(scenarioId);
 		gameState.setMaxFloor(currentScenario.getTotalFloors());
+
+		// フロアを0から開始
+		gameState.setCurrentFloor(0);
 
 		showPrologue();
 		gameLoop();
@@ -169,16 +173,63 @@ public class GameEngine {
 		this.player = player;
 
 		this.gameState = new GameState();
+		gameState.setCurrentPlayer(player); // ★追加: GameStateにプレイヤーをセット
 		gameState.setCurrentScenario(scenarioId);
 
 		// フロア設定数をフロア数とする
 		int totalFloors = currentScenario.getStageConfigs().size();
 		gameState.setMaxFloor(totalFloors);
 
-		// フロアを0から開始 フロア０とは、出発前の自宅とかブリーフィングである
+		// フロアを0から開始
 		gameState.setCurrentFloor(0);
 
 		showPrologue();
+		gameLoop();
+	}
+
+	/**
+	 * ゲーム再開（中断データから）
+	 */
+	public void resumeGame(GameState state) {
+		this.gameState = state;
+		this.player = state.getCurrentPlayer();
+
+		String scenarioId = state.getCurrentScenario();
+		this.currentScenario = dataManager.loadScenario(scenarioId);
+		if (currentScenario == null) {
+			ui.printError("シナリオが見つかりません: " + scenarioId);
+			return;
+		}
+
+		// マップ情報の復元（IDからロード）
+		if (state.getCurrentMap() != null && state.getCurrentMap().getId() != null) {
+			// DataManager.loadMapはサブフォルダに対応していない可能性があるため、
+			// 全マップをロード済みのScenarioManagerから取得する
+			GameMap map = scenarioManager.getMap(state.getCurrentMap().getId());
+			if (map != null) {
+				state.setCurrentMap(map);
+			} else {
+				// マップが見つからない場合のフォールバック（IDのみ保持）
+				// またはエラーログを出力
+				System.err.println(
+						"[ERROR] ResumeGame: Map not found in ScenarioManager: " + state.getCurrentMap().getId());
+			}
+
+			// 背景画像の復元
+			if (state.getCurrentBackgroundImage() != null) {
+				ui.showImage("background", state.getCurrentBackgroundImage());
+			}
+			if (state.getCurrentSubImage() != null) {
+				ui.showImage("sub", state.getCurrentSubImage());
+			}
+		}
+
+		// イベント情報の復元（IDからロード）
+		if (state.getCurrentEvent() != null && state.getCurrentEvent().getId() != null) {
+			GameEvent event = dataManager.loadEvent(state.getCurrentEvent().getId());
+			state.setCurrentEvent(event);
+		}
+		// ゲームループ再開
 		gameLoop();
 	}
 
@@ -188,6 +239,9 @@ public class GameEngine {
 	private void showPrologue() {
 		String prologueId = currentScenario.getPrologue();
 		if (prologueId != null && !prologueId.isEmpty()) {
+			// プロローグ中はフロア表示を「プロローグ」にする
+			ui.showFloorInfo(-1, "---");
+
 			ui.printTitleBar(currentScenario.getName());
 
 			// プロローグがイベントIDの場合は、そのイベントを再生
@@ -243,12 +297,21 @@ public class GameEngine {
 			}
 
 			// 地形（マップ）を選択（フロア情報表示の前に実行）
-			GameMap selectedTerrain = selectMap();
-			gameState.setCurrentMap(selectedTerrain);
+			// 中断再開時など、既にマップが設定されている場合はそれを使用する
+			GameMap selectedTerrain = gameState.getCurrentMap();
+			if (selectedTerrain == null) {
+				selectedTerrain = selectMap();
+				gameState.setCurrentMap(selectedTerrain);
 
-			// 背景画像をランダムに選択
-			if (selectedTerrain != null) {
-				initializeMapImages(selectedTerrain);
+				// 背景画像をランダムに選択（新規選択時のみ）
+				if (selectedTerrain != null) {
+					initializeMapImages(selectedTerrain);
+				}
+			} else {
+				// 既存マップがある場合でも、画像が未設定なら初期化（念のため）
+				if (gameState.getCurrentBackgroundImage() == null) {
+					initializeMapImages(selectedTerrain);
+				}
 			}
 
 			if (selectedTerrain == null) {
@@ -308,7 +371,8 @@ public class GameEngine {
 				: "???";
 
 		// GUIでは専用エリアに表示、コンソールではテキストとして表示
-		ui.showFloorInfo(currentFloor, terrainName);
+		// 内部的には0始まりだが、表示上は1始まりにする
+		ui.showFloorInfo(currentFloor + 1, terrainName);
 
 		// プレイヤーのステータス（HP/AP/スキル/アイテム）を完全表示
 		ui.printPlayerStatus(player);

@@ -6,7 +6,7 @@
 
     <groupId>com.kh</groupId>
     <artifactId>tbrr</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.1.1</version>
     <packaging>jar</packaging>
 
     <name>Text-Based Roguelite RPG</name>
@@ -218,7 +218,7 @@
                 <version>1.6.0</version>
                 <configuration>
                     <name>TBRR</name>
-                    <appVersion>0.1.0</appVersion>
+                    <appVersion>0.1.1</appVersion>
                     <vendor>KH Games</vendor>
                     <description>Text-Based Roguelite RPG</description>
                     <destination>portable</destination>

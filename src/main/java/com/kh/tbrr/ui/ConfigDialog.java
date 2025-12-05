@@ -29,12 +29,17 @@ public class ConfigDialog {
     private Stage dialogStage;
     private Stage parentStage;
     private Runnable onReturnToMainMenu;
+    private Runnable onSuspendGame; // 中断用コールバック
     private double bgmVolume = 0.8;
     private double seVolume = 0.8;
 
     public ConfigDialog(Stage parentStage, Runnable onReturnToMainMenu) {
         this.parentStage = parentStage;
         this.onReturnToMainMenu = onReturnToMainMenu;
+    }
+
+    public void setOnSuspendGame(Runnable onSuspendGame) {
+        this.onSuspendGame = onSuspendGame;
     }
 
     public void show() {
@@ -85,7 +90,7 @@ public class ConfigDialog {
         titleLabel.setFont(Font.font("Arial", 18));
         titleLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
 
-        Button returnToMenuButton = new Button("メインメニューに戻る");
+        Button returnToMenuButton = new Button("タイトルに戻る"); // 現在、実質的にメインメニューがタイトルである。
         returnToMenuButton.setPrefWidth(250);
         returnToMenuButton.setPrefHeight(40);
         returnToMenuButton.setFont(Font.font("Arial", 14));
@@ -98,6 +103,20 @@ public class ConfigDialog {
         exitGameButton.setOnAction(e -> confirmExitGame());
 
         content.getChildren().addAll(titleLabel, returnToMenuButton, exitGameButton);
+
+        Button suspendGameButton = new Button("ゲームを中断する（タイトルへ）");
+        suspendGameButton.setPrefWidth(250);
+        suspendGameButton.setPrefHeight(40);
+        suspendGameButton.setFont(Font.font("Arial", 14));
+        suspendGameButton.setOnAction(e -> confirmSuspendGame());
+
+        // 中断コールバックがない場合はボタンを無効化
+        if (onSuspendGame == null) {
+            suspendGameButton.setDisable(true);
+        }
+
+        content.getChildren().clear();
+        content.getChildren().addAll(titleLabel, returnToMenuButton, suspendGameButton, exitGameButton);
 
         tab.setContent(content);
         return tab;
@@ -211,6 +230,49 @@ public class ConfigDialog {
         if (result.isPresent() && result.get() == ButtonType.OK) {
             dialogStage.close();
             Platform.exit();
+        }
+    }
+
+    private void confirmSuspendGame() {
+        Alert confirmDialog = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmDialog.setTitle("確認");
+        confirmDialog.setHeaderText("ゲームを中断しますか？");
+        confirmDialog.setContentText("現在の状態を保存してメインメニューに戻ります。\n再開時はこの状態から始まります。");
+
+        Optional<ButtonType> result = confirmDialog.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            try {
+                // GameEngineからGameStateを取得する必要があるが、
+                // ConfigDialogはGameEngineを知らない。
+                // しかし、GameStateはシングルトンではないため、どこかから渡してもらう必要がある。
+                // 設計上、ConfigDialogはUIの一部であり、ロジックへのアクセスが弱い。
+
+                // 解決策: onReturnToMainMenuのようなコールバックを追加するか、
+                // GameEngineへの参照を渡すように変更する。
+                // ここでは、GameStateへのアクセス手段がないため、
+                // 簡易的に「GameEngine.getInstance()」的なものがあればよいが、ない。
+
+                // ConfigDialogのコンストラクタを変更してGameEngineを受け取るのが正しいが、
+                // 呼び出し元（JavaFXUI）の変更も必要になる。
+
+                // 一旦、JavaFXUIに「中断処理」を委譲するコールバックを追加する形にするのが安全。
+                if (onSuspendGame != null) {
+                    onSuspendGame.run();
+                    dialogStage.close();
+                } else {
+                    // コールバックが設定されていない場合（既存コードとの互換性のため）
+                    Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+                    errorAlert.setTitle("エラー");
+                    errorAlert.setContentText("中断機能が正しく設定されていません。");
+                    errorAlert.showAndWait();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+                errorAlert.setTitle("エラー");
+                errorAlert.setContentText("保存に失敗しました: " + e.getMessage());
+                errorAlert.showAndWait();
+            }
         }
     }
 

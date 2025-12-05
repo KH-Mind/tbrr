@@ -71,9 +71,6 @@ public class JavaFXUI implements GameUI {
 	// 重要ログ置き場
 	private TextArea importantLogArea;
 
-	// メインメニューに戻るコールバック
-	private Runnable returnToMainMenuCallback;
-
 	// 入力待機用
 	private CountDownLatch inputLatch;
 	private AtomicReference<String> inputResult = new AtomicReference<>("");
@@ -954,7 +951,11 @@ public class JavaFXUI implements GameUI {
 	@Override
 	public void showFloorInfo(int floorNumber, String terrainName) {
 		Platform.runLater(() -> {
-			mapInfoLabel.setText(String.format("フロア%d | 現在の地形：%s", floorNumber, terrainName));
+			if (floorNumber <= 0) {
+				mapInfoLabel.setText(String.format("プロローグ | 現在の地形：%s", terrainName));
+			} else {
+				mapInfoLabel.setText(String.format("フロア%d | 現在の地形：%s", floorNumber, terrainName));
+			}
 		});
 	}
 
@@ -1044,8 +1045,32 @@ public class JavaFXUI implements GameUI {
 	 * 
 	 * @param callback メインメニューに戻る際に実行されるRunnable
 	 */
+	private Runnable returnToMainMenuCallback;
+	// 中断処理用コールバック
+	private Runnable onSuspendGameCallback;
+
 	public void setReturnToMainMenuCallback(Runnable callback) {
 		this.returnToMainMenuCallback = callback;
+	}
+
+	public void setOnSuspendGameCallback(Runnable callback) {
+		this.onSuspendGameCallback = callback;
+	}
+
+	/**
+	 * コンフィグダイアログを表示
+	 */
+	private void showConfigDialog() {
+		Platform.runLater(() -> {
+			ConfigDialog dialog = new ConfigDialog(stage, returnToMainMenuCallback);
+			// 中断コールバックを設定（プレイヤーが存在する場合のみ＝ゲーム開始後のみ）
+			if (currentPlayer != null) {
+				dialog.setOnSuspendGame(onSuspendGameCallback);
+			} else {
+				dialog.setOnSuspendGame(null);
+			}
+			dialog.show();
+		});
 	}
 
 	/**
@@ -1083,20 +1108,6 @@ public class JavaFXUI implements GameUI {
 			statusDialog.getDialogPane().setPrefHeight(500);
 
 			statusDialog.showAndWait();
-		});
-	}
-
-	/**
-	 * コンフィグダイアログを表示
-	 */
-	private void showConfigDialog() {
-		Platform.runLater(() -> {
-			ConfigDialog configDialog = new ConfigDialog(stage, () -> {
-				if (returnToMainMenuCallback != null) {
-					returnToMainMenuCallback.run();
-				}
-			});
-			configDialog.show();
 		});
 	}
 

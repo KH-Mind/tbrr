@@ -12,7 +12,7 @@ module com.kh.tbrr {
 	// これにより、リフレクション（GsonのJSON変換など）が正しく動作します
 	opens com.kh.tbrr to javafx.graphics;
 	opens com.kh.tbrr.ui to javafx.fxml;
-	opens com.kh.tbrr.core to javafx.fxml;
+	opens com.kh.tbrr.core;
 	opens com.kh.tbrr.manager to javafx.fxml;
 	opens com.kh.tbrr.data.models;
 	opens com.kh.tbrr.system;

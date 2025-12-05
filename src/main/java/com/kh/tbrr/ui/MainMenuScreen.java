@@ -60,6 +60,32 @@ public class MainMenuScreen {
 		buttonBox.setAlignment(Pos.BOTTOM_RIGHT);
 
 		// メニューボタン
+		// ★追加: 中断データがある場合は「続きから」ボタンを表示
+		if (com.kh.tbrr.manager.SaveManager.hasSuspendData()) {
+			Button continueButton = createMenuButton("続きから");
+			continueButton.setStyle(
+					"-fx-background-color: #446644; " + // 緑色っぽくして目立たせる
+							"-fx-text-fill: white; " +
+							"-fx-border-color: #668866; " +
+							"-fx-border-width: 2px;");
+			continueButton.setOnMouseEntered(e -> {
+				continueButton.setStyle(
+						"-fx-background-color: #557755; " +
+								"-fx-text-fill: white; " +
+								"-fx-border-color: #88aa88; " +
+								"-fx-border-width: 2px;");
+			});
+			continueButton.setOnMouseExited(e -> {
+				continueButton.setStyle(
+						"-fx-background-color: #446644; " +
+								"-fx-text-fill: white; " +
+								"-fx-border-color: #668866; " +
+								"-fx-border-width: 2px;");
+			});
+			continueButton.setOnAction(e -> onContinueGame());
+			buttonBox.getChildren().add(continueButton);
+		}
+
 		Button selectCharButton = createMenuButton("キャラクターの選択");
 		Button createCharButton = createMenuButton("キャラクターの作成");
 		Button manualButton = createMenuButton("マニュアル");
@@ -436,6 +462,26 @@ public class MainMenuScreen {
 				}
 				gameUI.print("");
 
+				// ★重要: 中断コールバックをGameEngineを使って正しく設定（シナリオ選択完了後）
+				gameUI.setOnSuspendGameCallback(() -> {
+					try {
+						// エンジンから現在の状態を取得して保存
+						com.kh.tbrr.manager.SaveManager.saveSuspendData(engine.getGameState());
+
+						// メインメニューに戻る
+						Platform.runLater(() -> show());
+
+					} catch (Exception e) {
+						Platform.runLater(() -> {
+							Alert alert = new Alert(Alert.AlertType.ERROR);
+							alert.setTitle("エラー");
+							alert.setContentText("保存に失敗しました: " + e.getMessage());
+							alert.showAndWait();
+						});
+						e.printStackTrace();
+					}
+				});
+
 				// 9. ゲーム開始（プレイヤーは既に選択済み）
 				engine.startNewGameWithPlayer(selectedScenarioId, player);
 
@@ -460,6 +506,159 @@ public class MainMenuScreen {
 			}
 		});
 		gameThread.setDaemon(true); // デーモンスレッドに設定（メインスレッド終了時に自動終了）
+		gameThread.start();
+	}
+
+	/**
+	 * 続きから（中断データのロード）
+	 */
+	private void onContinueGame() {
+		try {
+			// 中断データをロード
+			com.kh.tbrr.core.GameState state = com.kh.tbrr.manager.SaveManager.loadSuspendData();
+			if (state == null) {
+				showAlert("エラー", "中断データの読み込みに失敗しました。");
+				return;
+			}
+
+			// プレイヤー情報を取得
+			Player player = state.getCurrentPlayer();
+			if (player == null) {
+				showAlert("エラー", "プレイヤー情報の復元に失敗しました。");
+				return;
+			}
+
+			// ファイルを削除（中断セーブの仕様）
+			com.kh.tbrr.manager.SaveManager.deleteSuspendData();
+
+			// ゲーム画面を初期化して再開
+			resumeGame(state, player);
+
+		} catch (Exception e) {
+			showAlert("エラー", "再開処理中にエラーが発生しました: " + e.getMessage());
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * ゲームを再開する（GameStateを指定して開始）
+	 */
+	private void resumeGame(com.kh.tbrr.core.GameState state, Player player) {
+		// 別スレッドでゲームを実行
+		Thread gameThread = new Thread(() -> {
+			try {
+				// 1. DeveloperModeを作成
+				DeveloperMode developerMode = new DeveloperMode();
+
+				// 2. JavaFXUIを作成
+				gameUI = new JavaFXUI(stage, developerMode);
+
+				// メインメニューに戻るコールバックを設定
+				gameUI.setReturnToMainMenuCallback(() -> {
+					Platform.runLater(() -> {
+						show();
+					});
+				});
+
+				// ★追加: 中断コールバックを設定
+				gameUI.setOnSuspendGameCallback(() -> {
+					try {
+						// GameEngineインスタンスが取得できないため、
+						// ここでGameStateを保存するのは難しい。
+						// しかし、GameEngineはシングルトンではない。
+						// 解決策: GameEngineにstaticなcurrentInstanceを持たせるか、
+						// コールバック内でGameStateにアクセスできるようにする。
+
+						// ここでは、GameEngineのインスタンスへの参照がないため、
+						// 暫定的に「保存できません」とするか、
+						// あるいはGameEngine側でコールバックを登録しなおす必要がある。
+						// → GameEngine.startNewGameWithPlayer などを呼んだ後に、
+						// GameEngine側でUIに正しいコールバックをセットしてもらうのが筋。
+						// なので、ここでは空実装またはエラー表示にしておく。
+						// 実際にはGameEngineが起動後に上書きするはず。
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				});
+
+				// 3. DeveloperModeにUIを設定
+				developerMode.setUI(gameUI);
+
+				// 4. 画面を表示
+				Platform.runLater(() -> gameUI.initializeGameScreen());
+
+				// 少し待機
+				Thread.sleep(500);
+
+				// 5. DataManagerを作成
+				DataManager dataManager = new DataManager(developerMode);
+
+				// 6. GameEngineを作成
+				GameEngine engine = new GameEngine(
+						developerMode,
+						gameUI,
+						dataManager);
+
+				// ★重要: 中断コールバックをGameEngineを使って正しく設定
+				gameUI.setOnSuspendGameCallback(() -> {
+					try {
+						// エンジンから現在の状態を取得して保存
+						com.kh.tbrr.manager.SaveManager.saveSuspendData(engine.getGameState());
+
+						// メインメニューに戻る
+						Platform.runLater(() -> show());
+
+					} catch (Exception e) {
+						Platform.runLater(() -> {
+							Alert alert = new Alert(Alert.AlertType.ERROR);
+							alert.setTitle("エラー");
+							alert.setContentText("保存に失敗しました: " + e.getMessage());
+							alert.showAndWait();
+						});
+						e.printStackTrace();
+					}
+				});
+
+				// 7. プレイヤー情報を表示
+				gameUI.printPlayerStatus(player);
+
+				// 8. 背景画像などを復元
+				Platform.runLater(() -> {
+					if (state.getCurrentBackgroundImage() != null) {
+						gameUI.updateBackgroundImage(state.getCurrentBackgroundImage());
+					}
+					if (state.getCurrentSubImage() != null) {
+						gameUI.updateSubImage(state.getCurrentSubImage());
+					}
+				});
+
+				// 9. ゲーム再開（GameStateをセットしてループ開始）
+				gameUI.print("");
+				gameUI.print("ゲームを再開します...");
+				gameUI.print("");
+
+				engine.resumeGame(state); // GameEngineにresumeGameメソッドが必要
+
+				// ゲーム終了後
+				gameUI.print("");
+				gameUI.print("=".repeat(60));
+				gameUI.print("ゲームが終了しました。");
+				gameUI.print("=".repeat(60));
+				gameUI.print("");
+				gameUI.waitForEnter();
+
+				Platform.runLater(() -> {
+					show();
+				});
+
+			} catch (Exception e) {
+				Platform.runLater(() -> {
+					showAlert("エラー", "ゲーム実行中にエラーが発生しました: " + e.getMessage());
+				});
+				e.printStackTrace();
+			}
+		});
+		gameThread.setDaemon(true);
 		gameThread.start();
 	}
 
