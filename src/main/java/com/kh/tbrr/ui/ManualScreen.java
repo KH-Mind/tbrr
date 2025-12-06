@@ -1,7 +1,18 @@
 package com.kh.tbrr.ui;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -25,11 +36,15 @@ import javafx.util.Callback;
 /**
  * マニュアル画面
  * 左側に検索付きツリーメニュー、右側に内容を表示する構成
+ * コンテンツは外部JSONファイルから読み込む
  */
 public class ManualScreen {
 
+    private static final String MANUAL_ROOT = "data/manual/";
+
     private Stage stage;
     private Runnable onBack;
+    private Gson gson;
 
     // UI Components
     private TextField searchField;
@@ -45,6 +60,7 @@ public class ManualScreen {
     public ManualScreen(Stage stage) {
         this.stage = stage;
         this.allItems = new ArrayList<>();
+        this.gson = new GsonBuilder().create();
     }
 
     /**
@@ -82,7 +98,7 @@ public class ManualScreen {
         stage.setTitle("T.B.R.R. ゲームマニュアル");
         stage.show();
 
-        // データ初期化
+        // データ初期化（JSONから読み込み）
         initData();
 
         // 初期選択（最初の項目を開く）
@@ -113,14 +129,6 @@ public class ManualScreen {
         // ツリービュー
         treeView = new TreeView<>();
         // 縞々模様（黒の濃淡）を有効にする設定
-        // -fx-alternative-row-fill-visible: true; で奇数・偶数行の色分けを有効化
-        // -fx-control-inner-background: ベースの色
-        // -fx-control-inner-background-alt: 縞々の色
-        // -fx-selection-bar: 選択時の背景色（デフォルトの濃い水色 #0096C9）
-        // -fx-selection-bar-non-focused: 非フォーカス時の選択背景色（同じ色に統一）
-        // -fx-focus-color: transparent; フォーカス時の枠線を消す
-        // -fx-faint-focus-color: transparent; フォーカス時の薄い枠線を消す
-        // -fx-fixed-cell-size: 30; セルの高さを固定してズレを完全に防ぐ
         treeView.setStyle("-fx-font-size: 16px; " +
                 "-fx-alternative-row-fill-visible: true; " +
                 "-fx-control-inner-background: #333132; " +
@@ -146,14 +154,8 @@ public class ManualScreen {
                             setGraphic(null);
                             setStyle("-fx-background-color: transparent;");
                         } else {
-                            // 原点回帰：標準のテキスト表示を使用し、CSSで余白と枠線を完全に固定する
                             setText(item.getTitle());
-                            setGraphic(null); // グラフィックは使用しない
-
-                            // -fx-border-style: none; 枠線スタイルなし
-                            // -fx-border-width: 0; 枠線幅0
-                            // -fx-padding: 8px 5px; 上下8px 左右5px（高さ30pxに合わせて調整）
-                            // -fx-background-insets: 0; 背景のインセットなし
+                            setGraphic(null);
                             setStyle(
                                     "-fx-text-fill: white; -fx-background-color: transparent; -fx-border-style: none; -fx-border-width: 0; -fx-padding: 5px; -fx-background-insets: 0; -fx-font-smoothing-type: lcd;");
                         }
@@ -216,7 +218,7 @@ public class ManualScreen {
         contentTitleLabel = new Label("タイトル");
         contentTitleLabel.setFont(Font.font("Arial", 24));
         contentTitleLabel.setStyle(
-                "-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 24px; -fx-font-smoothing-type: lcd;"); // 白色に変更
+                "-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 24px; -fx-font-smoothing-type: lcd;");
         contentTitleLabel.setWrapText(true);
         contentTitleLabel.setFocusTraversable(false);
 
@@ -228,8 +230,7 @@ public class ManualScreen {
         contentBodyLabel.setFont(Font.font("Arial", 18));
         contentBodyLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-smoothing-type: lcd;");
         contentBodyLabel.setWrapText(true);
-        contentBodyLabel.setFocusTraversable(false); // フォーカスを受け取らないようにする
-        // 行間などを調整したい場合はCSSで -fx-line-spacing などを指定可能
+        contentBodyLabel.setFocusTraversable(false);
 
         // スクロールペインに入れる
         VBox contentBox = new VBox(15);
@@ -237,10 +238,10 @@ public class ManualScreen {
         contentBox.setStyle("-fx-background-color: transparent;");
 
         contentScrollPane = new ScrollPane(contentBox);
-        contentScrollPane.setFitToWidth(true); // 横幅を合わせる
-        contentScrollPane.setStyle("-fx-background: #333132; -fx-background-color: transparent;"); // 背景色統一
-        contentScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER); // 横スクロールバーは出さない
-        contentScrollPane.setFocusTraversable(false); // スクロールペインもフォーカスを受け取らない
+        contentScrollPane.setFitToWidth(true);
+        contentScrollPane.setStyle("-fx-background: #333132; -fx-background-color: transparent;");
+        contentScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        contentScrollPane.setFocusTraversable(false);
 
         VBox.setVgrow(contentScrollPane, Priority.ALWAYS);
         pane.getChildren().add(contentScrollPane);
@@ -253,89 +254,84 @@ public class ManualScreen {
      */
     private void updateContent(ManualItem item) {
         contentTitleLabel.setText(item.getTitle());
-        contentBodyLabel.setText(item.getContent());
+
+        // 子項目の場合はJSONファイルから本文を読み込む
+        if (item.getFilePath() != null && !item.getFilePath().isEmpty()) {
+            String content = loadContentFromFile(item.getFilePath());
+            contentBodyLabel.setText(content != null ? content : item.getContent());
+        } else {
+            contentBodyLabel.setText(item.getContent());
+        }
+
         // スクロールを一番上に戻す
         contentScrollPane.setVvalue(0);
     }
 
     /**
-     * データを初期化（ここでテキストを設定します）
+     * JSONファイルからコンテンツを読み込む
+     */
+    private String loadContentFromFile(String filePath) {
+        try {
+            String fullPath = MANUAL_ROOT + filePath;
+            String json = loadResourceContent(fullPath);
+            JsonObject obj = gson.fromJson(json, JsonObject.class);
+            if (obj != null && obj.has("content")) {
+                return obj.get("content").getAsString();
+            }
+        } catch (Exception e) {
+            System.err.println("[ManualScreen] コンテンツ読み込みエラー: " + filePath + " - " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * データを初期化（JSONから読み込み）
      */
     private void initData() {
-        rootNode = new TreeItem<>(new ManualItem("Root", ""));
+        rootNode = new TreeItem<>(new ManualItem("Root", "", null));
         rootNode.setExpanded(true);
         allItems.clear();
 
-        // --- 1. マニュアル ---
-        TreeItem<ManualItem> manualRoot = createItem("マニュアル", "ゲームの基本的な遊び方について解説します。\n左のツリーから項目を選んでください。");
-        manualRoot.setExpanded(true); // マニュアルは開いておく
-        rootNode.getChildren().add(manualRoot);
+        try {
+            // manual_index.jsonを読み込む
+            String indexJson = loadResourceContent(MANUAL_ROOT + "manual_index.json");
+            JsonObject indexObj = gson.fromJson(indexJson, JsonObject.class);
 
-        manualRoot.getChildren().add(createItem("はじめに",
-                "【チュートリアル兼プロローグ】\n\n" +
-                        "（ここにプロローグやチュートリアルのテキストを入力してください）\n\n" +
-                        "テキストは ManualScreen.java の initData() メソッド内で編集できます。"));
+            if (indexObj != null && indexObj.has("sections")) {
+                JsonArray sections = indexObj.getAsJsonArray("sections");
 
-        manualRoot.getChildren().add(createItem("基本操作",
-                "【基本操作】\n\n" +
-                        "（マウス操作やショートカットキーなどの説明）"));
+                for (JsonElement sectionElem : sections) {
+                    JsonObject section = sectionElem.getAsJsonObject();
+                    String id = section.get("id").getAsString();
+                    String title = section.get("title").getAsString();
+                    String description = section.has("description") ? section.get("description").getAsString() : "";
 
-        // --- 2. ヒント集 ---
-        TreeItem<ManualItem> hintsRoot = createItem("ヒント集", "冒険に役立つヒント集です。");
-        hintsRoot.setExpanded(false); // 最初は閉じておく
-        rootNode.getChildren().add(hintsRoot);
+                    // 大項目を作成（descriptionは内部コーディング）
+                    TreeItem<ManualItem> sectionNode = createItem(title, description, null);
+                    sectionNode.setExpanded("manual".equals(id)); // マニュアルのみ開いておく
+                    rootNode.getChildren().add(sectionNode);
 
-        hintsRoot.getChildren().add(createItem("戦闘のコツ",
-                "【戦闘のコツ】\n\n" +
-                        "（敵の弱点や、スキルの使い方など）"));
+                    // 子項目を追加
+                    if (section.has("children")) {
+                        JsonArray children = section.getAsJsonArray("children");
+                        for (JsonElement childElem : children) {
+                            JsonObject child = childElem.getAsJsonObject();
+                            String childTitle = child.get("title").getAsString();
+                            String childFile = child.has("file") ? child.get("file").getAsString() : null;
 
-        hintsRoot.getChildren().add(createItem("探索のアドバイス",
-                "【探索のアドバイス】\n\n" +
-                        "（食料の管理や、イベントの選び方など）"));
-
-        // --- 3. 世界設定（旧：用語） ---
-        TreeItem<ManualItem> worldRoot = createItem("世界設定", "T.B.R.R.の世界観や用語についての解説です。");
-        worldRoot.setExpanded(false); // 最初は閉じておく
-        rootNode.getChildren().add(worldRoot);
-
-        // ア行～ワ行（項目のみ作成、中身は空またはプレースホルダー）
-        worldRoot.getChildren().add(createItem("ア行",
-                "【ア行の用語】\n\n" +
-                        "■ 用語A\n" +
-                        "  用語Aの説明文です。\n" +
-                        "  用語Aの説明文です。\n\n" +
-                        "■ 用語B\n" +
-                        "  用語Bの説明文です。"));
-        worldRoot.getChildren().add(createItem("カ行", "【カ行の用語】\n\n（ここにカ行の用語を記述）"));
-        worldRoot.getChildren().add(createItem("サ行", "【サ行の用語】\n\n（ここにサ行の用語を記述）"));
-        worldRoot.getChildren().add(createItem("タ行", "【タ行の用語】\n\n（ここにタ行の用語を記述）"));
-        worldRoot.getChildren().add(createItem("ナ行", "【ナ行の用語】\n\n（ここにナ行の用語を記述）"));
-        worldRoot.getChildren().add(createItem("ハ行", "【ハ行の用語】\n\n（ここにハ行の用語を記述）"));
-        worldRoot.getChildren().add(createItem("マ行", "【マ行の用語】\n\n（ここにマ行の用語を記述）"));
-        worldRoot.getChildren().add(createItem("ヤ行", "【ヤ行の用語】\n\n（ここにヤ行の用語を記述）"));
-        worldRoot.getChildren().add(createItem("ラ行", "【ラ行の用語】\n\n（ここにラ行の用語を記述）"));
-        worldRoot.getChildren().add(createItem("ワ行", "【ワ行の用語】\n\n（ここにワ行の用語を記述）"));
-
-        // --- 4. クレジット ---
-        TreeItem<ManualItem> creditRoot = createItem("クレジット", "T.B.R.R. 制作クレジットです。");
-        creditRoot.setExpanded(false); // 最初は閉じておく
-        rootNode.getChildren().add(creditRoot);
-
-        // サブ項目：使用素材
-        creditRoot.getChildren().add(createItem("使用素材",
-                "【使用素材】\n\n" +
-                        "■ 画像素材\n" +
-                        "・(素材サイト名など)\n\n" +
-                        "■ 音響素材\n" +
-                        "・(素材サイト名など)"));
-
-        // サブ項目：ライブラリ
-        creditRoot.getChildren().add(createItem("ライブラリ",
-                "【使用ライブラリ】\n\n" +
-                        "■ JavaFX\n" +
-                        "  OpenJFX Project\n\n" +
-                        "■ Gson\n" +
-                        "  Google LLC"));
+                            // 子項目を作成（本文は選択時にJSONから読み込む）
+                            TreeItem<ManualItem> childNode = createItem(childTitle, "読み込み中...", childFile);
+                            sectionNode.getChildren().add(childNode);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("[ManualScreen] インデックス読み込みエラー: " + e.getMessage());
+            e.printStackTrace();
+            // フォールバック：エラーメッセージを表示
+            rootNode.getChildren().add(createItem("エラー", "マニュアルデータの読み込みに失敗しました。\n" + e.getMessage(), null));
+        }
 
         treeView.setRoot(rootNode);
     }
@@ -343,11 +339,11 @@ public class ManualScreen {
     /**
      * ツリーアイテム作成ヘルパー
      */
-    private TreeItem<ManualItem> createItem(String title, String content) {
-        ManualItem item = new ManualItem(title, content);
+    private TreeItem<ManualItem> createItem(String title, String content, String filePath) {
+        ManualItem item = new ManualItem(title, content, filePath);
         TreeItem<ManualItem> treeItem = new TreeItem<>(item);
-        treeItem.setExpanded(false); // デフォルトでは閉じておく
-        allItems.add(treeItem); // 検索用にリストにも追加
+        treeItem.setExpanded(false);
+        allItems.add(treeItem);
         return treeItem;
     }
 
@@ -360,7 +356,7 @@ public class ManualScreen {
             return;
         }
 
-        TreeItem<ManualItem> filteredRoot = new TreeItem<>(new ManualItem("Root", ""));
+        TreeItem<ManualItem> filteredRoot = new TreeItem<>(new ManualItem("Root", "", null));
         filteredRoot.setExpanded(true);
 
         for (TreeItem<ManualItem> child : rootNode.getChildren()) {
@@ -374,22 +370,28 @@ public class ManualScreen {
      * 再帰的にアイテムをフィルタリング
      */
     private void filterItem(TreeItem<ManualItem> item, String filter, TreeItem<ManualItem> newParent) {
-        boolean match = item.getValue().getTitle().contains(filter) || item.getValue().getContent().contains(filter);
+        ManualItem manualItem = item.getValue();
+
+        // タイトルでマッチを確認
+        boolean match = manualItem.getTitle().contains(filter);
+
+        // コンテンツでもマッチを確認（ファイルから読み込んで検索）
+        if (!match && manualItem.getFilePath() != null) {
+            String content = loadContentFromFile(manualItem.getFilePath());
+            if (content != null && content.contains(filter)) {
+                match = true;
+            }
+        } else if (!match) {
+            match = manualItem.getContent().contains(filter);
+        }
 
         // 子要素をチェック
         List<TreeItem<ManualItem>> matchingChildren = new ArrayList<>();
         for (TreeItem<ManualItem> child : item.getChildren()) {
-            // フィルタリング用の一時的な親を作成して再帰呼び出し（構造を維持するため）
-            // ここでは単純化のため、マッチした子だけをフラットに追加するか、構造を維持するかの選択になる。
-            // 構造維持は少し複雑なので、今回は「親がマッチすれば子も全部表示」「子がマッチすれば親も表示」のロジックにする。
-
-            // 簡易実装: 自分がマッチするか、子がマッチするか
             if (hasMatchingChild(child, filter)) {
-                // 子をディープコピーして追加する必要があるが、JavaFXのTreeItemは親を1つしか持てないため、
-                // 新しいTreeItemを作る必要がある。
                 TreeItem<ManualItem> newChild = new TreeItem<>(child.getValue());
                 newChild.setExpanded(true);
-                filterItem(child, filter, newChild); // 再帰的に子を追加
+                filterItem(child, filter, newChild);
                 matchingChildren.add(newChild);
             }
         }
@@ -404,9 +406,23 @@ public class ManualScreen {
 
     // ヘルパー：自分または子孫にマッチするものがあるか
     private boolean hasMatchingChild(TreeItem<ManualItem> item, String filter) {
-        if (item.getValue().getTitle().contains(filter) || item.getValue().getContent().contains(filter)) {
+        ManualItem manualItem = item.getValue();
+
+        // タイトルでマッチ
+        if (manualItem.getTitle().contains(filter)) {
             return true;
         }
+
+        // コンテンツでマッチ（ファイルから読み込んで検索）
+        if (manualItem.getFilePath() != null) {
+            String content = loadContentFromFile(manualItem.getFilePath());
+            if (content != null && content.contains(filter)) {
+                return true;
+            }
+        } else if (manualItem.getContent().contains(filter)) {
+            return true;
+        }
+
         for (TreeItem<ManualItem> child : item.getChildren()) {
             if (hasMatchingChild(child, filter)) {
                 return true;
@@ -416,15 +432,77 @@ public class ManualScreen {
     }
 
     /**
+     * リソースコンテンツを読み込む（jpackage対応）
+     * DataManagerと同様のロジック
+     */
+    private String loadResourceContent(String path) throws IOException {
+        // 1. ローカルファイルシステム (優先: MOD/ユーザーデータ)
+        File file = new File(path);
+        if (file.exists()) {
+            return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+        }
+
+        // 2. 開発環境用フォールバック (src/main/resources)
+        File devFile = new File("src/main/resources/" + path);
+        if (devFile.exists()) {
+            return new String(Files.readAllBytes(devFile.toPath()), StandardCharsets.UTF_8);
+        }
+
+        // 3. jpackageポータブル版用パス（app/data/...）
+        String jpackagePath = "app/" + path;
+        File jpackageFile = new File(jpackagePath);
+        if (jpackageFile.exists()) {
+            return new String(Files.readAllBytes(jpackageFile.toPath()), StandardCharsets.UTF_8);
+        }
+
+        // 4. クラスパス (JAR内 / ビルド済みリソース)
+        String resourcePath = path.replace("\\", "/");
+
+        // A. 相対パスで試行
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+            if (is != null) {
+                return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+            }
+        }
+
+        // B. 絶対パス（先頭スラッシュあり）で試行
+        String absolutePath = "/" + resourcePath;
+        try (InputStream is = getClass().getResourceAsStream(absolutePath)) {
+            if (is != null) {
+                return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+            }
+        }
+
+        // C. data/ を除いたパスでも試行
+        if (resourcePath.startsWith("data/")) {
+            String strippedPath = resourcePath.substring(5);
+            try (InputStream is = getClass().getClassLoader().getResourceAsStream(strippedPath)) {
+                if (is != null) {
+                    return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+                }
+            }
+            try (InputStream is = getClass().getResourceAsStream("/" + strippedPath)) {
+                if (is != null) {
+                    return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+                }
+            }
+        }
+
+        throw new IOException("Resource not found: " + path);
+    }
+
+    /**
      * マニュアル項目データクラス
      */
     public static class ManualItem {
         private String title;
         private String content;
+        private String filePath; // JSONファイルへのパス（子項目用）
 
-        public ManualItem(String title, String content) {
+        public ManualItem(String title, String content, String filePath) {
             this.title = title;
             this.content = content;
+            this.filePath = filePath;
         }
 
         public String getTitle() {
@@ -433,6 +511,10 @@ public class ManualScreen {
 
         public String getContent() {
             return content;
+        }
+
+        public String getFilePath() {
+            return filePath;
         }
 
         @Override
