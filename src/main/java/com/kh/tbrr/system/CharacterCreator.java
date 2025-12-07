@@ -149,8 +149,8 @@ public class CharacterCreator {
         ui.print("2. 魔法使い（スキル：知力、耐久力、魔法の知識、古代の知識、薬識、機巧）");
         ui.print("3. レンジャー（スキル：敏捷力、判断力、隠密、自然の知識、料理、薬識）");
         ui.print("4. 盗賊（スキル：敏捷力、知力、軽業、隠密、解錠術、機巧）");
-        ui.print("5. 商人（スキル：判断力、魅力、話術、商才、解錠術、魔法の知識）");
-        ui.print("6. 旅芸人（スキル：筋力、魅力、運動、古代の知識、商才、話術）");
+        ui.print("5. 商人（スキル：判断力、魅力、話術、経世、解錠術、魔法の知識）");
+        ui.print("6. 旅芸人（スキル：筋力、魅力、運動、古代の知識、経世、話術）");
         ui.print("7. 観光客（技能なし、ハードモード）");
         ui.print("選択 (1-7): ");
         int choice = getIntInput(1, 7, 1);
@@ -200,7 +200,7 @@ public class CharacterCreator {
                 player.addBaseSkill("判断力");
                 player.addBaseSkill("魅力");
                 player.addBaseSkill("話術");
-                player.addBaseSkill("商才");
+                player.addBaseSkill("経世");
                 player.addBaseSkill("解錠術");
                 player.addBaseSkill("魔法の知識");
                 player.addItem("merchant_ledger");
@@ -211,7 +211,7 @@ public class CharacterCreator {
                 player.addBaseSkill("魅力");
                 player.addBaseSkill("運動");
                 player.addBaseSkill("古代の知識");
-                player.addBaseSkill("商才");
+                player.addBaseSkill("経世");
                 player.addBaseSkill("話術");
                 player.addItem("performance_kit");
                 break;
@@ -268,7 +268,7 @@ public class CharacterCreator {
                 player.addBaseSkill("話術");
                 player.addBaseSkill("解錠術");
                 player.addBaseSkill("料理");
-                player.addBaseSkill("商才");
+                player.addBaseSkill("経世");
                 player.addBaseSkill("薬識");
                 player.addBaseSkill("機巧");
                 break;

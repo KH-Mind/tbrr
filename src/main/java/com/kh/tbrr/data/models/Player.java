@@ -196,7 +196,17 @@ public class Player {
         if (itemId.equals("expedition_map") && inventory.contains("merchant_ledger")) {
             return true;
         }
-        if (itemId.equals("pouch") && inventory.contains("performance_kit")) {
+        // 新職業アイテムの見做し判定
+        if (itemId.equals("silver_knife") && inventory.contains("holy_silver_scissors")) {
+            return true;
+        }
+        if (itemId.equals("mirror") && inventory.contains("hand_mirror")) {
+            return true;
+        }
+        if (itemId.equals("coin_pouch") && inventory.contains("treasure")) {
+            return true;
+        }
+        if (itemId.equals("pickaxe") && inventory.contains("holy_silver_shovel")) {
             return true;
         }
 

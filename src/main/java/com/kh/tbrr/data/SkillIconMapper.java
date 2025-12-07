@@ -31,7 +31,7 @@ public class SkillIconMapper {
         SKILL_TO_ICON.put("話術", "rhetoric.png");
         SKILL_TO_ICON.put("解錠術", "lockpicking.png");
         SKILL_TO_ICON.put("料理", "cooking.png");
-        SKILL_TO_ICON.put("商才", "commerce.png");
+        SKILL_TO_ICON.put("経世", "statecraft.png");
         SKILL_TO_ICON.put("古代の知識", "history.png");
         SKILL_TO_ICON.put("薬識", "medicine.png");
         SKILL_TO_ICON.put("機巧", "mechanics.png");

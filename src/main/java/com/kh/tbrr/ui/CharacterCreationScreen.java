@@ -138,7 +138,7 @@ public class CharacterCreationScreen {
     private static final String[] ALL_SKILLS = {
             "筋力", "耐久力", "敏捷力", "知力", "判断力", "魅力",
             "運動", "軽業", "隠密", "自然の知識", "料理", "薬識",
-            "解錠術", "機巧", "魔法の知識", "古代の知識", "商才", "話術"
+            "解錠術", "機巧", "魔法の知識", "古代の知識", "経世", "話術"
     };
 
     private static final String HELP_PERSONALITY = "プレイヤーキャラクターの性格を設定してください。\n"
@@ -224,7 +224,7 @@ public class CharacterCreationScreen {
         GridPane formGrid = createFormGrid();
         leftPanel.getChildren().add(formGrid);
         HBox.setHgrow(leftPanel, Priority.ALWAYS);
-        VBox.setVgrow(formGrid, Priority.ALWAYS); // 追加: グリッド自体も縦に広げる
+        VBox.setVgrow(formGrid, Priority.ALWAYS);
 
         // 中央パネル：今は空（将来的に何か入るかも）
         VBox centerPanel = new VBox();
@@ -256,7 +256,7 @@ public class CharacterCreationScreen {
 
         Scene scene = new Scene(root, 1600, 900);
         stage.setScene(scene);
-        stage.setTitle("TBRR - キャラクター制作");
+        stage.setTitle("T.B.R.R. - キャラクター制作");
         stage.show();
     }
 
@@ -265,7 +265,7 @@ public class CharacterCreationScreen {
      */
     private VBox createRightPanel(Runnable onComplete) {
         VBox rightPanel = new VBox(15);
-        rightPanel.setAlignment(Pos.BOTTOM_RIGHT); // 下寄せに変更
+        rightPanel.setAlignment(Pos.BOTTOM_RIGHT); // 下寄せ
         rightPanel.setPrefWidth(292);
         rightPanel.setMinWidth(292);
         rightPanel.setMaxWidth(292);
@@ -455,7 +455,7 @@ public class CharacterCreationScreen {
 
         Label jobLabel = createStyledLabel("職業");
         jobChoice = createStyledChoiceBox();
-        jobChoice.getItems().addAll("戦士", "魔法使い", "レンジャー", "盗賊", "商人", "旅芸人", "観光客", "異世界転生者");
+        jobChoice.getItems().addAll("戦士", "魔法使い", "クレリック", "レンジャー", "盗賊", "商人", "踊り子", "魔闘士", "パラディン", "観光客", "異世界転生者");
         jobChoice.setValue("戦士");
         setupDescriptionHandler(jobChoice, HELP_JOB);
         setupDescriptionHandler(jobLabel, HELP_JOB);
@@ -1048,9 +1048,18 @@ public class CharacterCreationScreen {
                 player.addBaseSkill("耐久力");
                 player.addBaseSkill("魔法の知識");
                 player.addBaseSkill("古代の知識");
-                player.addBaseSkill("薬識");
+                player.addBaseSkill("解錠術");
                 player.addBaseSkill("機巧");
                 player.addItem("magic_staff");
+                break;
+            case "クレリック":
+                player.addBaseSkill("判断力");
+                player.addBaseSkill("耐久力");
+                player.addBaseSkill("古代の知識");
+                player.addBaseSkill("料理");
+                player.addBaseSkill("薬識");
+                player.addBaseSkill("話術");
+                player.addItem("holy_silver_scissors");
                 break;
             case "レンジャー":
                 player.addBaseSkill("敏捷力");
@@ -1073,20 +1082,38 @@ public class CharacterCreationScreen {
             case "商人":
                 player.addBaseSkill("判断力");
                 player.addBaseSkill("魅力");
-                player.addBaseSkill("話術");
-                player.addBaseSkill("商才");
-                player.addBaseSkill("解錠術");
                 player.addBaseSkill("魔法の知識");
+                player.addBaseSkill("解錠術");
+                player.addBaseSkill("話術");
+                player.addBaseSkill("経世");
                 player.addItem("merchant_ledger");
                 break;
-            case "旅芸人":
+            case "踊り子":
+                player.addBaseSkill("敏捷力");
+                player.addBaseSkill("魅力");
+                player.addBaseSkill("軽業");
+                player.addBaseSkill("隠密");
+                player.addBaseSkill("自然の知識");
+                player.addBaseSkill("話術");
+                player.addItem("hand_mirror");
+                break;
+            case "魔闘士":
+                player.addBaseSkill("筋力");
+                player.addBaseSkill("知力");
+                player.addBaseSkill("運動");
+                player.addBaseSkill("魔法の知識");
+                player.addBaseSkill("経世");
+                player.addBaseSkill("機巧");
+                player.addItem("treasure");
+                break;
+            case "パラディン":
                 player.addBaseSkill("筋力");
                 player.addBaseSkill("魅力");
                 player.addBaseSkill("運動");
                 player.addBaseSkill("古代の知識");
-                player.addBaseSkill("商才");
-                player.addBaseSkill("話術");
-                player.addItem("performance_kit");
+                player.addBaseSkill("薬識");
+                player.addBaseSkill("経世");
+                player.addItem("holy_silver_shovel");
                 break;
             case "観光客":
                 // スキルなし
@@ -1109,7 +1136,7 @@ public class CharacterCreationScreen {
                 player.addBaseSkill("機巧");
                 player.addBaseSkill("魔法の知識");
                 player.addBaseSkill("古代の知識");
-                player.addBaseSkill("商才");
+                player.addBaseSkill("経世");
                 player.addBaseSkill("話術");
                 player.addItem("smartphone");
                 break;
@@ -1137,8 +1164,16 @@ public class CharacterCreationScreen {
                         + "魔法使いとは、知識と理性を基礎とし、世界の成り立ちや法則を理解することで異常現象を引き起こす術を身につけた者の総称です。\n"
                         + "魔法は天賦ではなく学びにより得られるものであり、長年の読書、研究、記述、実験を通して身につく知恵の結晶です。\n"
                         + "古代文明の文献・魔道器具・失われた言語への造詣も深く、危険な研究領域への探求心が彼らを旅へと促すことがあります。\n"
-                        + "薬草の効能から動物の体組織の反応、魔術と機械の接合など「世界の仕組み」が興味の対象で、未知への知的好奇心こそが魔法使いを魔法使いたらしめています。\n\n"
-                        + "技能：【知力】【耐久力】【魔法の知識】【古代の知識】【薬識】【機巧】";
+                        + "魔術と機械の接合など「世界の仕組み」が興味の対象で、未知への知的好奇心こそが魔法使いを魔法使いたらしめています。\n\n"
+                        + "技能：【知力】【耐久力】【魔法の知識】【古代の知識】【解錠術】【機巧】";
+
+            case "クレリック":
+                return header + "・クレリック\n"
+                        + "クレリックとは、慈愛の女神「庭師」への信仰を持ち、傷ついた者を癒すことを使命とする聖職者です。\n"
+                        + "古の儀式や教えに通じ、薬草学や食事を通じた奉仕で人々の心身を支えます。\n"
+                        + "穏やかな言葉で人の心に寄り添い、控えめながらも確かな信念を胸に旅を続けます。\n"
+                        + "彼らは正義を振りかざすことなく、ただ静かに手を差し伸べる存在です。\n\n"
+                        + "技能：【判断力】【耐久力】【古代の知識】【料理】【薬識】【話術】";
 
             case "レンジャー":
                 return header + "・レンジャー\n"
@@ -1160,18 +1195,33 @@ public class CharacterCreationScreen {
                 return header + "・商人\n"
                         + "商人とは、物の価値を見抜き、動かし、人と物資の流れを作る者の総称です。\n"
                         + "商品そのものより「市場」や「需要」「人の心理」を読み取り、より良い取引機会を求めて各地を渡り歩きます。\n"
-                        + "彼らにとって世界とは巨大な商機の集合体であり、例えば見たことのない機械を前にした時、その構造を知りたがるのが学者であるとしたら、それで何を生み出せるかを考えるのが商人です。\n"
-                        + "鍛えられた交渉術、旅で磨かれる体力、情報収集能力から、派手さはなくとも世界を動かす裏の基盤を支える存在です。\n"
+                        + "言葉巧みな交渉術と人を惹きつける魅力で取引を有利に運び、魔道具の鑑定や錠前の仕組みにも通じています。\n"
                         + "買う・売るという行為は小さな表層にすぎず、商人の本質は「価値の流動を読み取る目」にあります。\n\n"
-                        + "技能：【判断力】【魅力】【話術】【商才】【解錠術】【魔法の知識】";
+                        + "技能：【判断力】【魅力】【魔法の知識】【解錠術】【話術】【経世】";
 
-            case "旅芸人":
-                return header + "・旅芸人\n"
-                        + "旅芸人とは、歌や踊り、曲芸などの芸を披露しながら各地を渡り歩く、軽やかな流浪の民です。\n"
-                        + "身体を使った芸を磨くため自然と鍛えられたフィジカルを持ち、身のこなしの巧さから護身にも長けています。\n"
-                        + "また、客商売の経験から人の感情に敏く、交渉や駆け引きでも存在感を発揮します。\n"
-                        + "演じること、旅すること、そして人と関わることそれらすべてが旅芸人の「生き方」です。\n\n"
-                        + "技能：【筋力】【魅力】【運動】【古代の知識】【商才】【話術】";
+            case "踊り子":
+                return header + "・踊り子\n"
+                        + "踊り子とは、舞踏と身のこなしで人々を魅了する流浪の芸人です。\n"
+                        + "しなやかな身体と鋭い感覚を持ち、野外での生活にも順応しています。\n"
+                        + "人の目を引きつけ、場の空気を操る術に長け、時にその技は身を隠すことにも役立ちます。\n"
+                        + "旅路で培った話術と自然の知恵が、彼らの生きる糧となっています。\n\n"
+                        + "技能：【敏捷力】【魅力】【軽業】【隠密】【自然の知識】【話術】";
+
+            case "魔闘士":
+                return header + "・魔闘士\n"
+                        + "魔闘士とは、剣と魔法を共に扱う実戦派の兵士です。\n"
+                        + "学者的な魔法使いは魔法を研究対象として見る一方、彼らは魔法を便利な道具として実用する現実主義者です。\n"
+                        + "鍛え上げた肉体と明晰な頭脳を併せ持ち、戦場でも社会でも器用に立ち回ります。\n"
+                        + "機械仕掛けや魔道具の実用的な活用にも長け、その財力と能力から一種のエリート層として扱われます。\n\n"
+                        + "技能：【筋力】【知力】【運動】【魔法の知識】【経世】【機巧】";
+
+            case "パラディン":
+                return header + "・パラディン\n"
+                        + "パラディンとは、三神への信仰を広めんと旅する武装した聖職者です。\n"
+                        + "主神のシンボルである聖なるシャベルを携え、信仰と力をもって人々を導きます。\n"
+                        + "鍛え上げた肉体と人を惹きつける存在感で教えを体現し、傷ついた者には薬草の知識で手を差し伸べます。\n"
+                        + "布教のための資金や物資の調達にも長け、信仰の旅路を自ら切り拓く存在です。\n\n"
+                        + "技能：【筋力】【魅力】【運動】【古代の知識】【薬識】【経世】";
 
             case "観光客":
                 return header + "・観光客\n"
