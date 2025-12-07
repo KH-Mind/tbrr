@@ -9,6 +9,11 @@ import com.kh.tbrr.data.models.Player.RaceType;
 import com.kh.tbrr.manager.PersonalityManager;
 import com.kh.tbrr.ui.ConsoleUI;
 
+/**
+ * @deprecated GUI版(CharacterCreationScreen)を使用してください。
+ *             CUI版は開発初期のテスト用として残しています。
+ */
+@Deprecated
 public class CharacterCreator {
     private final ConsoleUI ui;
     private final Random random;
