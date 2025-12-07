@@ -32,3 +32,4 @@ Thumbs.db
 
 # Git backup
 .git_old/
+run_tools.bat
