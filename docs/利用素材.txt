@@ -1,0 +1,9 @@
+jsonファイルに書いてゲーム内で表示するようにしますが、jsonファイルを格納しているリソースフォルダはpublicにはしてないので、その内容をこちらに明記します。
+
+【アイコン画像】
+Game-icons.net 様
+https://game-icons.net/
+
+【BGM、SE】
+魔王魂 様
+https://maou.audio/
