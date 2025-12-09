@@ -49,6 +49,10 @@ public class GameEvent {
 	// ★追加: イベント開始時のSE
 	private String soundEffect;
 
+	// インタラクション（ミニゲーム・判定・戦闘など）
+	private String interaction;
+	private Map<String, Object> interactionParams;
+
 	// コンストラクタ
 	public GameEvent() {
 		this.tags = new ArrayList<>();
@@ -212,6 +216,23 @@ public class GameEvent {
 
 	public void setInitialEffects(InitialEffects initialEffects) {
 		this.initialEffects = initialEffects;
+	}
+
+	// インタラクション関連のgetter/setter
+	public String getInteraction() {
+		return interaction;
+	}
+
+	public void setInteraction(String interaction) {
+		this.interaction = interaction;
+	}
+
+	public Map<String, Object> getInteractionParams() {
+		return interactionParams;
+	}
+
+	public void setInteractionParams(Map<String, Object> interactionParams) {
+		this.interactionParams = interactionParams;
 	}
 
 	// ======== 内部クラス: InitialEffects ========
@@ -541,6 +562,10 @@ public class GameEvent {
 		private List<String> flagsToAdd;
 		private List<String> flagsToRemove;
 
+		// インタラクション（Result内での呼び出し用）
+		private String interaction;
+		private Map<String, Object> interactionParams;
+
 		public Result() {
 			this.description = new ArrayList<>();
 			this.chance = 100;
@@ -830,6 +855,23 @@ public class GameEvent {
 
 		public void setFlagsToRemove(List<String> flagsToRemove) {
 			this.flagsToRemove = flagsToRemove;
+		}
+
+		// インタラクション関連のgetter/setter
+		public String getInteraction() {
+			return interaction;
+		}
+
+		public void setInteraction(String interaction) {
+			this.interaction = interaction;
+		}
+
+		public Map<String, Object> getInteractionParams() {
+			return interactionParams;
+		}
+
+		public void setInteractionParams(Map<String, Object> interactionParams) {
+			this.interactionParams = interactionParams;
 		}
 
 	}

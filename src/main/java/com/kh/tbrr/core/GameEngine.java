@@ -97,6 +97,8 @@ public class GameEngine {
 		this.eventProcessor = new EventProcessor(ui, deathManager, developerMode, dataManager, audioManager);
 		this.eventManager = new EventManager(dataManager, eventProcessor, scenarioManager, developerMode);
 
+		// インタラクションシステム初期化
+		com.kh.tbrr.interaction.InteractionRegistry.initialize();
 	}
 
 	/**

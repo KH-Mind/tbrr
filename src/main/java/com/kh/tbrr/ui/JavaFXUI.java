@@ -75,6 +75,9 @@ public class JavaFXUI implements GameUI {
 	private CountDownLatch inputLatch;
 	private AtomicReference<String> inputResult = new AtomicReference<>("");
 
+	// インタラクション（ミニゲーム）用入力ハンドラー
+	private java.util.function.Consumer<String> interactionInputHandler;
+
 	public JavaFXUI(Stage stage, DeveloperMode developerMode) {
 		this.stage = stage;
 		this.developerMode = developerMode;
@@ -294,6 +297,11 @@ public class JavaFXUI implements GameUI {
 
 	/**
 	 * テンキーエリアを作成（VBoxで返す）
+	 * レイアウト:
+	 * [7][8][9] [？][↑][？] [設定]
+	 * [4][5][6] [←][○][→] [ステ]
+	 * [1][2][3] [？][↓][？]
+	 * [0][D][E]
 	 */
 	private VBox createNumpadArea() {
 		VBox container = new VBox(0);
@@ -331,31 +339,79 @@ public class JavaFXUI implements GameUI {
 			numpad.add(btn, col, row, colspan, 1);
 		}
 
-		// ステータスボタン（3列目、左側に10pxマージン）
-		Button statusBtn = new Button("ステータス");
-		statusBtn.setPrefSize(wideButtonWidth, buttonSize);
-		statusBtn.setMinSize(wideButtonWidth, buttonSize);
-		statusBtn.setMaxSize(wideButtonWidth, buttonSize);
-		statusBtn.setFont(Font.font("MS Gothic", 14));
-		statusBtn.setOnAction(e -> showStatusDialog()); // ダイアログ表示に変更
-		GridPane.setMargin(statusBtn, new Insets(0, 0, 0, 10));
-		numpad.add(statusBtn, 3, 0, 1, 1);
+		// ================== 十字キーパッド（3x3グリッド） ==================
+		// 配置: 列3-5, 行0-2
+		// [？][↑][？] (row 0)
+		// [←][○][→] (row 1)
+		// [？][↓][？] (row 2)
 
-		// 3列目の「後に追加」ボタン（無効化）
-		String[] laterButtonsCol3 = { "後2", "後3", "後4" };
-		for (int i = 0; i < laterButtonsCol3.length; i++) {
-			Button btn = new Button(laterButtonsCol3[i]);
-			btn.setPrefSize(wideButtonWidth, buttonSize);
-			btn.setMinSize(wideButtonWidth, buttonSize);
-			btn.setMaxSize(wideButtonWidth, buttonSize);
-			btn.setFont(Font.font("MS Gothic", 11));
-			btn.setDisable(true);
-			btn.setStyle("-fx-background-color: #555555; -fx-text-fill: #888888;");
-			GridPane.setMargin(btn, new Insets(0, 0, 0, 10));
-			numpad.add(btn, 3, i + 1, 1, 1);
-		}
+		// 将来拡張用プレースホルダー（左上）
+		Button placeholder1 = createPlaceholderButton("？", buttonSize);
+		GridPane.setMargin(placeholder1, new Insets(0, 0, 0, 10));
+		numpad.add(placeholder1, 3, 0);
 
-		// コンフィグボタン（4列目、左側に10pxマージン）
+		// ↑ボタン
+		Button upBtn = new Button("↑");
+		upBtn.setPrefSize(buttonSize, buttonSize);
+		upBtn.setMinSize(buttonSize, buttonSize);
+		upBtn.setMaxSize(buttonSize, buttonSize);
+		upBtn.setFont(Font.font("Meiryo", 14));
+		upBtn.setOnAction(e -> handleDirectionButtonClick("UP"));
+		numpad.add(upBtn, 4, 0);
+
+		// 将来拡張用プレースホルダー（右上）
+		Button placeholder2 = createPlaceholderButton("？", buttonSize);
+		numpad.add(placeholder2, 5, 0);
+
+		// ←ボタン
+		Button leftBtn = new Button("←");
+		leftBtn.setPrefSize(buttonSize, buttonSize);
+		leftBtn.setMinSize(buttonSize, buttonSize);
+		leftBtn.setMaxSize(buttonSize, buttonSize);
+		leftBtn.setFont(Font.font("Meiryo", 14));
+		leftBtn.setOnAction(e -> handleDirectionButtonClick("LEFT"));
+		GridPane.setMargin(leftBtn, new Insets(0, 0, 0, 10));
+		numpad.add(leftBtn, 3, 1);
+
+		// ○ボタン（決定/連打用）
+		Button actionBtn = new Button("○");
+		actionBtn.setPrefSize(buttonSize, buttonSize);
+		actionBtn.setMinSize(buttonSize, buttonSize);
+		actionBtn.setMaxSize(buttonSize, buttonSize);
+		actionBtn.setFont(Font.font("Meiryo", 14));
+		actionBtn.setOnAction(e -> handleDirectionButtonClick("ACTION"));
+		numpad.add(actionBtn, 4, 1);
+
+		// →ボタン
+		Button rightBtn = new Button("→");
+		rightBtn.setPrefSize(buttonSize, buttonSize);
+		rightBtn.setMinSize(buttonSize, buttonSize);
+		rightBtn.setMaxSize(buttonSize, buttonSize);
+		rightBtn.setFont(Font.font("Meiryo", 14));
+		rightBtn.setOnAction(e -> handleDirectionButtonClick("RIGHT"));
+		numpad.add(rightBtn, 5, 1);
+
+		// 将来拡張用プレースホルダー（左下）
+		Button placeholder3 = createPlaceholderButton("？", buttonSize);
+		GridPane.setMargin(placeholder3, new Insets(0, 0, 0, 10));
+		numpad.add(placeholder3, 3, 2);
+
+		// ↓ボタン
+		Button downBtn = new Button("↓");
+		downBtn.setPrefSize(buttonSize, buttonSize);
+		downBtn.setMinSize(buttonSize, buttonSize);
+		downBtn.setMaxSize(buttonSize, buttonSize);
+		downBtn.setFont(Font.font("Meiryo", 14));
+		downBtn.setOnAction(e -> handleDirectionButtonClick("DOWN"));
+		numpad.add(downBtn, 4, 2);
+
+		// 将来拡張用プレースホルダー（右下）
+		Button placeholder4 = createPlaceholderButton("？", buttonSize);
+		numpad.add(placeholder4, 5, 2);
+
+		// ================== 設定・ステータスボタン（6列目、縦配置） ==================
+
+		// 設定ボタン（row 0）
 		Button configBtn = new Button("設定");
 		configBtn.setPrefSize(wideButtonWidth, buttonSize);
 		configBtn.setMinSize(wideButtonWidth, buttonSize);
@@ -363,24 +419,68 @@ public class JavaFXUI implements GameUI {
 		configBtn.setFont(Font.font("MS Gothic", 14));
 		configBtn.setOnAction(e -> showConfigDialog());
 		GridPane.setMargin(configBtn, new Insets(0, 0, 0, 10));
-		numpad.add(configBtn, 4, 0, 1, 1);
+		numpad.add(configBtn, 6, 0, 1, 1);
 
-		// 4列目の「後に追加」ボタン（無効化）
-		String[] laterButtonsCol4 = { "後5", "後6", "後7" };
-		for (int i = 0; i < laterButtonsCol4.length; i++) {
-			Button btn = new Button(laterButtonsCol4[i]);
-			btn.setPrefSize(wideButtonWidth, buttonSize);
-			btn.setMinSize(wideButtonWidth, buttonSize);
-			btn.setMaxSize(wideButtonWidth, buttonSize);
-			btn.setFont(Font.font("MS Gothic", 11));
-			btn.setDisable(true);
-			btn.setStyle("-fx-background-color: #555555; -fx-text-fill: #888888;");
-			GridPane.setMargin(btn, new Insets(0, 0, 0, 10));
-			numpad.add(btn, 4, i + 1, 1, 1);
+		// ステータスボタン（row 1）
+		Button statusBtn = new Button("ステータス");
+		statusBtn.setPrefSize(wideButtonWidth, buttonSize);
+		statusBtn.setMinSize(wideButtonWidth, buttonSize);
+		statusBtn.setMaxSize(wideButtonWidth, buttonSize);
+		statusBtn.setFont(Font.font("MS Gothic", 14));
+		statusBtn.setOnAction(e -> showStatusDialog());
+		GridPane.setMargin(statusBtn, new Insets(0, 0, 0, 10));
+		numpad.add(statusBtn, 6, 1, 1, 1);
+
+		// 将来拡張用プレースホルダー（6列目 row 2, 3）
+		for (int i = 2; i <= 3; i++) {
+			Button placeholder = createPlaceholderButton("？", buttonSize);
+			placeholder.setPrefSize(wideButtonWidth, buttonSize);
+			placeholder.setMinSize(wideButtonWidth, buttonSize);
+			placeholder.setMaxSize(wideButtonWidth, buttonSize);
+			GridPane.setMargin(placeholder, new Insets(0, 0, 0, 10));
+			numpad.add(placeholder, 6, i, 1, 1);
 		}
 
 		container.getChildren().add(numpad);
 		return container;
+	}
+
+	/**
+	 * 将来拡張用のプレースホルダーボタンを作成
+	 */
+	private Button createPlaceholderButton(String text, int size) {
+		Button btn = new Button(text);
+		btn.setPrefSize(size, size);
+		btn.setMinSize(size, size);
+		btn.setMaxSize(size, size);
+		btn.setFont(Font.font("MS Gothic", 11));
+		btn.setDisable(true);
+		btn.setStyle("-fx-background-color: #555555; -fx-text-fill: #888888;");
+		return btn;
+	}
+
+	/**
+	 * 方向ボタン・アクションボタンのクリック処理
+	 */
+	private void handleDirectionButtonClick(String direction) {
+		Platform.runLater(() -> {
+			// インタラクション実行中の場合はイベントをディスパッチ
+			if (interactionInputHandler != null) {
+				interactionInputHandler.accept(direction);
+				return;
+			}
+
+			// 通常時はEnter相当（ACTION）または無視
+			if ("ACTION".equals(direction)) {
+				// Enterと同等の処理
+				if (inputLatch != null) {
+					inputResult.set(inputField.getText().trim());
+					inputField.clear();
+					inputLatch.countDown();
+				}
+			}
+			// 方向キーは通常時は何もしない（将来的にメニュー操作等に使用可能）
+		});
 	}
 
 	/**
@@ -1121,6 +1221,58 @@ public class JavaFXUI implements GameUI {
 		// ステージを閉じる
 		Platform.runLater(() -> {
 			stage.close();
+		});
+	}
+
+	// ========== インタラクション（ミニゲーム）用メソッド ==========
+
+	@Override
+	public Object getSubWindowPane() {
+		// subWindowBoxをStackPaneでラップして返す
+		// ミニゲーム表示用にサブウィンドウの子要素を操作可能にする
+		return subWindowBox;
+	}
+
+	@Override
+	public void setInteractionInputHandler(java.util.function.Consumer<String> handler) {
+		this.interactionInputHandler = handler;
+	}
+
+	/**
+	 * サブウィンドウをミニゲーム用のStackPaneに変換
+	 * 
+	 * @return サブウィンドウ用のStackPane
+	 */
+	public javafx.scene.layout.StackPane getSubWindowAsStackPane() {
+		if (subWindowBox == null)
+			return null;
+
+		// 既にStackPaneがあればそれを返す
+		for (javafx.scene.Node child : subWindowBox.getChildren()) {
+			if (child instanceof javafx.scene.layout.StackPane) {
+				return (javafx.scene.layout.StackPane) child;
+			}
+		}
+
+		// なければ作成して追加
+		javafx.scene.layout.StackPane interactionPane = new javafx.scene.layout.StackPane();
+		interactionPane.setPrefSize(450, 450);
+		interactionPane.setMaxSize(450, 450);
+		interactionPane.setMinSize(450, 450);
+		subWindowBox.getChildren().clear();
+		subWindowBox.getChildren().add(interactionPane);
+		return interactionPane;
+	}
+
+	/**
+	 * サブウィンドウを通常の画像表示モードに戻す
+	 */
+	public void restoreSubWindowToNormal() {
+		Platform.runLater(() -> {
+			if (subWindowBox != null) {
+				subWindowBox.getChildren().clear();
+				subWindowBox.getChildren().add(subWindowImageView);
+			}
 		});
 	}
 }

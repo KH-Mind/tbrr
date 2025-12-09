@@ -2,6 +2,7 @@ package com.kh.tbrr.event;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import com.kh.tbrr.core.GameState;
@@ -11,6 +12,9 @@ import com.kh.tbrr.data.models.GameEvent.Choice;
 import com.kh.tbrr.data.models.GameEvent.InitialEffects;
 import com.kh.tbrr.data.models.GameEvent.Result;
 import com.kh.tbrr.data.models.Player;
+import com.kh.tbrr.interaction.InteractionHandler;
+import com.kh.tbrr.interaction.InteractionRegistry;
+import com.kh.tbrr.interaction.InteractionResult;
 import com.kh.tbrr.manager.DataManager;
 import com.kh.tbrr.manager.DeathManager;
 import com.kh.tbrr.system.DeveloperMode;
@@ -1184,6 +1188,189 @@ public class EventProcessor {
 			}
 		}
 
+		// インタラクション（ミニゲーム・判定・戦闘など）の処理
+		if (result.getInteraction() != null && !result.getInteraction().isEmpty()) {
+			executeInteraction(result.getInteraction(), result.getInteractionParams(), player, gameState);
+		}
+
 		return died;
+	}
+
+	/**
+	 * インタラクションを実行
+	 * 
+	 * @param type      インタラクションタイプ（例: "coin_toss"）
+	 * @param params    インタラクションパラメータ
+	 * @param player    プレイヤー
+	 * @param gameState ゲーム状態
+	 */
+	@SuppressWarnings("unchecked")
+	private void executeInteraction(String type, Map<String, Object> params, Player player, GameState gameState) {
+		InteractionHandler handler = InteractionRegistry.get(type);
+		if (handler == null) {
+			ui.print("【システム】未知のインタラクション: " + type);
+			return;
+		}
+
+		if (developerMode != null && developerMode.isDebugVisible()) {
+			System.err.println("[DEBUG] インタラクション実行: " + type);
+		}
+
+		try {
+			// UI参照をパラメータに追加（JavaFXUI専用機能）
+			Map<String, Object> enrichedParams = new java.util.HashMap<>();
+			if (params != null) {
+				enrichedParams.putAll(params);
+			}
+
+			// CountDownLatchで結果を待機
+			java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+			java.util.concurrent.atomic.AtomicReference<InteractionResult> resultRef = new java.util.concurrent.atomic.AtomicReference<>();
+
+			// インタラクション用の入力コールバックを作成
+			java.util.concurrent.atomic.AtomicReference<java.util.function.Consumer<String>> interactionCallback = new java.util.concurrent.atomic.AtomicReference<>();
+
+			// FXスレッドでUI操作とインタラクション実行を行う
+			javafx.application.Platform.runLater(() -> {
+				try {
+					// サブウィンドウペインを取得して追加（FXスレッド内で実行）
+					Object subWindowPane = ui.getSubWindowPane();
+					if (subWindowPane != null && ui instanceof com.kh.tbrr.ui.JavaFXUI) {
+						com.kh.tbrr.ui.JavaFXUI jfxUI = (com.kh.tbrr.ui.JavaFXUI) ui;
+						javafx.scene.layout.StackPane stackPane = jfxUI.getSubWindowAsStackPane();
+						enrichedParams.put("_subWindowPane", stackPane);
+
+						// 入力ハンドラーをパラメータに追加して○ボタン入力を受け取れるようにする
+						enrichedParams.put("_inputCallback", interactionCallback);
+
+						// JavaFXUIに一時的な入力ハンドラーを設定
+						jfxUI.setInteractionInputHandler(input -> {
+							java.util.function.Consumer<String> callback = interactionCallback.get();
+							if (callback != null) {
+								callback.accept(input);
+							}
+						});
+					}
+
+					// インタラクションを非同期実行
+					handler.execute(enrichedParams, player).thenAccept(result -> {
+						// 入力ハンドラーをクリア
+						if (ui instanceof com.kh.tbrr.ui.JavaFXUI) {
+							((com.kh.tbrr.ui.JavaFXUI) ui).setInteractionInputHandler(null);
+						}
+						resultRef.set(result);
+						latch.countDown();
+					}).exceptionally(ex -> {
+						// 入力ハンドラーをクリア
+						if (ui instanceof com.kh.tbrr.ui.JavaFXUI) {
+							((com.kh.tbrr.ui.JavaFXUI) ui).setInteractionInputHandler(null);
+						}
+						resultRef.set(new InteractionResult("error"));
+						latch.countDown();
+						return null;
+					});
+				} catch (Exception ex) {
+					resultRef.set(new InteractionResult("error"));
+					latch.countDown();
+				}
+			});
+
+			// 結果を待機（最大60秒）
+			boolean completed = latch.await(60, java.util.concurrent.TimeUnit.SECONDS);
+			if (!completed) {
+				ui.print("【システム】インタラクションがタイムアウトしました");
+				return;
+			}
+
+			InteractionResult interactionResult = resultRef.get();
+			if (interactionResult == null) {
+				ui.print("【システム】インタラクション結果がありません");
+				return;
+			}
+
+			if (developerMode != null && developerMode.isDebugVisible()) {
+				System.err.println("[DEBUG] インタラクション結果: " + interactionResult.getResultKey());
+			}
+
+			// 結果に応じた処理
+			handleInteractionResult(interactionResult, params, player, gameState);
+
+		} catch (Exception e) {
+			ui.print("【システム】インタラクション実行エラー: " + e.getMessage());
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * インタラクション結果を処理
+	 * 
+	 * @param result    インタラクション結果
+	 * @param params    パラメータ（results マップを含む）
+	 * @param player    プレイヤー
+	 * @param gameState ゲーム状態
+	 */
+	@SuppressWarnings("unchecked")
+	private void handleInteractionResult(InteractionResult result, Map<String, Object> params, Player player,
+			GameState gameState) {
+		if (params == null)
+			return;
+
+		Map<String, Object> results = (Map<String, Object>) params.get("results");
+		if (results == null) {
+			ui.print("【システム】インタラクション結果マッピングがありません");
+			return;
+		}
+
+		Map<String, Object> outcomeData = (Map<String, Object>) results.get(result.getResultKey());
+		if (outcomeData == null) {
+			ui.print("【システム】結果キーが見つかりません: " + result.getResultKey());
+			return;
+		}
+
+		// 説明文の表示
+		if (outcomeData.get("description") != null) {
+			List<String> descriptions = (List<String>) outcomeData.get("description");
+			for (String line : descriptions) {
+				ui.print(TextReplacer.replace(line, player));
+			}
+		}
+
+		// 次のイベントへの遷移
+		if (outcomeData.get("nextEventId") != null) {
+			String nextEventId = (String) outcomeData.get("nextEventId");
+			GameEvent nextEvent = com.kh.tbrr.manager.EventManager.getEventById(nextEventId);
+			if (nextEvent != null) {
+				gameState.setInRecursiveEvent(true);
+				ui.waitForEnter();
+				processEvent(nextEvent, player, gameState);
+				gameState.setInRecursiveEvent(false);
+			}
+		}
+
+		// HP変化
+		if (outcomeData.get("hpChange") != null) {
+			int hpChange = parseValueChange(outcomeData.get("hpChange"), player, "hp");
+			if (hpChange != 0) {
+				player.modifyHp(hpChange);
+				if (hpChange > 0) {
+					ui.print("【" + player.getName() + "は" + hpChange + "回復した】");
+				} else {
+					ui.print("【" + player.getName() + "は" + (-hpChange) + "のダメージを受けた】");
+				}
+			}
+		}
+
+		// お金変化
+		if (outcomeData.get("moneyChange") != null) {
+			int moneyChange = parseValueChange(outcomeData.get("moneyChange"), player, "money");
+			if (moneyChange != 0) {
+				player.modifyMoney(moneyChange);
+				if (moneyChange > 0) {
+					ui.print("【銀貨を" + moneyChange + "枚得た】");
+				} else {
+					ui.print("【銀貨を" + (-moneyChange) + "枚失った】");
+				}
+			}
+		}
 	}
 }

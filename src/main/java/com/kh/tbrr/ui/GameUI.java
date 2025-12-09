@@ -52,6 +52,7 @@ public interface GameUI {
 
 	/**
 	 * 数値選択を取得
+	 * 
 	 * @param max 最大値
 	 * @return 選択された数値 (1~max)
 	 */
@@ -59,7 +60,8 @@ public interface GameUI {
 
 	/**
 	 * 数値選択を取得（プレイヤー情報付き）
-	 * @param max 最大値
+	 * 
+	 * @param max           最大値
 	 * @param currentPlayer 現在のプレイヤー
 	 * @return 選択された数値 (1~max)
 	 */
@@ -87,6 +89,7 @@ public interface GameUI {
 
 	/**
 	 * 選択肢を表示して選択を取得
+	 * 
 	 * @param choices 選択肢のリスト
 	 * @return 選択されたインデックス (0-based)
 	 */
@@ -94,30 +97,34 @@ public interface GameUI {
 
 	/**
 	 * フロア情報を表示
+	 * 
 	 * @param floorNumber フロア番号
-	 * @param areaName エリア名
+	 * @param areaName    エリア名
 	 */
 	void showFloorInfo(int floorNumber, String areaName);
 
 	/**
 	 * イベント情報を表示（GUIの専用エリアに表示）
+	 * 
 	 * @param eventTitle イベントのタイトル
 	 */
 	void showEventInfo(String eventTitle);
 
 	/**
 	 * 画像を表示（背景、立ち絵、イベント画像など）
+	 * 
 	 * @param imageType 画像の種類 ("background", "character", "event")
 	 * @param imagePath 画像のパス
 	 */
 	void showImage(String imageType, String imagePath);
-	
+
 	/**
 	 * 立ち絵の表情を変更
+	 * 
 	 * @param expression 表情名 (smile, sad, surprise, pain など)
 	 */
 	void changePortraitExpression(String expression);
-	
+
 	/**
 	 * 立ち絵の表情を基本表情にリセット
 	 */
@@ -125,6 +132,7 @@ public interface GameUI {
 
 	/**
 	 * 重要なログを表示（HP/AP/お金/アイテムの変化など）
+	 * 
 	 * @param message 重要なログメッセージ
 	 */
 	void printImportantLog(String message);
@@ -133,4 +141,26 @@ public interface GameUI {
 	 * UIをクローズ
 	 */
 	void close();
+
+	// ========== インタラクション（ミニゲーム）用メソッド ==========
+
+	/**
+	 * サブウィンドウにカスタムコンテンツを表示するためのペインを取得
+	 * コンソールUIではnullを返す
+	 * 
+	 * @return サブウィンドウのStackPane（またはnull）
+	 */
+	default Object getSubWindowPane() {
+		return null;
+	}
+
+	/**
+	 * インタラクション用の入力ハンドラーを設定
+	 * 設定中は通常の入力処理が無効化される
+	 * 
+	 * @param handler 入力ハンドラー（nullで解除）
+	 */
+	default void setInteractionInputHandler(java.util.function.Consumer<String> handler) {
+		// デフォルト実装は何もしない（コンソールUI向け）
+	}
 }
