@@ -15,6 +15,7 @@ public class Item {
 	private boolean consumable; // 消費アイテムか
 	private boolean losableRandom; // ランダム喪失の対象か（デフォルト: true）
 	private int attackBonus; // 攻撃力ボーナス
+	private java.util.Map<String, Integer> combatStats; // 戦闘ステータス（might, insight, finesse, presence, sensuality）
 
 	// コンストラクタ
 	public Item() {
@@ -22,6 +23,7 @@ public class Item {
 		this.consumable = false;
 		this.losableRandom = true;
 		this.attackBonus = 0;
+		this.combatStats = new java.util.HashMap<>();
 	}
 
 	// Getters and Setters
@@ -92,5 +94,18 @@ public class Item {
 	@Override
 	public String toString() {
 		return name + " (" + rarity + ")";
+	}
+
+	// 戦闘ステータス関連
+	public java.util.Map<String, Integer> getCombatStats() {
+		return combatStats;
+	}
+
+	public void setCombatStats(java.util.Map<String, Integer> combatStats) {
+		this.combatStats = combatStats;
+	}
+
+	public int getCombatStat(String statName) {
+		return combatStats != null ? combatStats.getOrDefault(statName, 0) : 0;
 	}
 }
