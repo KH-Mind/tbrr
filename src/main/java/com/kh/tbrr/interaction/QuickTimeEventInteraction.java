@@ -50,7 +50,6 @@ public class QuickTimeEventInteraction implements InteractionHandler {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public CompletableFuture<InteractionResult> execute(Map<String, Object> params, Player player) {
         CompletableFuture<InteractionResult> future = new CompletableFuture<>();
 
@@ -179,10 +178,6 @@ public class QuickTimeEventInteraction implements InteractionHandler {
         }));
         timer.play();
 
-        // 入力処理ロジック
-        Runnable handleInput = () -> {
-        }; // プレースホルダ
-
         // 入力を受け取るメソッド
         java.util.function.Consumer<KeyType> inputProcessor = (inputKey) -> {
             if (gameOver[0])
@@ -210,11 +205,7 @@ public class QuickTimeEventInteraction implements InteractionHandler {
                     highlightKey(keyLabels.get(currentIndex[0]), true);
                 }
             } else {
-                // 不正解（ペナルティまたは無視）
-                // ここでは視覚的フィードバックのみで、進行はしない
-                Label currentLabel = keyLabels.get(currentIndex[0]);
-                // 一瞬赤くするなどの演出を入れると良いが、今回はシンプルに無視
-                // 余裕があればアニメーション追加
+                // 不正解 - 今回はシンプルに無視
             }
         };
 

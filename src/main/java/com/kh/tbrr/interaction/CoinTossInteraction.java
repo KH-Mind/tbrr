@@ -3,8 +3,6 @@ package com.kh.tbrr.interaction;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicReference;
 
 import com.kh.tbrr.data.models.Player;
 
@@ -12,7 +10,6 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
-import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -33,7 +30,6 @@ public class CoinTossInteraction implements InteractionHandler {
 
     // UI参照（初期化時に設定）
     private StackPane subWindowPane;
-    private java.util.function.Consumer<String> inputHandler;
 
     @Override
     public String getType() {
@@ -47,9 +43,6 @@ public class CoinTossInteraction implements InteractionHandler {
         // UI参照を取得（JavaFXUIから設定される）
         if (params.containsKey("_subWindowPane")) {
             subWindowPane = (StackPane) params.get("_subWindowPane");
-        }
-        if (params.containsKey("_inputHandler")) {
-            inputHandler = (java.util.function.Consumer<String>) params.get("_inputHandler");
         }
 
         // パラメータから成功確率を取得（デフォルト50%）

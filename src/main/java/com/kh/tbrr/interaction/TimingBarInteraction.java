@@ -37,7 +37,6 @@ public class TimingBarInteraction implements InteractionHandler {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public CompletableFuture<InteractionResult> execute(Map<String, Object> params, Player player) {
         CompletableFuture<InteractionResult> future = new CompletableFuture<>();
 

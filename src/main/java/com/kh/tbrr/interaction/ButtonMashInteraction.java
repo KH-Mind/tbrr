@@ -8,7 +8,6 @@ import com.kh.tbrr.data.models.Player;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
-import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.StackPane;
@@ -35,7 +34,6 @@ public class ButtonMashInteraction implements InteractionHandler {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public CompletableFuture<InteractionResult> execute(Map<String, Object> params, Player player) {
         CompletableFuture<InteractionResult> future = new CompletableFuture<>();
 
