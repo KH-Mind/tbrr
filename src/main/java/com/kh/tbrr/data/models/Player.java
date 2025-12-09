@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.kh.tbrr.data.ItemRegistry;
+import com.kh.tbrr.data.SkillStatsMapper;
+import com.kh.tbrr.data.SkillStatsMapper.CombatStats;
 
 public class Player {
     // 基本 basic
@@ -37,7 +39,6 @@ public class Player {
     private int maxAp;
     private int money;
     private int maxMoney; // このゲームにおける所持金の最大値は100とする。
-    private int attackPower;
 
     // 立ち絵情報 portrait info
     private String portraitId; // 立ち絵の接頭辞 (例: ranger01)
@@ -126,7 +127,6 @@ public class Player {
         this.statusEffects = new java.util.HashMap<>();
 
         this.isFatedOne = true;
-        this.attackPower = 10;
         this.money = 30;
         this.maxMoney = 100;
         this.gender = Gender.FEMALE; // デフォルト値
@@ -367,6 +367,53 @@ public class Player {
         return effective;
     }
 
+    /**
+     * 戦闘ステータスを計算して取得
+     * 技能（baseSkills + アイテム由来）とアイテムのcombatStatsを合算
+     * 
+     * @return 戦闘ステータス（might, insight, finesse, presence, sensuality）
+     */
+    public CombatStats getCombatStats() {
+        int totalMight = 0;
+        int totalInsight = 0;
+        int totalFinesse = 0;
+        int totalPresence = 0;
+        int totalSensuality = 0;
+
+        // 技能からステータスを加算
+        for (String skillName : getEffectiveSkills()) {
+            CombatStats skillStats = SkillStatsMapper.getStats(skillName);
+            totalMight += skillStats.might();
+            totalInsight += skillStats.insight();
+            totalFinesse += skillStats.finesse();
+            totalPresence += skillStats.presence();
+            totalSensuality += skillStats.sensuality();
+        }
+
+        // アイテムからステータスを加算
+        for (String itemId : inventory) {
+            Item item = ItemRegistry.getItemById(itemId);
+            if (item != null) {
+                totalMight += item.getCombatStat("might");
+                totalInsight += item.getCombatStat("insight");
+                totalFinesse += item.getCombatStat("finesse");
+                totalPresence += item.getCombatStat("presence");
+                totalSensuality += item.getCombatStat("sensuality");
+            }
+        }
+
+        return CombatStats.of(totalMight, totalInsight, totalFinesse, totalPresence, totalSensuality);
+    }
+
+    /**
+     * 戦闘ステータスを文字列で取得（表示用）
+     */
+    public String getCombatStatsString() {
+        CombatStats stats = getCombatStats();
+        return String.format("強靭:%d 聡明:%d 機敏:%d 風格:%d",
+                stats.might(), stats.insight(), stats.finesse(), stats.presence());
+    }
+
     // キャラクターシート
     public String getCharacterSheet() {
         StringBuilder sb = new StringBuilder();
@@ -393,7 +440,17 @@ public class Player {
         sb.append("HP: ").append(hp).append("/").append(maxHp).append("\n");
         sb.append("AP: ").append(ap).append("/").append(maxAp).append("\n\n");
         sb.append("銀貨: ").append(money).append("/").append(maxMoney).append("\n");
-        sb.append("攻撃力: ").append(attackPower).append("\n\n");
+
+        // 戦闘ステータス表示
+        CombatStats combatStats = getCombatStats();
+        sb.append("戦闘ステータス: ");
+        sb.append("強靭:").append(combatStats.might()).append(" ");
+        sb.append("聡明:").append(combatStats.insight()).append(" ");
+        sb.append("機敏:").append(combatStats.finesse()).append(" ");
+        sb.append("風格:").append(combatStats.presence()).append("\n");
+        // sb.append("官能性:").append(combatStats.sensuality()).append("\n"); //
+        // そういうゲームにするなら
+        sb.append("\n");
 
         // スキル表示（baseSkills + アイテム由来）
         List<String> effectiveSkills = getEffectiveSkills();
@@ -606,14 +663,6 @@ public class Player {
 
     public void setMaxMoney(int maxMoney) {
         this.maxMoney = maxMoney;
-    }
-
-    public int getAttackPower() {
-        return attackPower;
-    }
-
-    public void setAttackPower(int attackPower) {
-        this.attackPower = attackPower;
     }
 
     public List<String> getBaseSkills() {
