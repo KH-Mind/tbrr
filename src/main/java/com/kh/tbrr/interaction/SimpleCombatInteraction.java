@@ -138,19 +138,19 @@ public class SimpleCombatInteraction implements InteractionHandler {
         attackBtn.setOnAction(e -> processTurn(future, container, hpArea, logLabel,
                 playerCombatHp, enemyCombatHp, player.getName(), enemyName,
                 playerStats, enemyMight, enemyInsight, enemyFinesse, enemyPresence,
-                "attack"));
+                "attack", buttonBox));
         defendBtn.setOnAction(e -> processTurn(future, container, hpArea, logLabel,
                 playerCombatHp, enemyCombatHp, player.getName(), enemyName,
                 playerStats, enemyMight, enemyInsight, enemyFinesse, enemyPresence,
-                "defend"));
+                "defend", buttonBox));
         tacticsBtn.setOnAction(e -> processTurn(future, container, hpArea, logLabel,
                 playerCombatHp, enemyCombatHp, player.getName(), enemyName,
                 playerStats, enemyMight, enemyInsight, enemyFinesse, enemyPresence,
-                "tactics"));
+                "tactics", buttonBox));
         evadeBtn.setOnAction(e -> processTurn(future, container, hpArea, logLabel,
                 playerCombatHp, enemyCombatHp, player.getName(), enemyName,
                 playerStats, enemyMight, enemyInsight, enemyFinesse, enemyPresence,
-                "evade"));
+                "evade", buttonBox));
     }
 
     /**
@@ -159,7 +159,7 @@ public class SimpleCombatInteraction implements InteractionHandler {
     private void processTurn(CompletableFuture<InteractionResult> future, VBox container, VBox hpArea, Label logLabel,
             int[] playerHp, int[] enemyHp, String playerName, String enemyName,
             CombatStats playerStats, int enemyMight, int enemyInsight, int enemyFinesse, int enemyPresence,
-            String playerAction) {
+            String playerAction, HBox buttonBox) {
 
         // 敵の行動（ランダム）
         String[] enemyActions = { "attack", "defend", "tactics", "evade" };
@@ -184,20 +184,33 @@ public class SimpleCombatInteraction implements InteractionHandler {
         // HPバー更新
         updateHpDisplay(hpArea, playerName, playerHp[0], enemyName, enemyHp[0]);
 
-        // 勝敗判定
-        if (enemyHp[0] <= 0) {
+        // 勝敗判定（プレイヤーHP0を先に判定）
+        if (playerHp[0] <= 0) {
+            // 敗北（プレイヤーが倒れたら敗北）
+            disableButtons(buttonBox);
+            Timeline delay = new Timeline(new KeyFrame(Duration.millis(1500), ev -> {
+                showResult(container, false, 0, future, "failure");
+            }));
+            delay.play();
+        } else if (enemyHp[0] <= 0) {
             // 勝利
+            disableButtons(buttonBox);
             String result = calculateResult(playerHp[0]);
             Timeline delay = new Timeline(new KeyFrame(Duration.millis(1500), ev -> {
                 showResult(container, true, playerHp[0], future, result);
             }));
             delay.play();
-        } else if (playerHp[0] <= 0) {
-            // 敗北
-            Timeline delay = new Timeline(new KeyFrame(Duration.millis(1500), ev -> {
-                showResult(container, false, 0, future, "failure");
-            }));
-            delay.play();
+        }
+    }
+
+    /**
+     * ボタンを無効化
+     */
+    private void disableButtons(HBox buttonBox) {
+        for (var node : buttonBox.getChildren()) {
+            if (node instanceof Button) {
+                ((Button) node).setDisable(true);
+            }
         }
     }
 
