@@ -1366,9 +1366,9 @@ public class EventProcessor {
 			if (moneyChange != 0) {
 				player.modifyMoney(moneyChange);
 				if (moneyChange > 0) {
-					ui.print("【銀貨を" + moneyChange + "枚得た】");
+					ui.addImportantLog("【銀貨を" + moneyChange + "枚得た】");
 				} else {
-					ui.print("【銀貨を" + (-moneyChange) + "枚失った】");
+					ui.addImportantLog("【銀貨を" + (-moneyChange) + "枚失った】");
 				}
 			}
 		}

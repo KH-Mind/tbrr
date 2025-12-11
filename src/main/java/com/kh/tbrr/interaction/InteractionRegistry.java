@@ -52,6 +52,9 @@ public class InteractionRegistry {
         register(new ForkPathInteraction());
         register(new TimingBarInteraction());
         register(new QuickTimeEventInteraction());
+
+        // Phase 3: 戦闘システム
+        register(new SimpleCombatInteraction());
         System.out.println("[InteractionRegistry] 初期化完了（登録数: " + handlers.size() + "）");
     }
 
