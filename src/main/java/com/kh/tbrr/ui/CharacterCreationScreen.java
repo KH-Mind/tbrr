@@ -183,10 +183,29 @@ public class CharacterCreationScreen {
     // 性自認用のランダム選択肢
     private static final String[] GENDER_IDENTITY_OPTIONS = { "男性", "女性", "自認１", "自認２", "自認３" };
 
-    // 名前と英語名の連動用マップ
-    private static final String[][] NAME_PAIRS = { { "アリス", "Alice" }, { "エミリア", "Emilia" }, { "レイラ", "Leila" },
-            { "セリア", "Celia" }, { "ミア", "Mia" }, { "ソフィア", "Sophia" }, { "オリビア", "Olivia" },
-            { "シャルロット", "Charlotte" }, { "リナ", "Lina" }, { "エレナ", "Elena" } };
+    // 名前と英語名の連動用マップ（性別ごとに分離）
+    // 女性用の名前リスト
+    private static final String[][] NAME_PAIRS_FEMALE = {
+            { "アリス", "Alice" }, { "エミリア", "Emilia" }, { "レイラ", "Leila" },
+            { "セリア", "Celia" }, { "ミア", "Mia" }, { "ソフィア", "Sophia" },
+            { "オリビア", "Olivia" }, { "シャルロット", "Charlotte" }, { "リナ", "Lina" }, { "エレナ", "Elena" }
+    };
+
+    // 男性用の名前リスト
+    private static final String[][] NAME_PAIRS_MALE = {
+            { "アーサー", "Arthur" }, { "レオン", "Leon" }, { "カイル", "Kyle" },
+            { "ガレス", "Gareth" }, { "セドリック", "Cedric" }, { "ロイド", "Lloyd" },
+            { "グレン", "Glen" }, { "オスカー", "Oscar" }, { "ヴィクター", "Victor" }
+    };
+
+    // その他用の名前リスト（単位・現象・記号系）
+    private static final String[][] NAME_PAIRS_OTHER = {
+            { "エコー", "Echo" }, { "ノヴァ", "Nova" }, { "ソナー", "Sonar" },
+            { "フレア", "Flare" }, { "イオン", "Ion" }, { "マグナ", "Magnus" },
+            { "アーク", "Arc" }, { "ノード", "Node" }, { "エッジ", "Edge" },
+            { "ミスト", "Mist" }, { "シャドウ", "Shadow" }, { "ルクス", "Lux" },
+            { "アトム", "Atom" }, { "セブン", "Seven" }, { "ナイン", "Nine" }
+    };
 
     public CharacterCreationScreen(Stage stage, PersonalityManager personalityManager) {
         this.stage = stage;
@@ -748,11 +767,30 @@ public class CharacterCreationScreen {
 
     /**
      * 名前と英語名を連動してランダム化
+     * 選択中の性別に応じたリストからランダムに選択する
      */
     private void randomizeNamePair() {
-        int index = random.nextInt(NAME_PAIRS.length);
-        nameField.setText(NAME_PAIRS[index][0]);
-        englishNameField.setText(NAME_PAIRS[index][1]);
+        // 現在選択されている性別を取得
+        String selectedGender = genderChoice.getValue();
+
+        // 性別に応じて使用するリストを決定
+        String[][] namePairs;
+        switch (selectedGender) {
+            case "男性":
+                namePairs = NAME_PAIRS_MALE;
+                break;
+            case "女性":
+                namePairs = NAME_PAIRS_FEMALE;
+                break;
+            default: // "その他" またはnull対策
+                namePairs = NAME_PAIRS_OTHER;
+                break;
+        }
+
+        // 選んだリストからランダムに1つ選択
+        int index = random.nextInt(namePairs.length);
+        nameField.setText(namePairs[index][0]);
+        englishNameField.setText(namePairs[index][1]);
     }
 
     /**
