@@ -31,29 +31,29 @@ public class SkillStatsMapper {
     private static final Map<String, CombatStats> SKILL_STATS = new HashMap<>();
 
     static {
-        // 基本能力値（6種） - 各合計8点
+        // 基本能力値（6種） - 各合計6点
         // might, insight, finesse, presence, sensuality
-        SKILL_STATS.put("筋力", CombatStats.of(6, 0, 1, 1, 0));
-        SKILL_STATS.put("敏捷力", CombatStats.of(1, 1, 6, 0, 0));
-        SKILL_STATS.put("耐久力", CombatStats.of(6, 0, 0, 2, 0));
-        SKILL_STATS.put("知力", CombatStats.of(0, 8, 0, 0, 0));
-        SKILL_STATS.put("判断力", CombatStats.of(0, 4, 0, 4, 0));
-        SKILL_STATS.put("魅力", CombatStats.of(0, 0, 0, 8, 0));
+        SKILL_STATS.put("筋力", CombatStats.of(3, 1, 1, 1, 0));
+        SKILL_STATS.put("敏捷力", CombatStats.of(1, 1, 3, 1, 0));
+        SKILL_STATS.put("耐久力", CombatStats.of(3, 1, 1, 1, 0));
+        SKILL_STATS.put("知力", CombatStats.of(1, 3, 1, 1, 0));
+        SKILL_STATS.put("判断力", CombatStats.of(1, 2, 1, 2, 0));
+        SKILL_STATS.put("魅力", CombatStats.of(1, 1, 1, 3, 0));
 
         // その他の技能 - 各合計6点
         // might, insight, finesse, presence, sensuality
-        SKILL_STATS.put("運動", CombatStats.of(4, 0, 2, 0, 0));
-        SKILL_STATS.put("軽業", CombatStats.of(2, 0, 4, 0, 0));
-        SKILL_STATS.put("隠密", CombatStats.of(0, 2, 4, 0, 0));
-        SKILL_STATS.put("自然の知識", CombatStats.of(1, 3, 1, 1, 0));
-        SKILL_STATS.put("魔法の知識", CombatStats.of(0, 4, 1, 1, 0));
-        SKILL_STATS.put("古代の知識", CombatStats.of(0, 4, 0, 2, 0));
-        SKILL_STATS.put("話術", CombatStats.of(0, 2, 0, 4, 0));
-        SKILL_STATS.put("解錠術", CombatStats.of(0, 2, 4, 0, 0));
-        SKILL_STATS.put("料理", CombatStats.of(2, 2, 2, 0, 0));
-        SKILL_STATS.put("経世", CombatStats.of(0, 2, 0, 4, 0));
-        SKILL_STATS.put("薬識", CombatStats.of(0, 6, 0, 0, 0));
-        SKILL_STATS.put("機巧", CombatStats.of(0, 3, 3, 0, 0));
+        SKILL_STATS.put("運動", CombatStats.of(3, 1, 1, 1, 0));
+        SKILL_STATS.put("軽業", CombatStats.of(1, 1, 3, 1, 0));
+        SKILL_STATS.put("隠密", CombatStats.of(1, 1, 3, 1, 0));
+        SKILL_STATS.put("自然の知識", CombatStats.of(1, 2, 2, 1, 0));
+        SKILL_STATS.put("魔法の知識", CombatStats.of(1, 3, 1, 1, 0));
+        SKILL_STATS.put("古代の知識", CombatStats.of(1, 2, 1, 2, 0));
+        SKILL_STATS.put("話術", CombatStats.of(1, 1, 1, 3, 0));
+        SKILL_STATS.put("解錠術", CombatStats.of(1, 2, 2, 1, 0));
+        SKILL_STATS.put("料理", CombatStats.of(2, 2, 1, 1, 0));
+        SKILL_STATS.put("経世", CombatStats.of(1, 1, 1, 3, 0));
+        SKILL_STATS.put("薬識", CombatStats.of(1, 3, 1, 1, 0));
+        SKILL_STATS.put("機巧", CombatStats.of(1, 2, 2, 1, 0));
     }
 
     /**

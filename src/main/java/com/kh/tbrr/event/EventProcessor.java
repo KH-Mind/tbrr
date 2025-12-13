@@ -641,6 +641,128 @@ public class EventProcessor {
 					String flagName = p.substring(5);
 					ok = state.hasFlag(flagName);
 				}
+				// ======== 戦闘ステータス条件 (CombatStats) ========
+				else if (p.startsWith("might>=")) {
+					try {
+						ok = player.getCombatStats().might() >= Integer.parseInt(p.substring(7));
+					} catch (Exception e) {
+						ok = false;
+					}
+				} else if (p.startsWith("might<=")) {
+					try {
+						ok = player.getCombatStats().might() <= Integer.parseInt(p.substring(7));
+					} catch (Exception e) {
+						ok = false;
+					}
+				} else if (p.startsWith("might>")) {
+					try {
+						ok = player.getCombatStats().might() > Integer.parseInt(p.substring(6));
+					} catch (Exception e) {
+						ok = false;
+					}
+				} else if (p.startsWith("might<")) {
+					try {
+						ok = player.getCombatStats().might() < Integer.parseInt(p.substring(6));
+					} catch (Exception e) {
+						ok = false;
+					}
+				} else if (p.startsWith("insight>=")) {
+					try {
+						ok = player.getCombatStats().insight() >= Integer.parseInt(p.substring(9));
+					} catch (Exception e) {
+						ok = false;
+					}
+				} else if (p.startsWith("insight<=")) {
+					try {
+						ok = player.getCombatStats().insight() <= Integer.parseInt(p.substring(9));
+					} catch (Exception e) {
+						ok = false;
+					}
+				} else if (p.startsWith("insight>")) {
+					try {
+						ok = player.getCombatStats().insight() > Integer.parseInt(p.substring(8));
+					} catch (Exception e) {
+						ok = false;
+					}
+				} else if (p.startsWith("insight<")) {
+					try {
+						ok = player.getCombatStats().insight() < Integer.parseInt(p.substring(8));
+					} catch (Exception e) {
+						ok = false;
+					}
+				} else if (p.startsWith("finesse>=")) {
+					try {
+						ok = player.getCombatStats().finesse() >= Integer.parseInt(p.substring(9));
+					} catch (Exception e) {
+						ok = false;
+					}
+				} else if (p.startsWith("finesse<=")) {
+					try {
+						ok = player.getCombatStats().finesse() <= Integer.parseInt(p.substring(9));
+					} catch (Exception e) {
+						ok = false;
+					}
+				} else if (p.startsWith("finesse>")) {
+					try {
+						ok = player.getCombatStats().finesse() > Integer.parseInt(p.substring(8));
+					} catch (Exception e) {
+						ok = false;
+					}
+				} else if (p.startsWith("finesse<")) {
+					try {
+						ok = player.getCombatStats().finesse() < Integer.parseInt(p.substring(8));
+					} catch (Exception e) {
+						ok = false;
+					}
+				} else if (p.startsWith("presence>=")) {
+					try {
+						ok = player.getCombatStats().presence() >= Integer.parseInt(p.substring(10));
+					} catch (Exception e) {
+						ok = false;
+					}
+				} else if (p.startsWith("presence<=")) {
+					try {
+						ok = player.getCombatStats().presence() <= Integer.parseInt(p.substring(10));
+					} catch (Exception e) {
+						ok = false;
+					}
+				} else if (p.startsWith("presence>")) {
+					try {
+						ok = player.getCombatStats().presence() > Integer.parseInt(p.substring(9));
+					} catch (Exception e) {
+						ok = false;
+					}
+				} else if (p.startsWith("presence<")) {
+					try {
+						ok = player.getCombatStats().presence() < Integer.parseInt(p.substring(9));
+					} catch (Exception e) {
+						ok = false;
+					}
+				} else if (p.startsWith("sensuality>=")) {
+					try {
+						ok = player.getCombatStats().sensuality() >= Integer.parseInt(p.substring(12));
+					} catch (Exception e) {
+						ok = false;
+					}
+				} else if (p.startsWith("sensuality<=")) {
+					try {
+						ok = player.getCombatStats().sensuality() <= Integer.parseInt(p.substring(12));
+					} catch (Exception e) {
+						ok = false;
+					}
+				} else if (p.startsWith("sensuality>")) {
+					try {
+						ok = player.getCombatStats().sensuality() > Integer.parseInt(p.substring(11));
+					} catch (Exception e) {
+						ok = false;
+					}
+				} else if (p.startsWith("sensuality<")) {
+					try {
+						ok = player.getCombatStats().sensuality() < Integer.parseInt(p.substring(11));
+					} catch (Exception e) {
+						ok = false;
+					}
+				}
 
 				if (negate)
 					ok = !ok;
