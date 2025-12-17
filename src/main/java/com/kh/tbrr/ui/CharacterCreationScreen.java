@@ -1159,18 +1159,18 @@ public class CharacterCreationScreen {
             case "異世界転生者":
                 // 全技能を付与（チート）
                 player.addBaseSkill("筋力");
-                player.addBaseSkill("耐久力");
                 player.addBaseSkill("敏捷力");
+                player.addBaseSkill("耐久力");
                 player.addBaseSkill("知力");
                 player.addBaseSkill("判断力");
                 player.addBaseSkill("魅力");
                 player.addBaseSkill("運動");
                 player.addBaseSkill("軽業");
                 player.addBaseSkill("隠密");
+                player.addBaseSkill("解錠術");
                 player.addBaseSkill("自然の知識");
                 player.addBaseSkill("料理");
                 player.addBaseSkill("薬識");
-                player.addBaseSkill("解錠術");
                 player.addBaseSkill("機巧");
                 player.addBaseSkill("魔法の知識");
                 player.addBaseSkill("古代の知識");
