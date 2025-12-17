@@ -6,6 +6,7 @@
 .classpath
 .project
 .factorypath
+.metadata/
 bin/
 
 # Maven
