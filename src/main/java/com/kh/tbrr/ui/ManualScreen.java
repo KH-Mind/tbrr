@@ -276,7 +276,12 @@ public class ManualScreen {
             String json = loadResourceContent(fullPath);
             JsonObject obj = gson.fromJson(json, JsonObject.class);
             if (obj != null && obj.has("content")) {
-                return obj.get("content").getAsString();
+                JsonArray contentArray = obj.getAsJsonArray("content");
+                List<String> lines = new ArrayList<>();
+                for (JsonElement elem : contentArray) {
+                    lines.add(elem.getAsString());
+                }
+                return String.join("\n", lines);
             }
         } catch (Exception e) {
             System.err.println("[ManualScreen] コンテンツ読み込みエラー: " + filePath + " - " + e.getMessage());

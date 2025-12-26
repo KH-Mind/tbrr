@@ -1006,7 +1006,7 @@ public class JavaFXUI implements GameUI {
 		this.currentPlayer = player;
 
 		if (player.getPortraitFileName() != null && !player.getPortraitFileName().isEmpty()) {
-			javafx.scene.image.Image portrait = imageManager.loadPortrait(player.getPortraitFileName());
+			javafx.scene.image.Image portrait = loadPortraitWithCustomSupport(player.getPortraitFileName());
 			if (portrait != null) {
 				characterPortraitView.setImage(portrait);
 			}
@@ -1020,8 +1020,18 @@ public class JavaFXUI implements GameUI {
 	 */
 	public void changePortraitExpression(String expression) {
 		if (currentPlayer != null && currentPlayer.getPortraitFileName() != null) {
-			javafx.scene.image.Image portrait = imageManager.loadPortraitExpression(
-					currentPlayer.getPortraitFileName(), expression);
+			String fileName = currentPlayer.getPortraitFileName();
+			javafx.scene.image.Image portrait;
+
+			if (com.kh.tbrr.manager.ImageManager.isCustomPortrait(fileName)) {
+				// カスタム立ち絵の表情差分
+				String actualFileName = com.kh.tbrr.manager.ImageManager.stripCustomPrefix(fileName);
+				portrait = imageManager.loadCustomPortraitExpression(actualFileName, expression);
+			} else {
+				// 内蔵立ち絵の表情差分
+				portrait = imageManager.loadPortraitExpression(fileName, expression);
+			}
+
 			if (portrait != null) {
 				characterPortraitView.setImage(portrait);
 			}
@@ -1033,10 +1043,25 @@ public class JavaFXUI implements GameUI {
 	 */
 	public void resetPortraitExpression() {
 		if (currentPlayer != null && currentPlayer.getPortraitFileName() != null) {
-			javafx.scene.image.Image portrait = imageManager.loadPortrait(currentPlayer.getPortraitFileName());
+			javafx.scene.image.Image portrait = loadPortraitWithCustomSupport(currentPlayer.getPortraitFileName());
 			if (portrait != null) {
 				characterPortraitView.setImage(portrait);
 			}
+		}
+	}
+
+	/**
+	 * カスタム立ち絵に対応した立ち絵読み込み
+	 * custom: プレフィックスがある場合は外部ファイルから読み込む
+	 */
+	private javafx.scene.image.Image loadPortraitWithCustomSupport(String fileName) {
+		if (com.kh.tbrr.manager.ImageManager.isCustomPortrait(fileName)) {
+			// カスタム立ち絵
+			String actualFileName = com.kh.tbrr.manager.ImageManager.stripCustomPrefix(fileName);
+			return imageManager.loadCustomPortrait(actualFileName);
+		} else {
+			// 内蔵立ち絵
+			return imageManager.loadPortrait(fileName);
 		}
 	}
 

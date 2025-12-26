@@ -74,6 +74,9 @@ public class CharacterCreationScreen {
     private ImageView portraitView;
     private ChoiceBox<String> portraitChoice;
     private List<String> availablePortraits;
+    private List<String> availableCustomPortraits;
+    private CheckBox useCustomPortraitCheck;
+    private boolean usingCustomPortrait = false;
 
     // 説明文表示エリア
     private TextArea descriptionArea;
@@ -164,7 +167,11 @@ public class CharacterCreationScreen {
     private static final String HELP_FATED_ONE = "あなたは運命に導かれし者だ。\n" + "はい (デフォルト) / いいえ \n"
             + "現在は特に意味のない項目ですが、いいえを選択した場合、将来的にパーマデスありのモブ扱いになります。";
 
-    private static final String HELP_PORTRAIT = "お好きな画像をお選びください。\n" + "その内ユーザーインポートを可能にする予定。";
+    private static final String HELP_PORTRAIT = "お好きな画像をお選びください。\n"
+            + "「カスタム立ち絵を使う」にチェックを入れると、\n"
+            + "userdata/user_portraits/ フォルダにある画像を選択できます。\n"
+            + "画像ファイル名は ～.base.jpg または ～.base.png にしてください。\n"
+            + "表情差分は ～.sad.jpg 等の命名規則で配置できます。";
 
     // チャームポイント用の選択肢
     private static final String[] HAIR_OPTIONS = { "黒髪", "金髪", "銀髪", "赤毛", "青髪", "緑髪", "紫髪", "ピンク髪", "ショートヘア",
@@ -217,8 +224,12 @@ public class CharacterCreationScreen {
      * キャラクター制作画面を表示
      */
     public void show(Runnable onComplete) {
+        // カスタム立ち絵フォルダを確保（なければ作成）
+        imageManager.ensureUserPortraitsDirectory();
+
         // 利用可能な立ち絵をロード
         availablePortraits = imageManager.getAvailableBasePortraits();
+        availableCustomPortraits = imageManager.getAvailableCustomPortraits();
 
         // 背景画像を読み込み
         Image backgroundImage = imageManager.loadBackground("character_creation.png");
@@ -308,6 +319,11 @@ public class CharacterCreationScreen {
         portraitFrame.setPrefSize(292, 516);
         portraitFrame.setAlignment(Pos.CENTER);
 
+        // カスタム立ち絵を使うチェックボックス
+        useCustomPortraitCheck = new CheckBox("カスタム立ち絵を使う");
+        useCustomPortraitCheck.setStyle("-fx-text-fill: #333333; -fx-font-size: 14px;");
+        setupDescriptionHandler(useCustomPortraitCheck, HELP_PORTRAIT);
+
         // 立ち絵選択
         portraitChoice = new ChoiceBox<>();
         portraitChoice.setPrefWidth(292);
@@ -322,11 +338,42 @@ public class CharacterCreationScreen {
 
         setupDescriptionHandler(portraitChoice, HELP_PORTRAIT);
 
+        // カスタム立ち絵チェックボックスの切り替え処理
+        useCustomPortraitCheck.setOnAction(e -> {
+            usingCustomPortrait = useCustomPortraitCheck.isSelected();
+            portraitChoice.getItems().clear();
+            portraitChoice.getItems().add("立ち絵を選択");
+
+            if (usingCustomPortrait) {
+                // カスタム立ち絵リストを表示
+                if (availableCustomPortraits.isEmpty()) {
+                    descriptionArea.setText("カスタム立ち絵が見つかりません。\n"
+                            + "userdata/user_portraits/ フォルダに\n"
+                            + "～.base.jpg または ～.base.png ファイルを配置してください。");
+                } else {
+                    portraitChoice.getItems().addAll(availableCustomPortraits);
+                }
+            } else {
+                // 内蔵立ち絵リストを表示
+                portraitChoice.getItems().addAll(availablePortraits);
+            }
+
+            portraitChoice.setValue("立ち絵を選択");
+            portraitView.setImage(null);
+        });
+
         // 立ち絵選択時の処理
         portraitChoice.setOnAction(e -> {
             String selected = portraitChoice.getValue();
             if (selected != null && !selected.equals("立ち絵を選択")) {
-                Image image = imageManager.loadPortrait(selected);
+                Image image;
+                if (usingCustomPortrait) {
+                    // カスタム立ち絵を読み込み
+                    image = imageManager.loadCustomPortrait(selected);
+                } else {
+                    // 内蔵立ち絵を読み込み
+                    image = imageManager.loadPortrait(selected);
+                }
                 if (image != null) {
                     portraitView.setImage(image);
                 }
@@ -360,7 +407,7 @@ public class CharacterCreationScreen {
 
         buttonPanel.getChildren().addAll(confirmButton, buttonSpacer, cancelButton);
 
-        rightPanel.getChildren().addAll(topSpacer, portraitChoice, portraitFrame, buttonPanel);
+        rightPanel.getChildren().addAll(topSpacer, useCustomPortraitCheck, portraitChoice, portraitFrame, buttonPanel);
         return rightPanel;
     }
 
@@ -1057,7 +1104,12 @@ public class CharacterCreationScreen {
         // 立ち絵情報の保存
         String selectedPortrait = portraitChoice.getValue();
         if (selectedPortrait != null && !selectedPortrait.equals("立ち絵を選択")) {
-            player.setPortraitFileName(selectedPortrait);
+            if (usingCustomPortrait) {
+                // カスタム立ち絵にはプレフィックスを付ける
+                player.setPortraitFileName(ImageManager.addCustomPrefix(selectedPortrait));
+            } else {
+                player.setPortraitFileName(selectedPortrait);
+            }
         }
 
         // 初期所持金
