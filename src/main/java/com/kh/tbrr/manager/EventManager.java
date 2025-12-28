@@ -32,26 +32,6 @@ public class EventManager {
 		this.random = new Random();
 	}
 
-	/**
-	 * イベントを選択 (GameEngineから呼ばれる)
-	 * 
-	 * @param eventPool イベントプール
-	 * @param player    プレイヤー
-	 * @param gameState ゲーム状態
-	 * @return 選択されたイベントID
-	 */
-	private boolean canTriggerEvent(GameEvent event, Player player) {
-		if (event.getRequiredItems() == null || event.getRequiredItems().isEmpty()) {
-			return true;
-		}
-		for (String itemId : event.getRequiredItems()) {
-			if (!player.hasItem(itemId)) {
-				return false;
-			}
-		}
-		return true;
-	}
-
 	public String selectEvent(List<String> eventPool, Player player, GameState gameState) {
 		// 元のランダム選択（コメントアウト）
 		// return eventPool.get(random.nextInt(eventPool.size()));
@@ -155,7 +135,7 @@ public class EventManager {
 		}
 
 		GameEvent event = dataManager.loadEvent(eventId);
-		if (event != null && canTriggerEvent(event, player)) {
+		if (event != null) {
 			eventProcessor.processEvent(event, player, gameState);
 		} else {
 			triggerFallbackEvent(player, gameState);
@@ -247,23 +227,6 @@ public class EventManager {
 		// 指定されたタイプのイベントを検索
 		for (GameEvent event : systemEvents) {
 			if (event.getTags().contains(systemEventType)) {
-				eventProcessor.processEvent(event, player, gameState);
-				return;
-			}
-		}
-
-		// 見つからない場合はフォールバック
-		triggerFallbackEvent(player, gameState);
-	}
-
-	/**
-	 * ボス戦イベントを発生させる
-	 */
-	public void triggerBossEvent(String bossId, Player player, GameState gameState) {
-		List<GameEvent> bossEvents = dataManager.getEventsByTag("boss");
-
-		for (GameEvent event : bossEvents) {
-			if (event.isBossEvent() && event.getBossId().equals(bossId)) {
 				eventProcessor.processEvent(event, player, gameState);
 				return;
 			}

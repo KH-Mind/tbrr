@@ -26,10 +26,6 @@ public class Scenario {
 	private List<String> availableHelpers; // 登場ヘルパー
 	private String prologue; // プロローグ
 	private String epilogue; // エピローグ
-	private String normalEnding; // ノーマルエンディング (まだ未実装、使わないかも)
-	private String trueEnding; // トゥルーエンディング (まだ未実装、使わないかも)
-	private boolean isLocked; // ロック状態
-	private List<String> unlockConditions; // 解禁条件
 
 	// 画像関連
 	private String thumbnailImage; // シナリオ概要画面用の背景画像（「このシナリオを選びますか？」の画面）
@@ -45,8 +41,6 @@ public class Scenario {
 	 */
 	public static class StageConfig {
 		private String name; // フロア名(オプション、デバッグ用)
-		private int startFloor; // 開始フロア
-		private int endFloor; // 終了フロア
 		private List<String> tags; // タグ
 		private List<String> mapPool; // マッププール(地形候補)
 		private List<String> eventPool; // イベントプール
@@ -121,22 +115,6 @@ public class Scenario {
 
 		public void setName(String name) {
 			this.name = name;
-		}
-
-		public int getStartFloor() {
-			return startFloor;
-		}
-
-		public void setStartFloor(int startFloor) {
-			this.startFloor = startFloor;
-		}
-
-		public int getEndFloor() {
-			return endFloor;
-		}
-
-		public void setEndFloor(int endFloor) {
-			this.endFloor = endFloor;
 		}
 
 		public List<String> getTags() {
@@ -288,7 +266,6 @@ public class Scenario {
 
 		this.availableItems = new ArrayList<>();
 		this.availableHelpers = new ArrayList<>();
-		this.unlockConditions = new ArrayList<>();
 		this.globalConditionalEvents = new ArrayList<>();
 		this.globalForcedEvents = new ArrayList<>();
 	}
@@ -382,38 +359,6 @@ public class Scenario {
 
 	public void setEpilogue(String epilogue) {
 		this.epilogue = epilogue;
-	}
-
-	public String getNormalEnding() {
-		return normalEnding;
-	}
-
-	public void setNormalEnding(String normalEnding) {
-		this.normalEnding = normalEnding;
-	}
-
-	public String getTrueEnding() {
-		return trueEnding;
-	}
-
-	public void setTrueEnding(String trueEnding) {
-		this.trueEnding = trueEnding;
-	}
-
-	public boolean isLocked() {
-		return isLocked;
-	}
-
-	public void setLocked(boolean locked) {
-		isLocked = locked;
-	}
-
-	public List<String> getUnlockConditions() {
-		return unlockConditions;
-	}
-
-	public void setUnlockConditions(List<String> unlockConditions) {
-		this.unlockConditions = unlockConditions;
 	}
 
 	public String getThumbnailImage() {

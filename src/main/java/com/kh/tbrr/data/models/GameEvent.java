@@ -17,9 +17,7 @@ public class GameEvent {
 	private List<String> description;
 
 	// 条件・フラグ
-	private Map<String, Object> requirements;
 	private Map<String, Object> effects;
-	private List<String> requiredItems;
 
 	// 選択肢
 	private List<Choice> choices;
@@ -30,10 +28,6 @@ public class GameEvent {
 
 	// 連鎖イベント
 	private String nextEventId;
-
-	// ボス戦フラグ
-	private boolean isBossEvent;
-	private String bossId;
 
 	// 死亡関連
 	private boolean isDeathEvent;
@@ -57,7 +51,6 @@ public class GameEvent {
 	public GameEvent() {
 		this.tags = new ArrayList<>();
 		this.description = new ArrayList<>();
-		this.requirements = new HashMap<>();
 		this.effects = new HashMap<>();
 		this.choices = new ArrayList<>();
 	}
@@ -96,24 +89,8 @@ public class GameEvent {
 		this.description = description;
 	}
 
-	public Map<String, Object> getRequirements() {
-		return requirements;
-	}
-
-	public void setRequirements(Map<String, Object> requirements) {
-		this.requirements = requirements;
-	}
-
 	public Map<String, Object> getEffects() {
 		return effects;
-	}
-
-	public List<String> getRequiredItems() {
-		return requiredItems;
-	}
-
-	public void setRequiredItems(List<String> requiredItems) {
-		this.requiredItems = requiredItems;
 	}
 
 	public void setEffects(Map<String, Object> effects) {
@@ -150,22 +127,6 @@ public class GameEvent {
 
 	public void setNextEventId(String nextEventId) {
 		this.nextEventId = nextEventId;
-	}
-
-	public boolean isBossEvent() {
-		return isBossEvent;
-	}
-
-	public void setBossEvent(boolean bossEvent) {
-		isBossEvent = bossEvent;
-	}
-
-	public String getBossId() {
-		return bossId;
-	}
-
-	public void setBossId(String bossId) {
-		this.bossId = bossId;
 	}
 
 	public boolean isDeathEvent() {
@@ -373,13 +334,6 @@ public class GameEvent {
 		// 失敗時の結果
 		private Result failure;
 
-		// 必須アイテム/スキル
-		private String requiredItem;
-		private String requiredSkill;
-
-		// requirements (統合フィールド)
-		private String requirements;
-
 		// results (success/failureのリスト版)
 		private List<Result> results;
 
@@ -446,39 +400,6 @@ public class GameEvent {
 
 		public void setFailure(Result failure) {
 			this.failure = failure;
-		}
-
-		public String getRequiredItem() {
-			return requiredItem;
-		}
-
-		public void setRequiredItem(String requiredItem) {
-			this.requiredItem = requiredItem;
-		}
-
-		public String getRequiredSkill() {
-			return requiredSkill;
-		}
-
-		public void setRequiredSkill(String requiredSkill) {
-			this.requiredSkill = requiredSkill;
-		}
-
-		public String getRequirements() {
-			if (requirements != null) {
-				return requirements;
-			}
-			if (requiredSkill != null) {
-				return "skill:" + requiredSkill;
-			}
-			if (requiredItem != null) {
-				return "item:" + requiredItem;
-			}
-			return null;
-		}
-
-		public void setRequirements(String requirements) {
-			this.requirements = requirements;
 		}
 
 		public List<Result> getResults() {

@@ -596,13 +596,8 @@ public class GameEngine {
 
 		gameState.setVictory(true);
 
-		if (currentScenario.getNormalEnding() != null) {
-			ui.print(currentScenario.getNormalEnding());
-			ui.print("");
-		} else {
-			ui.print(player.getName() + "は冒険を成し遂げた!");
-			ui.print("");
-		}
+		ui.print(player.getName() + "は冒険を成し遂げた!");
+		ui.print("");
 
 		// エピローグを表示
 		showEpilogue();
