@@ -45,7 +45,7 @@ public class InteractionRegistry {
      * アプリケーション起動時に呼び出す
      */
     public static void initialize() {
-        // Phase 2: ミニゲーム
+        // ミニゲーム
         register(new CoinTossInteraction());
         register(new ButtonMashInteraction());
         register(new SlidePuzzleInteraction());
@@ -53,7 +53,7 @@ public class InteractionRegistry {
         register(new TimingBarInteraction());
         register(new QuickTimeEventInteraction());
 
-        // Phase 3: 戦闘システム
+        // 戦闘システム
         register(new SimpleCombatInteraction());
         register(new SlotCombatInteraction());
         register(new TimelineCombatInteraction());

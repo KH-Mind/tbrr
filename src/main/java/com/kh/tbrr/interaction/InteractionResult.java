@@ -4,11 +4,13 @@ import java.util.Map;
 
 /**
  * インタラクションの結果を保持するクラス
- * resultKeyは各インタラクションが定義する結果キー（例: "success", "failure", "perfect"など）
+ * resultKeyは各インタラクションが定義する結果キー
+ * 現在の実装例: "success", "failure", "left", "right"
+ * ※新しいインタラクションで別の結果キーを定義することも可能
  */
 public class InteractionResult {
 
-    private String resultKey; // "success", "failure", "perfect", "victory" など
+    private String resultKey; // 結果キー（実装例: "success", "failure", "left", "right"）
     private Map<String, Object> data; // 追加データ（スコア等）
 
     /**
