@@ -179,9 +179,10 @@
                 <artifactId>maven-antrun-plugin</artifactId>
                 <version>3.1.0</version>
                 <executions>
+                    <!-- ① リストの自動生成（process-resourcesフェーズで爆速実行） -->
                     <execution>
                         <id>generate-resource-lists</id>
-                        <phase>package</phase>
+                        <phase>process-resources</phase>
                         <goals>
                             <goal>run</goal>
                         </goals>
@@ -203,6 +204,18 @@
                                 </pathconvert>
                                 <echo file="src/main/resources/data/events/event_list.txt">
                                     ${event.list}</echo>
+                            </target>
+                        </configuration>
+                    </execution>
+                    <!-- ② jpackage用のJAR準備（packageフェーズ専用、Portable版を作る時だけ動く） -->
+                    <execution>
+                        <id>prepare-jpackage-input</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
                                 <mkdir dir="${project.build.directory}/jpackage-input" />
                                 <copy file="${project.build.directory}/tbrr-game.jar"
                                     todir="${project.build.directory}/jpackage-input" />
