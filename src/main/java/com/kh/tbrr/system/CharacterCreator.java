@@ -19,12 +19,14 @@ public class CharacterCreator {
     private final Random random;
     private final PersonalityManager personalityManager;
 
+    @Deprecated
     public CharacterCreator(ConsoleUI ui, PersonalityManager personalityManager) {
         this.ui = ui;
         this.random = new Random();
         this.personalityManager = personalityManager;
     }
 
+    @Deprecated
     public Player createCharacter() {
         Player player = new Player();
 

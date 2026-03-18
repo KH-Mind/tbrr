@@ -1,12 +1,12 @@
 module com.kh.tbrr {
 	// JavaFXモジュール
 	requires javafx.controls;
-	requires javafx.graphics;
+	requires transitive javafx.graphics;
 	requires javafx.fxml;
 	requires javafx.media;
 
 	// Gson - 正確なモジュール名を使用
-	requires com.google.gson;
+	requires transitive com.google.gson;
 
 	// JavaFXとGsonのために、すべてのパッケージを「名前のないモジュール」に公開
 	// これにより、リフレクション（GsonのJSON変換など）が正しく動作します

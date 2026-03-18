@@ -185,13 +185,10 @@ public class SaveManager {
         public Personality deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
                 throws JsonParseException {
             String id = json.getAsString();
-            // PersonalityManagerはインスタンスが必要だが、
-            // ここでは簡易的にstaticメソッドがないため、
-            // 新しいPersonalityManagerを作って取得するか、
-            // あるいはIDだけ持ったダミーを返す。
-            // PersonalityManagerのコストは低いので都度生成で対応。
+            
             try {
-                return new PersonalityManager().getPersonalityById(id);
+                // new PersonalityManager() を削り、クラス名から直接呼び出す
+                return PersonalityManager.getPersonalityById(id);
             } catch (Exception e) {
                 // 失敗時はIDだけのダミー
                 Personality p = new Personality();

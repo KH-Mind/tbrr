@@ -1326,7 +1326,7 @@ public class EventProcessor {
 	 * @param player    プレイヤー
 	 * @param gameState ゲーム状態
 	 */
-	@SuppressWarnings("unchecked")
+	
 	private void executeInteraction(String type, Map<String, Object> params, Player player, GameState gameState) {
 		InteractionHandler handler = InteractionRegistry.get(type);
 		if (handler == null) {

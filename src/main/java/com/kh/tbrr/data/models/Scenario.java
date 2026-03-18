@@ -16,7 +16,6 @@ public class Scenario {
 	private String name; // 表示名
 	private String description; // 説明文
 	private String difficulty; // 難易度
-	private int totalFloors; // 総フロア数
 
 	// JSONの"areas"を"stageConfigs"にマッピング
 	@SerializedName("areas")
@@ -305,10 +304,6 @@ public class Scenario {
 
 	public int getTotalFloors() {
 		return stageConfigs != null ? stageConfigs.size() : 0;
-	}
-
-	public void setTotalFloors(int totalFloors) {
-		this.totalFloors = totalFloors;
 	}
 
 	/**

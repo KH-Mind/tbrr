@@ -14,12 +14,12 @@ import com.kh.tbrr.system.DeveloperMode;
  * メインメニュー
  * 
  */
+// コンソール用キャラクリの使用は現在想定されていないが、緊急用に掘り出すかもしれないので残しておく。
 public class MainMenu {
 	private ConsoleUI ui;
 	private DataManager dataManager;
 	private GameEngine gameEngine;
 	private DeveloperMode developerMode;
-	
 
 	public MainMenu() {
 		// DeveloperMode を先に作り、UI は後からセットする（相互参照回避）
@@ -28,8 +28,7 @@ public class MainMenu {
 		this.developerMode.setUI(ui);
 		this.dataManager = new DataManager(developerMode);
 		this.gameEngine = new GameEngine(developerMode, ui, dataManager);
-		
-		
+
 	}
 
 	private void showGraveyardMenu() {
@@ -43,8 +42,8 @@ public class MainMenu {
 		while (running) {
 			showTitle();
 			ui.print("【メインメニュー】");
-			ui.print("1. キャラクター選択");  
-			ui.print("2. キャラクター作成");  
+			ui.print("1. キャラクター選択");
+			ui.print("2. キャラクター作成");
 			ui.print("3. 図鑑");
 			ui.print("4. 実績");
 			ui.print("5. 墓地メニュー");
@@ -61,27 +60,27 @@ public class MainMenu {
 			}
 
 			switch (choice) {
-			case 1:
-				startNewGame();  // ← キャラ選択 → シナリオ選択
-				break;
-			case 2:
-				characterManagementMenu();  // ← キャラ編集メニュー
-				break;
-			case 3:
-				showDeathEncyclopedia();
-				break;
-			case 4:
-				showAchievements();
-				break;
-			case 5:
-				showGraveyardMenu();
-				break;
-			case 6:
-				showSettings();
-				break;
-			case 7:
-				running = false;
-				break;
+				case 1:
+					startNewGame(); // ← キャラ選択 → シナリオ選択
+					break;
+				case 2:
+					characterManagementMenu(); // ← キャラ編集メニュー
+					break;
+				case 3:
+					showDeathEncyclopedia();
+					break;
+				case 4:
+					showAchievements();
+					break;
+				case 5:
+					showGraveyardMenu();
+					break;
+				case 6:
+					showSettings();
+					break;
+				case 7:
+					running = false;
+					break;
 			}
 		}
 
@@ -105,18 +104,18 @@ public class MainMenu {
 	 */
 	private void startNewGame() {
 		ui.printTitleBar("新規ゲーム");
-		
+
 		// 1. キャラクター選択
 		CharacterLoader loader = new CharacterLoader();
 		List<String> savedCharacters = loader.listSavedCharacters();
-		
+
 		if (savedCharacters.isEmpty()) {
 			ui.print("保存されたキャラクターがありません。");
 			ui.print("先に「キャラクター作成」でキャラクターを作成してください。");
 			ui.waitForEnter();
 			return;
 		}
-		
+
 		ui.print("【キャラクター選択】");
 		for (int i = 0; i < savedCharacters.size(); i++) {
 			String filename = savedCharacters.get(i);
@@ -125,26 +124,26 @@ public class MainMenu {
 		}
 		ui.print((savedCharacters.size() + 1) + ". 戻る");
 		ui.print("");
-		
+
 		int charChoice = ui.getPlayerChoice(savedCharacters.size() + 1);
-		
+
 		if (charChoice == -999 || charChoice > savedCharacters.size()) {
 			return;
 		}
-		
+
 		String selectedCharFile = savedCharacters.get(charChoice - 1);
 		Player player = loader.loadCharacter(selectedCharFile);
-		
+
 		if (player == null) {
 			ui.printError("キャラクター情報の読み込みに失敗しました。");
 			ui.waitForEnter();
 			return;
 		}
-		
+
 		ui.print("");
 		ui.print("✅ " + player.getName() + " を選択しました。");
 		ui.print("");
-		
+
 		// 2. シナリオ選択
 		selectScenarioForCharacter(player);
 	}
@@ -154,36 +153,36 @@ public class MainMenu {
 	 */
 	private void selectScenarioForCharacter(Player player) {
 		ui.printTitleBar("シナリオ選択");
-		
+
 		List<String> scenarioIds = dataManager.getAllScenarioIds();
-		
+
 		if (scenarioIds.isEmpty()) {
 			ui.print("利用可能なシナリオがありません。");
 			ui.waitForEnter();
 			return;
 		}
-		
+
 		ui.print("プレイするシナリオを選択してください:");
 		ui.print("");
-		
+
 		for (int i = 0; i < scenarioIds.size(); i++) {
 			ui.print((i + 1) + ". " + scenarioIds.get(i));
 		}
 		ui.print((scenarioIds.size() + 1) + ". 戻る");
 		ui.print("");
-		
+
 		int choice = ui.getPlayerChoice(scenarioIds.size() + 1);
-		
+
 		if (choice == -999 || choice > scenarioIds.size()) {
 			return;
 		}
-		
+
 		String selectedScenario = scenarioIds.get(choice - 1);
 		ui.print("");
 		ui.print("「" + selectedScenario + "」を開始します...");
 		ui.print("キャラクター: " + player.getName());
 		ui.waitForEnter();
-		
+
 		// ✅ 修正: startNewGameWithPlayer を使用
 		gameEngine.startNewGameWithPlayer(selectedScenario, player);
 	}
@@ -193,7 +192,7 @@ public class MainMenu {
 	 */
 	private void characterManagementMenu() {
 		boolean inMenu = true;
-		
+
 		while (inMenu) {
 			ui.printTitleBar("キャラクター編集");
 			ui.print("【キャラクター編集メニュー】");
@@ -202,33 +201,36 @@ public class MainMenu {
 			ui.print("3. 既存キャラ削除");
 			ui.print("4. 戻る");
 			ui.print("");
-			
+
 			int choice = ui.getPlayerChoice(4);
-			
+
 			if (choice == -999) {
 				return;
 			}
-			
+
 			switch (choice) {
-			case 1:
-				createNewCharacter();
-				break;
-			case 2:
-				viewExistingCharacter();
-				break;
-			case 3:
-				deleteCharacter();
-				break;
-			case 4:
-				inMenu = false;
-				break;
+				case 1:
+					createNewCharacter();
+					break;
+				case 2:
+					viewExistingCharacter();
+					break;
+				case 3:
+					deleteCharacter();
+					break;
+				case 4:
+					inMenu = false;
+					break;
 			}
 		}
 	}
 
 	/**
 	 * 新規キャラクター作成
+	 * コンソール版でのキャラクリの使用は現在想定されていないが、もしものために残しておく。
 	 */
+
+	@SuppressWarnings("deprecation")
 	private void createNewCharacter() {
 		ui.printTitleBar("キャラクター作成");
 
@@ -258,16 +260,16 @@ public class MainMenu {
 	 */
 	private void viewExistingCharacter() {
 		ui.printTitleBar("既存キャラ確認");
-		
+
 		CharacterLoader loader = new CharacterLoader();
 		List<String> savedCharacters = loader.listSavedCharacters();
-		
+
 		if (savedCharacters.isEmpty()) {
 			ui.print("保存されたキャラクターがありません。");
 			ui.waitForEnter();
 			return;
 		}
-		
+
 		ui.print("【保存されているキャラクター】");
 		for (int i = 0; i < savedCharacters.size(); i++) {
 			String filename = savedCharacters.get(i);
@@ -276,23 +278,23 @@ public class MainMenu {
 		}
 		ui.print((savedCharacters.size() + 1) + ". 戻る");
 		ui.print("");
-		
+
 		int choice = ui.getPlayerChoice(savedCharacters.size() + 1);
-		
+
 		if (choice == -999 || choice > savedCharacters.size()) {
 			return;
 		}
-		
+
 		String selectedFile = savedCharacters.get(choice - 1);
 		Player player = loader.loadCharacter(selectedFile);
-		
+
 		if (player != null) {
 			ui.print("");
 			ui.print(player.getCharacterSheet());
 		} else {
 			ui.printError("キャラクター情報の読み込みに失敗しました。");
 		}
-		
+
 		ui.waitForEnter();
 	}
 
@@ -335,19 +337,19 @@ public class MainMenu {
 		}
 
 		switch (choice) {
-		case 1:
-			ui.print("テキスト速度設定は未実装です。");
-			ui.waitForEnter();
-			break;
-		case 2:
-			ui.print("難易度設定は未実装です。");
-			ui.waitForEnter();
-			break;
-		case 3:
-			confirmDataDeletion();
-			break;
-		case 4:
-			break;
+			case 1:
+				ui.print("テキスト速度設定は未実装です。");
+				ui.waitForEnter();
+				break;
+			case 2:
+				ui.print("難易度設定は未実装です。");
+				ui.waitForEnter();
+				break;
+			case 3:
+				confirmDataDeletion();
+				break;
+			case 4:
+				break;
 		}
 	}
 
