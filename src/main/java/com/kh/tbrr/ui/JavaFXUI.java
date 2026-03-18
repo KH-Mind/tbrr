@@ -113,6 +113,11 @@ public class JavaFXUI implements GameUI {
 			if (scrollPane != null) {
 				scrollPane.setStyle("-fx-vbar-policy: always;");
 			}
+			
+			// ★追加: テキストエリア選択時に先頭へスクロールしてしまうバグ対策
+			// テキストエリア部分でのマウスクリックを完全にブロックし、スクロールバー操作のみ許可する
+			disableTextClickSelection(messageArea);
+			disableTextClickSelection(importantLogArea);
 		});
 	}
 
@@ -286,6 +291,7 @@ public class JavaFXUI implements GameUI {
 
 		importantLogArea = new TextArea();
 		importantLogArea.setEditable(false);
+		importantLogArea.setFocusTraversable(false);
 		importantLogArea.setWrapText(true);
 		importantLogArea.setFont(Font.font("MS Gothic", 14));
 		importantLogArea.setStyle("-fx-control-inner-background: #2b2b2b; -fx-text-fill: #cccccc;");
@@ -346,7 +352,7 @@ public class JavaFXUI implements GameUI {
 		// [？][↓][？] (row 2)
 
 		// 将来拡張用プレースホルダー（左上）
-		Button placeholder1 = createPlaceholderButton("？", buttonSize);
+		Button placeholder1 = createPlaceholderButton(" ", buttonSize);
 		GridPane.setMargin(placeholder1, new Insets(0, 0, 0, 10));
 		numpad.add(placeholder1, 3, 0);
 
@@ -360,7 +366,7 @@ public class JavaFXUI implements GameUI {
 		numpad.add(upBtn, 4, 0);
 
 		// 将来拡張用プレースホルダー（右上）
-		Button placeholder2 = createPlaceholderButton("？", buttonSize);
+		Button placeholder2 = createPlaceholderButton(" ", buttonSize);
 		numpad.add(placeholder2, 5, 0);
 
 		// ←ボタン
@@ -392,7 +398,7 @@ public class JavaFXUI implements GameUI {
 		numpad.add(rightBtn, 5, 1);
 
 		// 将来拡張用プレースホルダー（左下）
-		Button placeholder3 = createPlaceholderButton("？", buttonSize);
+		Button placeholder3 = createPlaceholderButton(" ", buttonSize);
 		GridPane.setMargin(placeholder3, new Insets(0, 0, 0, 10));
 		numpad.add(placeholder3, 3, 2);
 
@@ -406,7 +412,7 @@ public class JavaFXUI implements GameUI {
 		numpad.add(downBtn, 4, 2);
 
 		// 将来拡張用プレースホルダー（右下）
-		Button placeholder4 = createPlaceholderButton("？", buttonSize);
+		Button placeholder4 = createPlaceholderButton(" ", buttonSize);
 		numpad.add(placeholder4, 5, 2);
 
 		// ================== 設定・ステータスボタン（6列目、縦配置） ==================
@@ -433,7 +439,7 @@ public class JavaFXUI implements GameUI {
 
 		// 将来拡張用プレースホルダー（6列目 row 2, 3）
 		for (int i = 2; i <= 3; i++) {
-			Button placeholder = createPlaceholderButton("？", buttonSize);
+			Button placeholder = createPlaceholderButton("未定", buttonSize);
 			placeholder.setPrefSize(wideButtonWidth, buttonSize);
 			placeholder.setMinSize(wideButtonWidth, buttonSize);
 			placeholder.setMaxSize(wideButtonWidth, buttonSize);
@@ -493,6 +499,7 @@ public class JavaFXUI implements GameUI {
 
 		messageArea = new TextArea();
 		messageArea.setEditable(false);
+		messageArea.setFocusTraversable(false);
 		messageArea.setWrapText(true);
 		messageArea.setFont(Font.font("MS Gothic", 16));
 		messageArea.setStyle("-fx-control-inner-background: #2b2b2b; -fx-text-fill: white;");
@@ -611,8 +618,7 @@ public class JavaFXUI implements GameUI {
 			// ★改善: PauseTransitionで少し待ってからスクロール（レイアウト更新待ち）
 			PauseTransition pause = new PauseTransition(Duration.millis(50));
 			pause.setOnFinished(e -> {
-				messageArea.selectEnd(); // 末尾を選択して表示位置を合わせる
-				messageArea.deselect(); // 選択解除
+				messageArea.positionCaret(messageArea.getText().length()); // 末尾にキャレットを合わせる
 				messageArea.setScrollTop(Double.MAX_VALUE); // 強制的に最下部へ
 			});
 			pause.play();
@@ -1297,6 +1303,31 @@ public class JavaFXUI implements GameUI {
 			if (subWindowBox != null) {
 				subWindowBox.getChildren().clear();
 				subWindowBox.getChildren().add(subWindowImageView);
+			}
+		});
+	}
+
+	/**
+	 * TextAreaのテキスト部分のクリックイベントを消費し、
+	 * キャレット移動による意図しないスクロールを防止します。
+	 */
+	private void disableTextClickSelection(TextArea textArea) {
+		textArea.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, event -> {
+			javafx.scene.Node target = (javafx.scene.Node) event.getTarget();
+			boolean isScrollBar = false;
+			while (target != null) {
+				if (target instanceof javafx.scene.control.ScrollBar) {
+					isScrollBar = true;
+					break;
+				}
+				target = target.getParent();
+			}
+			if (!isScrollBar) {
+				// スクロールバー以外のクリックイベントを消費
+				event.consume();
+				if (inputField != null) {
+					inputField.requestFocus();
+				}
 			}
 		});
 	}
