@@ -34,6 +34,7 @@ public class ImageManager {
 	private static final String PORTRAITS_BASE_PATH = "/data/images/portraits/";
 	private static final String BG_BASE_PATH = "/data/images/bg/";
 	private static final String EVENT_IMAGES_BASE_PATH = "/data/images/event_images/";
+	private static final String ENEMIES_BASE_PATH = "/data/images/enemies/";
 
 	// カスタム立ち絵用パス（外部ファイルシステム）
 	private static final String USER_PORTRAITS_DIR = "userdata/user_portraits";
@@ -199,6 +200,16 @@ public class ImageManager {
 	 */
 	public Image loadEventImage(String fileName) {
 		return loadImage(EVENT_IMAGES_BASE_PATH + fileName);
+	}
+
+	/**
+	 * 敵画像を読み込む
+	 * 
+	 * @param fileName ファイル名（拡張子含む）
+	 * @return 画像オブジェクト。読み込み失敗時はnull
+	 */
+	public Image loadEnemyImage(String fileName) {
+		return loadImage(ENEMIES_BASE_PATH + fileName);
 	}
 
 	/**

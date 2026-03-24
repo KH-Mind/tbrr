@@ -33,6 +33,9 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+import javafx.scene.control.ComboBox;
+import com.kh.tbrr.battle.BattleCommand;
+
 /**
  * JavaFX版UI実装（1600x900、Enterキー対応、立ち絵エリア追加）
  */
@@ -47,6 +50,7 @@ public class JavaFXUI implements GameUI {
 	private Label moneyLabel;
 	private TextArea messageArea;
 	private ImageView eventImageView;
+	private ImageView enemyImageView;
 	private TextField inputField;
 	private FlowPane skillsPane; // 技能アイコン表示用
 	private FlowPane itemsPane; // アイテムアイコン表示用
@@ -77,6 +81,17 @@ public class JavaFXUI implements GameUI {
 
 	// インタラクション（ミニゲーム）用入力ハンドラー
 	private java.util.function.Consumer<String> interactionInputHandler;
+
+	// バトルシステム用UIとフィールド
+	private VBox battleCommandBox;
+	private ComboBox<String> moveComboBox;
+	private ComboBox<String> actionComboBox;
+	private ComboBox<String> stanceComboBox;
+	private ComboBox<String> specialComboBox;
+	private Button executeTurnButton;
+	private CountDownLatch battleCommandLatch;
+	private AtomicReference<BattleCommand> battleCommandResult = new AtomicReference<>();
+	private HBox inputBox; // inputBoxのクラスフィールド保存用
 
 	public JavaFXUI(Stage stage, DeveloperMode developerMode) {
 		this.stage = stage;
@@ -139,9 +154,13 @@ public class JavaFXUI implements GameUI {
 		VBox messageBox = createMessageArea();
 		VBox.setVgrow(messageBox, Priority.ALWAYS);
 
-		HBox inputBox = createBottomInputArea();
+		HBox inputBoxLocal = createBottomInputArea();
+		this.inputBox = inputBoxLocal; // フィールドに保管
 
-		leftColumn.getChildren().addAll(eventStackPane, messageBox, inputBox);
+		// ★バトル用コマンドエリアを生成（初期は非表示）
+		battleCommandBox = createBattleCommandArea();
+
+		leftColumn.getChildren().addAll(eventStackPane, messageBox, this.inputBox, battleCommandBox);
 		HBox.setHgrow(leftColumn, Priority.NEVER); // 固定幅
 
 		// 右列：サブウィンドウ、重要ログ置き場、テンキーエリアを含むVBox
@@ -176,6 +195,15 @@ public class JavaFXUI implements GameUI {
 		eventImageView.setStyle(
 				"-fx-background-color: #222222;");
 
+		// ★追加: 敵画像エリア (背景の上に重ねる)
+		enemyImageView = new ImageView();
+		enemyImageView.setFitWidth(800);
+		enemyImageView.setFitHeight(450);
+		enemyImageView.setPreserveRatio(true);
+		enemyImageView.setSmooth(true);
+		enemyImageView.setVisible(false);
+		StackPane.setAlignment(enemyImageView, Pos.CENTER);
+
 		// 上部オーバーレイ：マップ情報とイベント情報（内側に配置）
 		// 上部オーバーレイ：マップ情報とイベント情報（1行表示、マップ画像の上に重ねて配置）
 		HBox overlayBox = new HBox(30);
@@ -198,7 +226,7 @@ public class JavaFXUI implements GameUI {
 		StackPane.setAlignment(overlayBox, Pos.TOP_LEFT);
 		StackPane.setMargin(overlayBox, new Insets(10)); // 枠の内側に配置
 
-		stackPane.getChildren().addAll(eventImageView, overlayBox);
+		stackPane.getChildren().addAll(eventImageView, enemyImageView, overlayBox);
 		return stackPane;
 	}
 
@@ -507,6 +535,113 @@ public class JavaFXUI implements GameUI {
 
 		messageBox.getChildren().add(messageArea);
 		return messageBox;
+	}
+
+	/**
+	 * 戦闘コマンド選択エリアを作成（初期非表示）
+	 */
+	private VBox createBattleCommandArea() {
+		VBox container = new VBox(5);
+		container.setPadding(new Insets(10));
+		container.setStyle("-fx-background-color: #2b2b2b; -fx-border-color: #555; -fx-border-width: 1px;");
+		container.setVisible(false);
+		container.setManaged(false);
+
+		HBox controlRow = new HBox(15);
+		controlRow.setAlignment(Pos.CENTER_LEFT);
+
+		moveComboBox = new ComboBox<>();
+		moveComboBox.getItems().addAll("前進", "停止", "後退");
+		moveComboBox.setValue("停止");
+		
+		actionComboBox = new ComboBox<>();
+		actionComboBox.getItems().addAll("攻撃", "全力移動", "逃げる");
+		actionComboBox.setValue("攻撃");
+
+		stanceComboBox = new ComboBox<>();
+		stanceComboBox.getItems().addAll("なし");
+		stanceComboBox.setValue("なし");
+
+		specialComboBox = new ComboBox<>();
+		specialComboBox.getItems().addAll("なし");
+		specialComboBox.setValue("なし");
+		specialComboBox.setOnAction(e -> {
+			if(!"なし".equals(specialComboBox.getValue())) {
+				actionComboBox.setDisable(true);
+			} else {
+				actionComboBox.setDisable(false);
+			}
+		});
+
+		executeTurnButton = new Button("ターンの決定");
+		executeTurnButton.setFont(Font.font("MS Gothic", 14));
+		executeTurnButton.setOnAction(e -> {
+			if(battleCommandLatch != null) {
+				BattleCommand cmd = new BattleCommand(
+					moveComboBox.getValue(),
+					actionComboBox.getValue(),
+					stanceComboBox.getValue(),
+					specialComboBox.getValue()
+				);
+				battleCommandResult.set(cmd);
+				battleCommandLatch.countDown();
+			}
+		});
+
+		controlRow.getChildren().addAll(
+			new Label("ムーブ:"), moveComboBox,
+			new Label("アクション:"), actionComboBox,
+			new Label("スタンス:"), stanceComboBox,
+			new Label("特殊:"), specialComboBox,
+			executeTurnButton
+		);
+
+		// ラベルの文字色を白に設定
+		for (javafx.scene.Node node : controlRow.getChildren()) {
+			if (node instanceof Label) {
+				node.setStyle("-fx-text-fill: white;");
+			}
+		}
+
+		container.getChildren().add(controlRow);
+		return container;
+	}
+	
+	/**
+	 * 戦闘モードのUI切り替え（選択肢エリアとコマンドエリアの切り替え）
+	 */
+	public void setBattleMode(boolean isBattle) {
+		Platform.runLater(() -> {
+			if(inputBox != null && battleCommandBox != null) {
+				inputBox.setVisible(!isBattle);
+				inputBox.setManaged(!isBattle);
+				battleCommandBox.setVisible(isBattle);
+				battleCommandBox.setManaged(isBattle);
+				
+				if(isBattle) {
+					moveComboBox.setValue("停止");
+					actionComboBox.setValue("攻撃");
+					stanceComboBox.setValue("なし");
+					specialComboBox.setValue("なし");
+				}
+			}
+		});
+	}
+	
+	/**
+	 * プレイヤーのバトルコマンド入力を待機して取得する
+	 */
+	public BattleCommand getBattleCommand() {
+		battleCommandLatch = new CountDownLatch(1);
+		battleCommandResult.set(null);
+		
+		try {
+			battleCommandLatch.await();
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			return null;
+		}
+		return battleCommandResult.get();
 	}
 
 	/**
@@ -1113,6 +1248,8 @@ public class JavaFXUI implements GameUI {
 				updateBackgroundImage(imagePath);
 			} else if ("sub".equals(imageType)) {
 				updateSubImage(imagePath);
+			} else if ("enemy".equals(imageType)) {
+				updateEnemyImage(imagePath);
 			}
 		});
 	}
@@ -1159,6 +1296,34 @@ public class JavaFXUI implements GameUI {
 				} else {
 					System.err.println("[JavaFXUI] サブ画像の読み込みに失敗: " + fileName);
 				}
+			}
+		});
+	}
+
+	/**
+	 * 敵画像を更新
+	 * 
+	 * @param fileName 画像ファイル名
+	 */
+	public void updateEnemyImage(String fileName) {
+		if (fileName == null || fileName.isEmpty()) {
+			Platform.runLater(() -> {
+				if(enemyImageView != null) {
+					enemyImageView.setImage(null);
+					enemyImageView.setVisible(false);
+				}
+			});
+			return;
+		}
+
+		Platform.runLater(() -> {
+			Image enemyImg = imageManager.loadEnemyImage(fileName);
+			if (enemyImg != null) {
+				enemyImageView.setImage(enemyImg);
+				enemyImageView.setVisible(true);
+			} else {
+				System.err.println("[JavaFXUI] 敵画像の読み込みに失敗: " + fileName);
+				enemyImageView.setVisible(false);
 			}
 		});
 	}

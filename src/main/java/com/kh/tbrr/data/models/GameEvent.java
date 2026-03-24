@@ -486,6 +486,9 @@ public class GameEvent {
 		// インタラクション（Result内での呼び出し用）
 		private String interaction;
 		private Map<String, Object> interactionParams;
+		
+		// バトルシステム呼び出し用
+		private String battle;
 
 		public Result() {
 			this.description = new ArrayList<>();
@@ -793,6 +796,14 @@ public class GameEvent {
 
 		public void setInteractionParams(Map<String, Object> interactionParams) {
 			this.interactionParams = interactionParams;
+		}
+
+		public String getBattle() {
+			return battle;
+		}
+
+		public void setBattle(String battle) {
+			this.battle = battle;
 		}
 
 	}

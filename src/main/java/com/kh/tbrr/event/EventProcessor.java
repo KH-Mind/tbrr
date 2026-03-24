@@ -1315,6 +1315,20 @@ public class EventProcessor {
 			executeInteraction(result.getInteraction(), result.getInteractionParams(), player, gameState);
 		}
 
+		// ★追加: TRPG風バトルシステムの呼び出し
+		if (result.getBattle() != null && !result.getBattle().isEmpty()) {
+			com.kh.tbrr.battle.BattleManager battleManager = new com.kh.tbrr.battle.BattleManager(ui, player);
+			battleManager.startBattle(result.getBattle());
+			
+			// 戦闘終了後の死亡判定
+			if (player.getHp() <= 0) {
+				if (deathManager != null) {
+					deathManager.processDeath(battleManager.getDeathCause(), player, gameState);
+				}
+				died = true;
+			}
+		}
+
 		return died;
 	}
 

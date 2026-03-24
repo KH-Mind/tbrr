@@ -53,10 +53,6 @@ public class InteractionRegistry {
         register(new TimingBarInteraction());
         register(new QuickTimeEventInteraction());
 
-        // 戦闘システム
-        register(new SimpleCombatInteraction());
-        register(new SlotCombatInteraction());
-        register(new TimelineCombatInteraction());
         System.out.println("[InteractionRegistry] 初期化完了（登録数: " + handlers.size() + "）");
     }
 

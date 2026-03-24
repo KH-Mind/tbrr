@@ -18,6 +18,7 @@ module com.kh.tbrr {
 	opens com.kh.tbrr.system;
 	opens com.kh.tbrr.event;
 	opens com.kh.tbrr.data;
+	opens com.kh.tbrr.battle;
 
 	// パッケージのエクスポート
 	exports com.kh.tbrr;
@@ -28,4 +29,5 @@ module com.kh.tbrr {
 	exports com.kh.tbrr.data.models;
 	exports com.kh.tbrr.event;
 	exports com.kh.tbrr.data;
+	exports com.kh.tbrr.battle;
 }
