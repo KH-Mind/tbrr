@@ -69,6 +69,12 @@ public class GameEngine {
 		for (Item item : dataManager.loadAllItemsFromFile("unique_items.json")) {
 			com.kh.tbrr.data.ItemRegistry.register(item);
 		}
+		for (Item item : dataManager.loadAllItemsFromFile("weapons.json")) {
+			com.kh.tbrr.data.ItemRegistry.register(item);
+		}
+		for (Item item : dataManager.loadAllItemsFromFile("accessories.json")) {
+			com.kh.tbrr.data.ItemRegistry.register(item);
+		}
 
 		// 状態異常の登録
 		for (com.kh.tbrr.data.models.StatusEffect effect : dataManager

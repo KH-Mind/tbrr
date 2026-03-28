@@ -69,6 +69,11 @@ public class Player {
     private List<String> traits;
     private List<String> inventory;
 
+    // equipments
+    private String equippedMainWeapon;
+    private String equippedSubWeapon;
+    private List<String> equippedAccessories;
+
     // status effects (プレイヤー状態、状態異常系の管理用)
     private java.util.Map<String, Integer> statusEffects;
 
@@ -125,6 +130,7 @@ public class Player {
         this.inventory = new ArrayList<>();
         this.charmPoints = new ArrayList<>();
         this.statusEffects = new java.util.HashMap<>();
+        this.equippedAccessories = new ArrayList<>();
 
         this.isFatedOne = true;
         this.money = 30;
@@ -221,6 +227,74 @@ public class Player {
 
     public void removeItem(String itemId) {
         inventory.remove(itemId);
+        // インベントリから消えた場合は装備スロットからも外す
+        if (itemId.equals(equippedMainWeapon)) {
+            equippedMainWeapon = null;
+        }
+        if (itemId.equals(equippedSubWeapon)) {
+            equippedSubWeapon = null;
+        }
+        if (equippedAccessories != null) {
+            equippedAccessories.remove(itemId);
+        }
+    }
+
+    /**
+     * 所持している（あるいは装備している）武器と装飾品の合計数を取得。
+     * 上限（計6つ）のチェックに使う。
+     */
+    public int getEquipmentCount() {
+        int count = 0;
+        for (String id : inventory) {
+            Item item = ItemRegistry.getItemById(id);
+            if (item != null) {
+                String cat = item.getEquipmentCategory();
+                if ("WEAPON".equalsIgnoreCase(cat) || "ACCESSORY".equalsIgnoreCase(cat)) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    // --- 装備操作メソッド群 ---
+
+    public String getEquippedMainWeapon() {
+        return equippedMainWeapon;
+    }
+
+    public void equipMainWeapon(String itemId) {
+        if (itemId == null || inventory.contains(itemId)) {
+            this.equippedMainWeapon = itemId;
+        }
+    }
+
+    public String getEquippedSubWeapon() {
+        return equippedSubWeapon;
+    }
+
+    public void equipSubWeapon(String itemId) {
+        if (itemId == null || inventory.contains(itemId)) {
+            this.equippedSubWeapon = itemId;
+        }
+    }
+
+    public List<String> getEquippedAccessories() {
+        return equippedAccessories;
+    }
+
+    public void equipAccessory(String itemId) {
+        if (itemId != null && inventory.contains(itemId) && !equippedAccessories.contains(itemId)) {
+            if (equippedAccessories.size() < 3) {
+                equippedAccessories.add(itemId);
+            }
+        }
+    }
+
+    public void unequipAccessory(String itemId) {
+        if (itemId != null) {
+            equippedAccessories.remove(itemId);
+        }
     }
 
     public boolean hasSkill(String skillName) {

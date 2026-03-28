@@ -31,4 +31,15 @@ public class EnemyData {
     public String getImagePath() { return imagePath; }
     public String getBattleBackground() { return battleBackground; }
     public String getDeathCause() { return deathCause; }
+
+    public int getStatByName(String statName) {
+        return switch (statName.toUpperCase()) {
+            case "MIGHT" -> might;
+            case "INSIGHT" -> insight;
+            case "FINESSE" -> finesse;
+            case "PRESENCE" -> presence;
+            case "SENSUALITY" -> sensuality;
+            default -> 0;
+        };
+    }
 }

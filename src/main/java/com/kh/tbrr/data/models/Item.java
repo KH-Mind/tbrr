@@ -17,6 +17,12 @@ public class Item {
 	private int attackBonus; // 攻撃力ボーナス
 	private java.util.Map<String, Integer> combatStats; // 戦闘ステータス（might, insight, finesse, presence, sensuality）
 
+	// --- 装備用データ ---
+	private String equipmentCategory; // "WEAPON", "ACCESSORY" 等
+	private String weaponCategory;    // "sword", "bow" 等
+	private String damageDice;        // "1d8" 等
+	private int damageReduction;      // ダメージ軽減値
+
 	// コンストラクタ
 	public Item() {
 		this.grantedSkills = new ArrayList<>();
@@ -24,6 +30,7 @@ public class Item {
 		this.losableRandom = true;
 		this.attackBonus = 0;
 		this.combatStats = new java.util.HashMap<>();
+		this.damageReduction = 0;
 	}
 
 	// Getters and Setters
@@ -107,5 +114,38 @@ public class Item {
 
 	public int getCombatStat(String statName) {
 		return combatStats != null ? combatStats.getOrDefault(statName, 0) : 0;
+	}
+
+	// --- 装備用ゲッター・セッター ---
+	public String getEquipmentCategory() {
+		return equipmentCategory;
+	}
+
+	public void setEquipmentCategory(String equipmentCategory) {
+		this.equipmentCategory = equipmentCategory;
+	}
+
+	public String getWeaponCategory() {
+		return weaponCategory;
+	}
+
+	public void setWeaponCategory(String weaponCategory) {
+		this.weaponCategory = weaponCategory;
+	}
+
+	public String getDamageDice() {
+		return damageDice;
+	}
+
+	public void setDamageDice(String damageDice) {
+		this.damageDice = damageDice;
+	}
+
+	public int getDamageReduction() {
+		return damageReduction;
+	}
+
+	public void setDamageReduction(int damageReduction) {
+		this.damageReduction = damageReduction;
 	}
 }

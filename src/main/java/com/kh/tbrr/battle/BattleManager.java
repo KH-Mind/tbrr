@@ -8,6 +8,7 @@ import java.util.Random;
 
 import com.kh.tbrr.data.models.Player;
 import com.kh.tbrr.ui.GameUI;
+import com.kh.tbrr.battle.data.*;
 import com.google.gson.Gson;
 
 public class BattleManager {
@@ -117,7 +118,40 @@ public class BattleManager {
     }
 
     private boolean processPlayerTurn(BattleCommand cmd, EnemyData enemy) {
-        // [1] ムーブ処理
+        CombatBaseRules baseRules = CombatDataLoader.getBaseRules();
+
+        // [1] スタンス（頭）の適用：アビリティの決定
+        String abilityId = "basic_attack"; // デフォルト
+        
+        // 画面(UI)から送信される「日本語名称」を内部IDへ変換（※将来的にUIが直接IDを投げるようになれば不要になる仮の処理）
+        String stanceName = cmd.getStance();
+        String stanceId = switch (stanceName != null ? stanceName : "") {
+            case "魔法攻撃" -> "magic_stance";
+            case "射撃の名手" -> "shooting_stance";
+            default -> null;
+        };
+
+        StanceData stanceData = stanceId != null ? CombatDataLoader.getStance(stanceId) : null;
+        
+        if (stanceData != null) {
+            if (stanceData.getApCost() > 0) {
+                player.modifyAp(-stanceData.getApCost());
+            }
+            if (stanceData.getMessage() != null && !stanceData.getMessage().isEmpty()) {
+                ui.print(stanceData.getMessage());
+            }
+            if (stanceData.getOverrideAbilityId() != null && !stanceData.getOverrideAbilityId().isEmpty()) {
+                abilityId = stanceData.getOverrideAbilityId();
+            }
+        }
+
+        AbilityData ability = CombatDataLoader.getAbility(abilityId);
+        if (ability == null) {
+            ui.print("【エラー】アビリティデータが見つかりません: " + abilityId);
+            return false;
+        }
+
+        // [2] ムーブ（足）の解決：距離の確定
         String move = cmd.getMove();
         if ("前進".equals(move)) {
             state.setDistance(Math.max(0, state.getDistance() - 1));
@@ -127,158 +161,150 @@ public class BattleManager {
             ui.print("　プレイヤーは後退した。（現在距離: " + state.getDistance() + "）");
         }
 
-        // [2] アクション処理
+        // [3] アクション（腕）の解決：確定した距離に基づく判定
         String action = cmd.getAction();
-        
         if ("逃げる".equals(action)) {
-            // ダミー：今の所は無条件で成功とする
             ui.print("　戦闘から無事に逃走した！");
             return true; 
         }
 
         if ("攻撃".equals(action)) {
-        	// 属性・依存ステータスの初期値 (近接・強靭)
-            DistanceType distType = DistanceType.MELEE;
-            StatType statType = StatType.MIGHT;
-
-            // スタンスによる上書き処理
-            String stance = cmd.getStance();
-            if ("魔法攻撃".equals(stance)) {
-                distType = DistanceType.SPECIAL;
-                statType = StatType.INSIGHT;
-                player.modifyAp(-1);
-                ui.print("　魔法攻撃の構え！(APを1消費した)");
-            } else if ("射撃の名手".equals(stance)) {
-                distType = DistanceType.RANGED;
-                statType = StatType.FINESSE;
-                ui.print("　射撃の名手の構えをとった！");
-            }
-
-            // 属性と距離による確定ミスの判定
-            if (isMissByDistance(distType, state.getDistance())) {
-            	if(distType == DistanceType.MELEE) {
-            		ui.print("　ミス！遠すぎて攻撃が届かない！");
-            	} else {
-            		ui.print("　ミス！近すぎて攻撃が当たらない！");
-            	}
+            // 距離による結果（HIT/MISS/BONUS）の判定
+            String rangeResult = baseRules.getRangeResult(ability.getType(), state.getDistance());
+            
+            if ("MISS".equals(rangeResult)) {
+                ui.print("　ミス！距離が適していません。 (" + ability.getName() + ")");
                 return false;
             }
 
-            // 命中判定 (自機敏 vs 敵機敏)
-            int atkFinesse = player.getCombatStats().finesse();
-            int defFinesse = enemy.getFinesse();
+            // 命中判定（防御側ステータスが未設定の場合は必中）
+            int atkStatVal = getCombatStat(player, ability.getCheck().getAttackerStat());
+            String defStatName = ability.getCheck().getDefenderStat();
+            
+            boolean isHit;
+            if (defStatName == null || defStatName.isEmpty()) {
+                isHit = true; // 防御側ステータスの指定がなければ必中
+            } else {
+                int defStatVal = enemy.getStatByName(defStatName);
+                Integer overrideChance = ability.getCheck().getBaseChance();
+                isHit = checkHit(atkStatVal, defStatVal, overrideChance);
+            }
 
-            if (checkHit(atkFinesse, defFinesse)) {
-                // ダメージ計算（要求されたステータスの数値をそのままダメージにする）
-                int baseDamage = 0;
-                switch(statType) {
-                    case MIGHT: baseDamage = player.getCombatStats().might(); break;
-                    case FINESSE: baseDamage = player.getCombatStats().finesse(); break;
-                    case INSIGHT: baseDamage = player.getCombatStats().insight(); break;
-                    case PRESENCE: baseDamage = player.getCombatStats().presence(); break;
-                    case SENSUALITY: baseDamage = player.getCombatStats().sensuality(); break;
+            if (isHit) {
+                // ダメージ計算: ダイス(未指定・WEAPONなら武器ダイス=現在1d4) + ステータス
+                String dice = ability.getCheck().getDamageDice();
+                if (dice == null || dice.isEmpty() || "WEAPON".equalsIgnoreCase(dice)) {
+                    dice = "1d4"; // 素手/武器フォールバック（将来武器データから取得）
+                    
+                    // 装備中のメイン武器があれば、そのダイスで上書き
+                    String mainWeaponId = player.getEquippedMainWeapon();
+                    if (mainWeaponId != null) {
+                        com.kh.tbrr.data.models.Item weapon = com.kh.tbrr.data.ItemRegistry.getItemById(mainWeaponId);
+                        if (weapon != null && weapon.getDamageDice() != null && !weapon.getDamageDice().isEmpty()) {
+                            dice = weapon.getDamageDice();
+                        }
+                    }
                 }
+                int diceRoll = DiceRoller.roll(dice);
+                
+                // ステータス加算計算（暫定的に0.5倍を適用）
+                int rawStatVal = getCombatStat(player, ability.getCheck().getScalingStat());
+                int scalingStatVal = (int)(rawStatVal * 0.5);
+                int baseDamage = diceRoll + scalingStatVal;
 
-                // 距離によるダメージボーナス (+3)
-                int bonus = getDistanceDamageBonus(distType, state.getDistance());
+                // 距離ボーナス (+2)
+                int bonus = "BONUS".equals(rangeResult) ? baseRules.getDamage().getDistanceBonusValue() : 0;
                 int totalDamage = baseDamage + bonus;
 
                 enemy.setHp(enemy.getHp() - totalDamage);
                 
-                String bonusMsg = bonus > 0 ? " (距離ボーナス+" + bonus + ")" : "";
-                ui.print("　攻撃が命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！" + bonusMsg);
+                String diceMsg = "(ダイス:" + diceRoll + " + 修正:" + scalingStatVal + ")";
+                String bonusMsg = bonus > 0 ? " [距離ボーナス+" + bonus + "]" : "";
+                ui.print("　命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！ " + diceMsg + bonusMsg);
             } else {
-                ui.print("　攻撃をかわされた！（ミス！）");
+                ui.print("　かわされた！（ミス！）");
             }
         }
         return false;
     }
 
+    private int getCombatStat(Player p, String statName) {
+        if (statName == null || statName.isEmpty()) return 0;
+        
+        var stats = p.getCombatStats();
+        return switch (statName.toLowerCase()) {
+            case "might" -> stats.might();
+            case "insight" -> stats.insight();
+            case "finesse" -> stats.finesse();
+            case "presence" -> stats.presence();
+            case "sensuality" -> stats.sensuality();
+            default -> 0;
+        };
+    }
+
+    // 敵のターン処理（プレイヤーと同様のロジックに今後統合予定だが、一旦素手1d4ロジックのみ適用）
     private void processEnemyTurn(EnemyData enemy) {
         ui.print("＞敵の行動: [" + enemy.getName() + " の攻撃]");
+        CombatBaseRules baseRules = CombatDataLoader.getBaseRules();
         
         int distance = state.getDistance();
         
-        // 簡単な敵AI：中・遠距離なら詰めてくる。近距離なら近接攻撃。
+        // 敵AI：距離2以上なら詰め、1以下なら攻撃
         if (distance >= 2) {
             state.setDistance(Math.max(0, distance - 1));
-            ui.print("　" + enemy.getName() + " はにじり寄ってきた。（現在距離: " + state.getDistance() + "）");
-            ui.print("　攻撃は届かなかった…");
+            ui.print("　" + enemy.getName() + " は詰め寄ってきた。（現在距離: " + state.getDistance() + "）");
         } else {
-            int atkFinesse = enemy.getFinesse();
-            int defFinesse = player.getCombatStats().finesse();
-            
-            if (checkHit(atkFinesse, defFinesse)) {
-                int baseDmg = enemy.getMight();
-                int bonus = getDistanceDamageBonus(DistanceType.MELEE, distance);
-                int totalDamage = baseDmg + bonus;
+            // 基本素手攻撃（basic_attack相当 / 敵も1d4+強靭）
+            AbilityData ability = CombatDataLoader.getAbility("basic_attack");
+            String rangeResult = baseRules.getRangeResult(ability.getType(), distance);
+
+            // 敵も「機敏vs機敏」で命中判定を行う（ユーザー原案準拠）
+            if (checkHit(enemy.getFinesse(), player.getCombatStats().finesse(), null)) {
+                int diceRoll = DiceRoller.roll("1d4");
+                
+                // 敵もベースルールの全局補正を適用
+                int scalingStatVal = (int)(enemy.getMight() * baseRules.getGlobalStatScaling());
+                int totalDamage = diceRoll + scalingStatVal + ("BONUS".equals(rangeResult) ? baseRules.getDamage().getDistanceBonusValue() : 0);
+                
+                // アクセサリによるダメージ軽減
+                int reduction = 0;
+                if (player.getEquippedAccessories() != null) {
+                    for (String accId : player.getEquippedAccessories()) {
+                        com.kh.tbrr.data.models.Item acc = com.kh.tbrr.data.ItemRegistry.getItemById(accId);
+                        if (acc != null) {
+                            reduction += acc.getDamageReduction();
+                        }
+                    }
+                }
+                totalDamage = Math.max(0, totalDamage - reduction);
                 
                 player.modifyHp(-totalDamage);
                 
-                String bonusMsg = bonus > 0 ? " (距離ボーナス+" + bonus + ")" : "";
-                ui.print("　" + enemy.getName() + " の攻撃が命中！ プレイヤーに " + totalDamage + " のダメージ！" + bonusMsg);
+                String reduceMsg = reduction > 0 ? "（防具により" + reduction + "軽減）" : "";
+                ui.print("　" + enemy.getName() + " の攻撃！ プレイヤーに " + totalDamage + " のダメージ！" + reduceMsg);
             } else {
-                ui.print("　プレイヤーは攻撃をかわした！（ミス！）");
+                ui.print("　回避した！");
             }
         }
     }
 
-    // --- 各種計算用のヘルパーメソッド ---
-
-    /**
-     * 命中判定を行う（ベース60%、機敏差1〜3で10%、4〜5で20%、6以上で30%の修正。上限95%, 下限5%）
-     */
-    private boolean checkHit(int attackerFinesse, int defenderFinesse) {
-        int diff = attackerFinesse - defenderFinesse;
-        int hitChance = 60;
-
-        if (diff >= 6) {
-            hitChance += 30;
-        } else if (diff >= 4) {
-            hitChance += 20;
-        } else if (diff >= 1) {
-            hitChance += 10;
-        } else if (diff <= -6) {
-            hitChance -= 30;
-        } else if (diff <= -4) {
-            hitChance -= 20;
-        } else if (diff <= -1) {
-            hitChance -= 10;
+    private boolean checkHit(int attackerStat, int defenderStat, Integer overrideBaseChance) {
+        CombatBaseRules rules = CombatDataLoader.getBaseRules();
+        int base = overrideBaseChance != null ? overrideBaseChance : rules.getAccuracy().getBaseChance();
+        int diff = attackerStat - defenderStat;
+        
+        int hitChance = base;
+        for (var mod : rules.getAccuracy().getModifiers()) {
+            int min = mod.getDiff().get(0);
+            int max = mod.getDiff().get(1);
+            if (diff >= min && diff <= max) {
+                hitChance += mod.getBonus();
+                break;
+            }
         }
 
-        // 上限下限
-        hitChance = Math.max(5, Math.min(95, hitChance));
-        
-        // 1から100までのダイスロール
-        int roll = random.nextInt(100) + 1;
-        return roll <= hitChance;
+        hitChance = Math.max(rules.getAccuracy().getMin(), Math.min(rules.getAccuracy().getMax(), hitChance));
+        return random.nextInt(100) + 1 <= hitChance;
     }
 
-    /**
-     * 距離によってその属性の攻撃が確定ミスになるかどうかを判定する
-     */
-    private boolean isMissByDistance(DistanceType type, int distance) {
-    	// MELEE は 距離2以上 で届かない
-        if (type == DistanceType.MELEE && distance >= 2) return true;
-        
-        // RANGED は 距離0 だと近すぎて攻撃できない
-        if (type == DistanceType.RANGED && distance == 0) return true;
-        
-        // SPECIAL の場合は距離によるミス判定なし
-        return false;
-    }
-
-    /**
-     * 距離によってその属性の攻撃にダメージボーナス(+3)が入るかを判定する
-     */
-    private int getDistanceDamageBonus(DistanceType type, int distance) {
-    	// MELEE は至近距離(0)でダメージボーナス
-        if (type == DistanceType.MELEE && distance == 0) return 3;
-        
-        // RANGED は中・遠距離(2以上)でダメージボーナス
-        if (type == DistanceType.RANGED && distance >= 2) return 3;
-        
-        // SPECIAL は距離によるボーナスなし
-        return 0;
-    }
 }

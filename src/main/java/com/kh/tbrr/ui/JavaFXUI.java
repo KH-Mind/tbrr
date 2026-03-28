@@ -1014,11 +1014,27 @@ public class JavaFXUI implements GameUI {
 			List<String> itemIds = player.getInventory();
 			itemsPane.getChildren().clear();
 			if (itemIds != null && !itemIds.isEmpty()) {
+				boolean hasDisplayable = false;
 				for (String itemId : itemIds) {
+					com.kh.tbrr.data.models.Item item = com.kh.tbrr.data.ItemRegistry.getItemById(itemId);
+					if (item != null) {
+						String cat = item.getEquipmentCategory();
+						if ("WEAPON".equalsIgnoreCase(cat) || "ACCESSORY".equalsIgnoreCase(cat)) {
+							continue; // 装備品は対象外（将来の専用UIで表示）
+						}
+					}
+
 					ImageView iconView = createItemIconView(itemId);
 					if (iconView != null) {
 						itemsPane.getChildren().add(iconView);
+						hasDisplayable = true;
 					}
+				}
+
+				if (!hasDisplayable) {
+					Label noItemLabel = new Label("（なし）");
+					noItemLabel.setStyle("-fx-text-fill: #999999; -fx-font-size: 11px;");
+					itemsPane.getChildren().add(noItemLabel);
 				}
 			} else {
 				// アイテムがない場合は「なし」ラベルを表示
