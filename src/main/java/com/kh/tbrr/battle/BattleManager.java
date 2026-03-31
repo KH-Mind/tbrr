@@ -193,13 +193,14 @@ public class BattleManager {
             if (isHit) {
                 // ダメージ計算: ダイス(未指定・WEAPONなら武器ダイス=現在1d4) + ステータス
                 String dice = ability.getCheck().getDamageDice();
+                com.kh.tbrr.data.models.Item weapon = null;
                 if (dice == null || dice.isEmpty() || "WEAPON".equalsIgnoreCase(dice)) {
                     dice = "1d4"; // 素手/武器フォールバック（将来武器データから取得）
                     
                     // 装備中のメイン武器があれば、そのダイスで上書き
                     String mainWeaponId = player.getEquippedMainWeapon();
                     if (mainWeaponId != null) {
-                        com.kh.tbrr.data.models.Item weapon = com.kh.tbrr.data.ItemRegistry.getItemById(mainWeaponId);
+                        weapon = com.kh.tbrr.data.ItemRegistry.getItemById(mainWeaponId);
                         if (weapon != null && weapon.getDamageDice() != null && !weapon.getDamageDice().isEmpty()) {
                             dice = weapon.getDamageDice();
                         }
@@ -207,10 +208,36 @@ public class BattleManager {
                 }
                 int diceRoll = DiceRoller.roll(dice);
                 
+                // --- マスタリーの計算 ---
+                int masteryLevel = 0;
+                if (weapon != null && weapon.getTags() != null) {
+                    for (String passiveId : player.getPassives()) {
+                        com.kh.tbrr.data.models.PassiveData passive = com.kh.tbrr.data.PassiveRegistry.getPassiveById(passiveId);
+                        if (passive != null && "MASTERY".equals(passive.getType()) && passive.getTargetTags() != null) {
+                            boolean match = weapon.getTags().stream().anyMatch(tag -> passive.getTargetTags().contains(tag));
+                            if (match) {
+                                masteryLevel += passive.getLevel();
+                            }
+                        }
+                    }
+                }
+                masteryLevel = Math.min(10, masteryLevel); // 上限10
+                
+                int masteryDiceSum = 0;
+                for (int i = 0; i < masteryLevel; i++) {
+                    masteryDiceSum += DiceRoller.roll("1d4"); // Lv1毎に1d4追加
+                }
+                
+                int masteryFixedBonus = 0;
+                if (masteryLevel > 0) {
+                    // 指数関数的な固定ダメージ (0, 2, 5, 9, 14, 20...)
+                    masteryFixedBonus = (masteryLevel - 1) * (masteryLevel + 2) / 2;
+                }
+
                 // ステータス加算計算（暫定的に0.5倍を適用）
                 int rawStatVal = getCombatStat(player, ability.getCheck().getScalingStat());
                 int scalingStatVal = (int)(rawStatVal * 0.5);
-                int baseDamage = diceRoll + scalingStatVal;
+                int baseDamage = diceRoll + masteryDiceSum + masteryFixedBonus + scalingStatVal;
 
                 // 距離ボーナス (+2)
                 int bonus = "BONUS".equals(rangeResult) ? baseRules.getDamage().getDistanceBonusValue() : 0;
@@ -218,7 +245,7 @@ public class BattleManager {
 
                 enemy.setHp(enemy.getHp() - totalDamage);
                 
-                String diceMsg = "(ダイス:" + diceRoll + " + 修正:" + scalingStatVal + ")";
+                String diceMsg = "(基礎ダイス:" + diceRoll + (masteryLevel > 0 ? " + 習熟追加" + masteryLevel + "d4" : "") + " + 習熟固定:" + masteryFixedBonus + " + ステ修正:" + scalingStatVal + ")";
                 String bonusMsg = bonus > 0 ? " [距離ボーナス+" + bonus + "]" : "";
                 ui.print("　命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！ " + diceMsg + bonusMsg);
             } else {
@@ -256,6 +283,10 @@ public class BattleManager {
         } else {
             // 基本素手攻撃（basic_attack相当 / 敵も1d4+強靭）
             AbilityData ability = CombatDataLoader.getAbility("basic_attack");
+            if (ability == null) {
+                ui.print("【エラー】敵のアビリティデータが見つかりません: basic_attack");
+                return;
+            }
             String rangeResult = baseRules.getRangeResult(ability.getType(), distance);
 
             // 敵も「機敏vs機敏」で命中判定を行う（ユーザー原案準拠）
@@ -280,8 +311,10 @@ public class BattleManager {
                 
                 player.modifyHp(-totalDamage);
                 
-                String reduceMsg = reduction > 0 ? "（防具により" + reduction + "軽減）" : "";
-                ui.print("　" + enemy.getName() + " の攻撃！ プレイヤーに " + totalDamage + " のダメージ！" + reduceMsg);
+                String playerName = player.getName() != null ? player.getName() : "冒険者";
+                String reduceMsg = reduction > 0 ? "（" + reduction + "ダメージ軽減）" : "";
+                ui.print("　" + enemy.getName() + " の攻撃！ " + playerName + " に " + totalDamage + " のダメージ！" + reduceMsg);
+                ui.printPlayerStatus(player); // 右パネルのHP/AP表示を更新
             } else {
                 ui.print("　回避した！");
             }

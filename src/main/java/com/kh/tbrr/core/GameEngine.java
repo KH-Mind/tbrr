@@ -69,14 +69,39 @@ public class GameEngine {
 		for (Item item : dataManager.loadAllItemsFromFile("unique_items.json")) {
 			com.kh.tbrr.data.ItemRegistry.register(item);
 		}
-		for (Item item : dataManager.loadAllItemsFromFile("weapons.json")) {
+		for (Item item : dataManager.loadAllItemsFromFile("common_weapons.json")) {
+			com.kh.tbrr.data.ItemRegistry.register(item);
+		}
+		for (Item item : dataManager.loadAllItemsFromFile("rare_weapons.json")) {
+			com.kh.tbrr.data.ItemRegistry.register(item);
+		}
+		for (Item item : dataManager.loadAllItemsFromFile("epic_weapons.json")) {
+			com.kh.tbrr.data.ItemRegistry.register(item);
+		}
+		for (Item item : dataManager.loadAllItemsFromFile("legendary_weapons.json")) {
 			com.kh.tbrr.data.ItemRegistry.register(item);
 		}
 		for (Item item : dataManager.loadAllItemsFromFile("accessories.json")) {
 			com.kh.tbrr.data.ItemRegistry.register(item);
 		}
+		
+		// --- パッシブデータのロード ---
+		try (java.io.InputStream is = getClass().getResourceAsStream("/data/passives/basic_passives.json")) {
+			if (is != null) {
+				java.io.Reader reader = new java.io.InputStreamReader(is, java.nio.charset.StandardCharsets.UTF_8);
+				java.util.List<com.kh.tbrr.data.models.PassiveData> passives = new com.google.gson.Gson().fromJson(reader, 
+				        new com.google.gson.reflect.TypeToken<java.util.List<com.kh.tbrr.data.models.PassiveData>>(){}.getType());
+				for (com.kh.tbrr.data.models.PassiveData p : passives) {
+					com.kh.tbrr.data.PassiveRegistry.register(p);
+				}
+			} else {
+				System.err.println("Warning: basic_passives.json not found in resources!");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
-		// 状態異常の登録
+		// イベントデータのロード登録
 		for (com.kh.tbrr.data.models.StatusEffect effect : dataManager
 				.loadAllStatusEffectsFromFile("common_status_effects.json")) {
 			com.kh.tbrr.data.StatusEffectRegistry.register(effect);

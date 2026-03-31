@@ -19,6 +19,7 @@ module com.kh.tbrr {
 	opens com.kh.tbrr.event;
 	opens com.kh.tbrr.data;
 	opens com.kh.tbrr.battle;
+	opens com.kh.tbrr.battle.data;
 
 	// パッケージのエクスポート
 	exports com.kh.tbrr;

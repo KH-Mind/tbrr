@@ -12,6 +12,7 @@ public class Item {
 	private String rarity; // common, magic, unique, job
 	private String description;
 	private List<String> grantedSkills; // このアイテムが付与する技能
+	private List<String> tags; // 武器種などのタグ
 	private boolean consumable; // 消費アイテムか
 	private boolean losableRandom; // ランダム喪失の対象か（デフォルト: true）
 	private int attackBonus; // 攻撃力ボーナス
@@ -19,13 +20,13 @@ public class Item {
 
 	// --- 装備用データ ---
 	private String equipmentCategory; // "WEAPON", "ACCESSORY" 等
-	private String weaponCategory;    // "sword", "bow" 等
 	private String damageDice;        // "1d8" 等
 	private int damageReduction;      // ダメージ軽減値
 
 	// コンストラクタ
 	public Item() {
 		this.grantedSkills = new ArrayList<>();
+		this.tags = new ArrayList<>();
 		this.consumable = false;
 		this.losableRandom = true;
 		this.attackBonus = 0;
@@ -72,6 +73,14 @@ public class Item {
 
 	public void setGrantedSkills(List<String> grantedSkills) {
 		this.grantedSkills = grantedSkills;
+	}
+
+	public List<String> getTags() {
+		return tags;
+	}
+
+	public void setTags(List<String> tags) {
+		this.tags = tags;
 	}
 
 	public boolean isConsumable() {
@@ -123,14 +132,6 @@ public class Item {
 
 	public void setEquipmentCategory(String equipmentCategory) {
 		this.equipmentCategory = equipmentCategory;
-	}
-
-	public String getWeaponCategory() {
-		return weaponCategory;
-	}
-
-	public void setWeaponCategory(String weaponCategory) {
-		this.weaponCategory = weaponCategory;
 	}
 
 	public String getDamageDice() {

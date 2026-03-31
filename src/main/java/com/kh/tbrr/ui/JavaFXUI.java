@@ -122,6 +122,15 @@ public class JavaFXUI implements GameUI {
 		stage.setResizable(false);
 		stage.show();
 
+		// ★戦闘モード中のEnterキーでターン決定を実行
+		gameScene.addEventHandler(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
+			if (e.getCode() == javafx.scene.input.KeyCode.ENTER
+					&& battleCommandBox != null && battleCommandBox.isVisible()) {
+				executeTurnButton.fire();
+				e.consume();
+			}
+		});
+
 		// ★追加: スクロールバーを常に表示する（二重表示防止のため内部ScrollPaneに適用）
 		Platform.runLater(() -> {
 			javafx.scene.Node scrollPane = messageArea.lookup(".scroll-pane");
@@ -465,15 +474,23 @@ public class JavaFXUI implements GameUI {
 		GridPane.setMargin(statusBtn, new Insets(0, 0, 0, 10));
 		numpad.add(statusBtn, 6, 1, 1, 1);
 
-		// 将来拡張用プレースホルダー（6列目 row 2, 3）
-		for (int i = 2; i <= 3; i++) {
-			Button placeholder = createPlaceholderButton("未定", buttonSize);
-			placeholder.setPrefSize(wideButtonWidth, buttonSize);
-			placeholder.setMinSize(wideButtonWidth, buttonSize);
-			placeholder.setMaxSize(wideButtonWidth, buttonSize);
-			GridPane.setMargin(placeholder, new Insets(0, 0, 0, 10));
-			numpad.add(placeholder, 6, i, 1, 1);
-		}
+		// 装備ボタン（row 2）
+		Button equipBtn = new Button("装備");
+		equipBtn.setPrefSize(wideButtonWidth, buttonSize);
+		equipBtn.setMinSize(wideButtonWidth, buttonSize);
+		equipBtn.setMaxSize(wideButtonWidth, buttonSize);
+		equipBtn.setFont(Font.font("MS Gothic", 14));
+		equipBtn.setOnAction(e -> showEquipmentPanel());
+		GridPane.setMargin(equipBtn, new Insets(0, 0, 0, 10));
+		numpad.add(equipBtn, 6, 2, 1, 1);
+
+		// 将来拡張用プレースホルダー（6列目 row 3）
+		Button placeholder = createPlaceholderButton("未定", buttonSize);
+		placeholder.setPrefSize(wideButtonWidth, buttonSize);
+		placeholder.setMinSize(wideButtonWidth, buttonSize);
+		placeholder.setMaxSize(wideButtonWidth, buttonSize);
+		GridPane.setMargin(placeholder, new Insets(0, 0, 0, 10));
+		numpad.add(placeholder, 6, 3, 1, 1);
 
 		container.getChildren().add(numpad);
 		return container;
@@ -1420,6 +1437,35 @@ public class JavaFXUI implements GameUI {
 			statusDialog.getDialogPane().setPrefHeight(500);
 
 			statusDialog.showAndWait();
+		});
+	}
+
+	private void showEquipmentPanel() {
+		Platform.runLater(() -> {
+			if (currentPlayer == null) {
+				Alert alert = new Alert(Alert.AlertType.WARNING);
+				alert.setTitle("警告");
+				alert.setHeaderText(null);
+				alert.setContentText("プレイヤー情報が読み込まれていません。");
+				alert.showAndWait();
+				return;
+			}
+			
+			EquipmentPanel panel = new EquipmentPanel(
+				currentPlayer,
+				() -> {
+					// 閉じる処理: 元のイラスト画像に戻す
+					subWindowBox.getChildren().clear();
+					subWindowBox.getChildren().add(subWindowImageView);
+				},
+				() -> {
+					// 装備変更時の処理: UIのステータス情報などを更新する
+					printPlayerStatus(currentPlayer);
+				}
+			);
+			
+			subWindowBox.getChildren().clear();
+			subWindowBox.getChildren().add(panel);
 		});
 	}
 

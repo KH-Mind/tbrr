@@ -66,13 +66,17 @@ public class Player {
 
     // lists
     private List<String> skills;
+    private List<String> passives; // パッシブ能力用リスト
     private List<String> traits;
     private List<String> inventory;
 
     // equipments
-    private String equippedMainWeapon;
-    private String equippedSubWeapon;
-    private List<String> equippedAccessories;
+    private String equippedMainWeapon; // Weapon item ID
+
+    // accessories and reserve (Phase 3)
+    private List<String> equippedAccessories; // max 3, Accessory item IDs
+    private List<String> reserveEquipments;   // max limits by maxReserveSlots
+    private int maxReserveSlots = 1;          // default is 1
 
     // status effects (プレイヤー状態、状態異常系の管理用)
     private java.util.Map<String, Integer> statusEffects;
@@ -126,11 +130,15 @@ public class Player {
     public Player() {
         this.baseSkills = new ArrayList<>();
         this.skills = new ArrayList<>();
+        this.passives = new ArrayList<>();
         this.traits = new ArrayList<>();
         this.inventory = new ArrayList<>();
         this.charmPoints = new ArrayList<>();
-        this.statusEffects = new java.util.HashMap<>();
+        
+        // Phase 3 additions
         this.equippedAccessories = new ArrayList<>();
+        this.reserveEquipments = new ArrayList<>();
+        this.statusEffects = new java.util.HashMap<>();
 
         this.isFatedOne = true;
         this.money = 30;
@@ -231,9 +239,6 @@ public class Player {
         if (itemId.equals(equippedMainWeapon)) {
             equippedMainWeapon = null;
         }
-        if (itemId.equals(equippedSubWeapon)) {
-            equippedSubWeapon = null;
-        }
         if (equippedAccessories != null) {
             equippedAccessories.remove(itemId);
         }
@@ -266,16 +271,6 @@ public class Player {
     public void equipMainWeapon(String itemId) {
         if (itemId == null || inventory.contains(itemId)) {
             this.equippedMainWeapon = itemId;
-        }
-    }
-
-    public String getEquippedSubWeapon() {
-        return equippedSubWeapon;
-    }
-
-    public void equipSubWeapon(String itemId) {
-        if (itemId == null || inventory.contains(itemId)) {
-            this.equippedSubWeapon = itemId;
         }
     }
 
@@ -739,6 +734,30 @@ public class Player {
         this.maxMoney = maxMoney;
     }
 
+    public void setEquippedMainWeapon(String equippedMainWeapon) {
+        this.equippedMainWeapon = equippedMainWeapon;
+    }
+
+    public void setEquippedAccessories(List<String> equippedAccessories) {
+        this.equippedAccessories = equippedAccessories;
+    }
+
+    public List<String> getReserveEquipments() {
+        return reserveEquipments;
+    }
+
+    public void setReserveEquipments(List<String> reserveEquipments) {
+        this.reserveEquipments = reserveEquipments;
+    }
+
+    public int getMaxReserveSlots() {
+        return maxReserveSlots;
+    }
+
+    public void setMaxReserveSlots(int maxReserveSlots) {
+        this.maxReserveSlots = maxReserveSlots;
+    }
+
     public List<String> getBaseSkills() {
         return baseSkills;
     }
@@ -759,6 +778,20 @@ public class Player {
 
     public void setSkills(List<String> skills) {
         this.skills = skills;
+    }
+
+    public List<String> getPassives() {
+        return passives;
+    }
+
+    public void setPassives(List<String> passives) {
+        this.passives = passives;
+    }
+
+    public void addPassive(String passiveId) {
+        if (!passives.contains(passiveId)) {
+            passives.add(passiveId);
+        }
     }
 
     public List<String> getTraits() {
