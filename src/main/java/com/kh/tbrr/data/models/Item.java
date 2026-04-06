@@ -22,6 +22,8 @@ public class Item {
 	private String equipmentCategory; // "WEAPON", "ACCESSORY" 等
 	private String damageDice;        // "1d8" 等
 	private int damageReduction;      // ダメージ軽減値
+	private String rangeType;         // 射程タイプ: "melee" / "ranged" / "magic"
+	private java.util.Map<String, String> rangeOverride; // 距離→結果の個別上書きマップ（任意。槍など）
 
 	// コンストラクタ
 	public Item() {
@@ -148,5 +150,21 @@ public class Item {
 
 	public void setDamageReduction(int damageReduction) {
 		this.damageReduction = damageReduction;
+	}
+
+	public String getRangeType() {
+		return rangeType;
+	}
+
+	public void setRangeType(String rangeType) {
+		this.rangeType = rangeType;
+	}
+
+	public java.util.Map<String, String> getRangeOverride() {
+		return rangeOverride;
+	}
+
+	public void setRangeOverride(java.util.Map<String, String> rangeOverride) {
+		this.rangeOverride = rangeOverride;
 	}
 }

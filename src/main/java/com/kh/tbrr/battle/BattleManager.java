@@ -151,6 +151,13 @@ public class BattleManager {
             return false;
         }
 
+        // 武器オブジェクトを射程判定より前に取得しておく
+        com.kh.tbrr.data.models.Item weapon = null;
+        String mainWeaponId = player.getEquippedMainWeapon();
+        if (mainWeaponId != null) {
+            weapon = com.kh.tbrr.data.ItemRegistry.getItemById(mainWeaponId);
+        }
+
         // [2] ムーブ（足）の解決：距離の確定
         String move = cmd.getMove();
         if ("前進".equals(move)) {
@@ -170,8 +177,8 @@ public class BattleManager {
 
         if ("攻撃".equals(action)) {
             // 距離による結果（HIT/MISS/BONUS）の判定
-            String rangeResult = baseRules.getRangeResult(ability.getType(), state.getDistance());
-            
+            String rangeResult = resolveRangeResult(baseRules, ability, weapon, stanceData, state.getDistance());
+
             if ("MISS".equals(rangeResult)) {
                 ui.print("　ミス！距離が適していません。 (" + ability.getName() + ")");
                 return false;
@@ -191,68 +198,105 @@ public class BattleManager {
             }
 
             if (isHit) {
-                // ダメージ計算: ダイス(未指定・WEAPONなら武器ダイス=現在1d4) + ステータス
+                // ダイス計算: 未指定・WEAPONなら武器ダイスを使用
                 String dice = ability.getCheck().getDamageDice();
-                com.kh.tbrr.data.models.Item weapon = null;
                 if (dice == null || dice.isEmpty() || "WEAPON".equalsIgnoreCase(dice)) {
-                    dice = "1d4"; // 素手/武器フォールバック（将来武器データから取得）
-                    
-                    // 装備中のメイン武器があれば、そのダイスで上書き
-                    String mainWeaponId = player.getEquippedMainWeapon();
-                    if (mainWeaponId != null) {
-                        weapon = com.kh.tbrr.data.ItemRegistry.getItemById(mainWeaponId);
-                        if (weapon != null && weapon.getDamageDice() != null && !weapon.getDamageDice().isEmpty()) {
-                            dice = weapon.getDamageDice();
-                        }
+                    dice = "1d4"; // 素手/武器フォールバック
+                    if (weapon != null && weapon.getDamageDice() != null && !weapon.getDamageDice().isEmpty()) {
+                        dice = weapon.getDamageDice();
                     }
                 }
                 int diceRoll = DiceRoller.roll(dice);
                 
                 // --- マスタリーの計算 ---
-                int masteryLevel = 0;
-                if (weapon != null && weapon.getTags() != null) {
-                    for (String passiveId : player.getPassives()) {
-                        com.kh.tbrr.data.models.PassiveData passive = com.kh.tbrr.data.PassiveRegistry.getPassiveById(passiveId);
-                        if (passive != null && "MASTERY".equals(passive.getType()) && passive.getTargetTags() != null) {
-                            boolean match = weapon.getTags().stream().anyMatch(tag -> passive.getTargetTags().contains(tag));
-                            if (match) {
-                                masteryLevel += passive.getLevel();
-                            }
-                        }
-                    }
-                }
-                masteryLevel = Math.min(10, masteryLevel); // 上限10
-                
-                int masteryDiceSum = 0;
-                for (int i = 0; i < masteryLevel; i++) {
-                    masteryDiceSum += DiceRoller.roll("1d4"); // Lv1毎に1d4追加
-                }
-                
-                int masteryFixedBonus = 0;
-                if (masteryLevel > 0) {
-                    // 指数関数的な固定ダメージ (0, 2, 5, 9, 14, 20...)
-                    masteryFixedBonus = (masteryLevel - 1) * (masteryLevel + 2) / 2;
-                }
+                int masteryLevel = calculateMasteryLevel(weapon);
+                int masteryDiceSum = calculateMasteryDice(masteryLevel);
+                int masteryFixedBonus = calculateMasteryFixedBonus(masteryLevel);
 
                 // ステータス加算計算（暫定的に0.5倍を適用）
                 int rawStatVal = getCombatStat(player, ability.getCheck().getScalingStat());
                 int scalingStatVal = (int)(rawStatVal * 0.5);
                 int baseDamage = diceRoll + masteryDiceSum + masteryFixedBonus + scalingStatVal;
 
-                // 距離ボーナス (+2)
-                int bonus = "BONUS".equals(rangeResult) ? baseRules.getDamage().getDistanceBonusValue() : 0;
-                int totalDamage = baseDamage + bonus;
+                // クリティカル処理（BONUS判定）
+                boolean isCritical = "BONUS".equals(rangeResult);
+                double critMult = isCritical ? resolveCritMultiplier(player) : 1.0;
+                int totalDamage = (int)(baseDamage * critMult);
 
                 enemy.setHp(enemy.getHp() - totalDamage);
                 
                 String diceMsg = "(基礎ダイス:" + diceRoll + (masteryLevel > 0 ? " + 習熟追加" + masteryLevel + "d4" : "") + " + 習熟固定:" + masteryFixedBonus + " + ステ修正:" + scalingStatVal + ")";
-                String bonusMsg = bonus > 0 ? " [距離ボーナス+" + bonus + "]" : "";
-                ui.print("　命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！ " + diceMsg + bonusMsg);
+                String critMsg = isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
+                ui.print("　命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！ " + diceMsg + critMsg);
             } else {
                 ui.print("　かわされた！（ミス！）");
             }
         }
         return false;
+    }
+
+    private int calculateMasteryLevel(com.kh.tbrr.data.models.Item weapon) {
+        int masteryLevel = 0;
+        if (weapon != null && weapon.getTags() != null) {
+            for (String passiveId : player.getPassives()) {
+                com.kh.tbrr.data.models.PassiveData passive = com.kh.tbrr.data.PassiveRegistry.getPassiveById(passiveId);
+                if (passive != null && "MASTERY".equals(passive.getType()) && passive.getTargetTags() != null) {
+                    boolean match = weapon.getTags().stream().anyMatch(tag -> passive.getTargetTags().contains(tag));
+                    if (match) {
+                        masteryLevel += passive.getLevel();
+                    }
+                }
+            }
+        }
+        return Math.min(10, masteryLevel);
+    }
+
+    private int calculateMasteryDice(int masteryLevel) {
+        int sum = 0;
+        for (int i = 0; i < masteryLevel; i++) {
+            sum += DiceRoller.roll("1d4");
+        }
+        return sum;
+    }
+
+    private int calculateMasteryFixedBonus(int masteryLevel) {
+        if (masteryLevel <= 0) return 0;
+        return (masteryLevel - 1) * (masteryLevel + 2) / 2;
+    }
+
+    private String resolveRangeResult(CombatBaseRules rules, AbilityData ability,
+            com.kh.tbrr.data.models.Item weapon, StanceData stance, int distance) {
+        // 1. 武器の rangeOverride が存在する場合は最優先
+        if (weapon != null && weapon.getRangeOverride() != null) {
+            String custom = weapon.getRangeOverride().get(String.valueOf(distance));
+            if (custom != null) return custom;
+        }
+        // 2. スタンスがアビリティを差し替えた場合は、その ability.getType() を使用
+        boolean abilityOverridden = stance != null
+                && stance.getOverrideAbilityId() != null
+                && !stance.getOverrideAbilityId().isEmpty();
+        if (abilityOverridden) {
+            return rules.getRangeResult(ability.getType(), distance);
+        }
+        // 3. ノースタンスの場合は武器の rangeType を使用（未指定は melee デフォルト）
+        String weaponRange = (weapon != null && weapon.getRangeType() != null)
+                ? weapon.getRangeType() : "melee";
+        return rules.getRangeResult(weaponRange, distance);
+    }
+
+    private double resolveCritMultiplier(Player p) {
+        CombatBaseRules rules = CombatDataLoader.getBaseRules();
+        double base = rules.getDamage().getCritMultiplier(); // デフォルト 1.5
+        // CRIT_MULTIPLIER型パッシブが存在する場合、最大値で上書き
+        double override = p.getPassives().stream()
+                .map(id -> com.kh.tbrr.data.PassiveRegistry.getPassiveById(id))
+                .filter(passive -> passive != null
+                        && "CRIT_MULTIPLIER".equals(passive.getType())
+                        && passive.getCritMultiplier() > 0)
+                .mapToDouble(com.kh.tbrr.data.models.PassiveData::getCritMultiplier)
+                .max()
+                .orElse(base);
+        return override;
     }
 
     private int getCombatStat(Player p, String statName) {
@@ -295,7 +339,8 @@ public class BattleManager {
                 
                 // 敵もベースルールの全局補正を適用
                 int scalingStatVal = (int)(enemy.getMight() * baseRules.getGlobalStatScaling());
-                int totalDamage = diceRoll + scalingStatVal + ("BONUS".equals(rangeResult) ? baseRules.getDamage().getDistanceBonusValue() : 0);
+                boolean enemyCrit = "BONUS".equals(rangeResult);
+                int totalDamage = (int)((diceRoll + scalingStatVal) * (enemyCrit ? baseRules.getDamage().getCritMultiplier() : 1.0));
                 
                 // アクセサリによるダメージ軽減
                 int reduction = 0;

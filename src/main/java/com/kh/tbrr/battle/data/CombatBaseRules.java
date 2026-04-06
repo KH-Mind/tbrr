@@ -30,8 +30,8 @@ public class CombatBaseRules {
     }
 
     public static class DamageRules {
-        private int distanceBonusValue;
-        public int getDistanceBonusValue() { return distanceBonusValue; }
+        private double critMultiplier; // クリティカルダメージ倍率（デフォルト 1.5）
+        public double getCritMultiplier() { return critMultiplier > 0 ? critMultiplier : 1.5; }
     }
 
     public Map<String, Map<String, String>> getDistanceRules() { return distanceRules; }
