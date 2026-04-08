@@ -47,6 +47,7 @@ public class BattleManager {
 
     public void startBattle(String enemyId) {
         state = new BattleState();
+        com.kh.tbrr.data.CombatConditionRegistry.loadAll(); // 戦闘用状態異常データの読み込み
         
         EnemyData enemy = loadEnemyData(enemyId);
         if (enemy == null) {
@@ -54,6 +55,11 @@ public class BattleManager {
             return;
         }
         state.setCurrentEnemy(enemy);
+        if (enemy.getInitialCombatConditions() != null) {
+            for (var cond : enemy.getInitialCombatConditions()) {
+                state.getEnemyConditions().add(new BattleState.ActiveCombatCondition(cond.getConditionId(), cond.getDuration()));
+            }
+        }
         
         ui.print("【バトル開始！】 " + enemy.getName() + " に遭遇した！");
 
@@ -107,6 +113,10 @@ public class BattleManager {
                         continue;
                     }
                     
+                    // --- ターン終了処理（ステータス更新） ---
+                    updateConditions(state.getPlayerConditions());
+                    updateConditions(state.getEnemyConditions());
+                    
                     state.incrementTurn();
                 }
             }
@@ -118,10 +128,28 @@ public class BattleManager {
     }
 
     private boolean processPlayerTurn(BattleCommand cmd, EnemyData enemy) {
+        // [0] ターン開始時に自身の防御状態を解除
+        state.setPlayerDefending(false);
+        // [0.5] 今回のターンのスタンス(構え)を保持（相手ターンの割り込み等で使用）
+        state.setCurrentPlayerStance(cmd.getStance() != null ? cmd.getStance() : "なし");
+        
         CombatBaseRules baseRules = CombatDataLoader.getBaseRules();
 
-        // [1] スタンス（頭）の適用：アビリティの決定
+        // [1] スタンス（頭）と技（特殊）の適用：アビリティの決定
         String abilityId = "basic_attack"; // デフォルト
+        
+        // 技(special)が指定されていた場合、そちらを優先する（"なし"以外）
+        if (cmd.getSpecial() != null && !cmd.getSpecial().equals("なし")) {
+            if (player.getAbilities() != null) {
+                for (String id : player.getAbilities()) {
+                    AbilityData data = CombatDataLoader.getAbility(id);
+                    if (data != null && data.getName().equals(cmd.getSpecial())) {
+                        abilityId = id;
+                        break;
+                    }
+                }
+            }
+        }
         
         // 画面(UI)から送信される「日本語名称」を内部IDへ変換（※将来的にUIが直接IDを投げるようになれば不要になる仮の処理）
         String stanceName = cmd.getStance();
@@ -160,11 +188,16 @@ public class BattleManager {
 
         // [2] ムーブ（足）の解決：距離の確定
         String move = cmd.getMove();
+        int moveAmount = 1;
+        if ("全力移動".equals(cmd.getAction())) {
+            moveAmount = 2; // 全力移動なら2マス動く
+        }
+
         if ("前進".equals(move)) {
-            state.setDistance(Math.max(0, state.getDistance() - 1));
+            state.setDistance(Math.max(0, state.getDistance() - moveAmount));
             ui.print("　プレイヤーは前進した。（現在距離: " + state.getDistance() + "）");
         } else if ("後退".equals(move)) {
-            state.setDistance(Math.min(4, state.getDistance() + 1));
+            state.setDistance(Math.min(4, state.getDistance() + moveAmount));
             ui.print("　プレイヤーは後退した。（現在距離: " + state.getDistance() + "）");
         }
 
@@ -175,7 +208,18 @@ public class BattleManager {
             return true; 
         }
 
-        if ("攻撃".equals(action)) {
+        if ("防御".equals(action)) {
+            state.setPlayerDefending(true);
+            ui.print("　身を固めた。（次の自身のターンまで回避率上昇、被ダメージ半減）");
+            return false;
+        }
+
+        if ("全力移動".equals(action)) {
+            ui.print("　攻撃を行わず、全力で機動した。");
+            return false;
+        }
+
+        if ("攻撃".equals(action) || (cmd.getSpecial() != null && !cmd.getSpecial().equals("なし"))) {
             // 距離による結果（HIT/MISS/BONUS）の判定
             String rangeResult = resolveRangeResult(baseRules, ability, weapon, stanceData, state.getDistance());
 
@@ -188,16 +232,16 @@ public class BattleManager {
             int atkStatVal = getCombatStat(player, ability.getCheck().getAttackerStat());
             String defStatName = ability.getCheck().getDefenderStat();
             
-            boolean isHit;
+            HitResult result;
             if (defStatName == null || defStatName.isEmpty()) {
-                isHit = true; // 防御側ステータスの指定がなければ必中
+                result = new HitResult(true, false); // 防御側ステータスの指定がなければ必中
             } else {
                 int defStatVal = enemy.getStatByName(defStatName);
                 Integer overrideChance = ability.getCheck().getBaseChance();
-                isHit = checkHit(atkStatVal, defStatVal, overrideChance);
+                result = checkHit(atkStatVal, defStatVal, overrideChance, state.isEnemyDefending(), state.getPlayerConditions(), state.getEnemyConditions());
             }
 
-            if (isHit) {
+            if (result.isHit) {
                 // ダイス計算: 未指定・WEAPONなら武器ダイスを使用
                 String dice = ability.getCheck().getDamageDice();
                 if (dice == null || dice.isEmpty() || "WEAPON".equalsIgnoreCase(dice)) {
@@ -218,16 +262,47 @@ public class BattleManager {
                 int scalingStatVal = (int)(rawStatVal * 0.5);
                 int baseDamage = diceRoll + masteryDiceSum + masteryFixedBonus + scalingStatVal;
 
-                // クリティカル処理（BONUS判定）
-                boolean isCritical = "BONUS".equals(rangeResult);
+                // クリティカル処理（BONUS判定 または ダイス1〜5）
+                boolean isCritical = "BONUS".equals(rangeResult) || result.isCritical;
                 double critMult = isCritical ? resolveCritMultiplier(player) : 1.0;
-                int totalDamage = (int)(baseDamage * critMult);
+                
+                // CombatCondition によるダメージ倍率の適用
+                double conditionMult = calcConditionDamageMultiplier(state.getPlayerConditions());
+                int totalDamage = (int)(baseDamage * critMult * conditionMult);
+
+                if (state.isEnemyDefending()) {
+                    totalDamage /= 2; // 防御中はダメージ半減
+                }
 
                 enemy.setHp(enemy.getHp() - totalDamage);
                 
                 String diceMsg = "(基礎ダイス:" + diceRoll + (masteryLevel > 0 ? " + 習熟追加" + masteryLevel + "d4" : "") + " + 習熟固定:" + masteryFixedBonus + " + ステ修正:" + scalingStatVal + ")";
                 String critMsg = isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
                 ui.print("　命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！ " + diceMsg + critMsg);
+
+                // --- CombatCondition付与の処理 ---
+                if (ability.getApplyCombatConditions() != null) {
+                    for (var app : ability.getApplyCombatConditions()) {
+                        int r = random.nextInt(100) + 1; // 1-100
+                        if (r <= app.getChance()) {
+                            boolean found = false;
+                            for (var c : state.getEnemyConditions()) {
+                                if (c.getConditionId().equals(app.getConditionId())) {
+                                    c.setDuration(app.getDuration()); // 上書き
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found) {
+                                state.getEnemyConditions().add(new BattleState.ActiveCombatCondition(app.getConditionId(), app.getDuration()));
+                            }
+                            com.kh.tbrr.data.models.CombatConditionData cData = com.kh.tbrr.data.CombatConditionRegistry.getConditionById(app.getConditionId());
+                            if (cData != null) {
+                                ui.print("　★ " + enemy.getName() + " は [" + cData.getName() + "] になった！");
+                            }
+                        }
+                    }
+                }
             } else {
                 ui.print("　かわされた！（ミス！）");
             }
@@ -315,6 +390,12 @@ public class BattleManager {
 
     // 敵のターン処理（プレイヤーと同様のロジックに今後統合予定だが、一旦素手1d4ロジックのみ適用）
     private void processEnemyTurn(EnemyData enemy) {
+        state.setEnemyDefending(false); // 敵ターン開始時に自身の防御状態を解除
+        
+        // --- 相手のスタンスによる特殊トリガー（対抗呪文など）の判定枠 ---
+        String pStanceStr = state.getCurrentPlayerStance();
+        // TODO: ここで特注の割り込み処理（魔法の無効化など）を記述する予定
+        
         ui.print("＞敵の行動: [" + enemy.getName() + " の攻撃]");
         CombatBaseRules baseRules = CombatDataLoader.getBaseRules();
         
@@ -334,13 +415,15 @@ public class BattleManager {
             String rangeResult = baseRules.getRangeResult(ability.getType(), distance);
 
             // 敵も「機敏vs機敏」で命中判定を行う（ユーザー原案準拠）
-            if (checkHit(enemy.getFinesse(), player.getCombatStats().finesse(), null)) {
+            HitResult result = checkHit(enemy.getFinesse(), player.getCombatStats().finesse(), null, state.isPlayerDefending(), state.getEnemyConditions(), state.getPlayerConditions());
+            if (result.isHit) {
                 int diceRoll = DiceRoller.roll("1d4");
                 
                 // 敵もベースルールの全局補正を適用
                 int scalingStatVal = (int)(enemy.getMight() * baseRules.getGlobalStatScaling());
-                boolean enemyCrit = "BONUS".equals(rangeResult);
-                int totalDamage = (int)((diceRoll + scalingStatVal) * (enemyCrit ? baseRules.getDamage().getCritMultiplier() : 1.0));
+                boolean enemyCrit = "BONUS".equals(rangeResult) || result.isCritical;
+                double conditionMult = calcConditionDamageMultiplier(state.getEnemyConditions());
+                int totalDamage = (int)((diceRoll + scalingStatVal) * (enemyCrit ? baseRules.getDamage().getCritMultiplier() : 1.0) * conditionMult);
                 
                 // アクセサリによるダメージ軽減
                 int reduction = 0;
@@ -354,6 +437,10 @@ public class BattleManager {
                 }
                 totalDamage = Math.max(0, totalDamage - reduction);
                 
+                if (state.isPlayerDefending()) {
+                    totalDamage /= 2; // プレイヤーが防御していればダメージ半減
+                }
+                
                 player.modifyHp(-totalDamage);
                 
                 String playerName = player.getName() != null ? player.getName() : "冒険者";
@@ -366,7 +453,8 @@ public class BattleManager {
         }
     }
 
-    private boolean checkHit(int attackerStat, int defenderStat, Integer overrideBaseChance) {
+    private HitResult checkHit(int attackerStat, int defenderStat, Integer overrideBaseChance, boolean targetDefending, 
+            java.util.List<BattleState.ActiveCombatCondition> atkConds, java.util.List<BattleState.ActiveCombatCondition> defConds) {
         CombatBaseRules rules = CombatDataLoader.getBaseRules();
         int base = overrideBaseChance != null ? overrideBaseChance : rules.getAccuracy().getBaseChance();
         int diff = attackerStat - defenderStat;
@@ -382,7 +470,83 @@ public class BattleManager {
         }
 
         hitChance = Math.max(rules.getAccuracy().getMin(), Math.min(rules.getAccuracy().getMax(), hitChance));
-        return random.nextInt(100) + 1 <= hitChance;
+        
+        if (targetDefending) {
+            hitChance -= 20; // 防御中は命中率自体を引き下げる
+        }
+        // CombatConditionの命中・回避補正を適用
+        hitChance += calcConditionAccuracyBonus(atkConds);
+        hitChance -= calcConditionAvoidanceBonus(defConds);
+        
+        int roll = random.nextInt(100) + 1; // 1 〜 100
+        
+        // 96〜100 はファンブル（絶対ミス）
+        if (roll >= 96) {
+            return new HitResult(false, false);
+        }
+        // 1〜5 はクリティカル（絶対命中・BONUS同様のクリティカル倍率）
+        if (roll <= 5) {
+            return new HitResult(true, true);
+        }
+        
+        return new HitResult(roll <= hitChance, false);
     }
 
+    private void updateConditions(java.util.List<BattleState.ActiveCombatCondition> conditions) {
+        java.util.Iterator<BattleState.ActiveCombatCondition> it = conditions.iterator();
+        while (it.hasNext()) {
+            BattleState.ActiveCombatCondition c = it.next();
+            if (c.getDuration() > 0) {
+                c.decrementDuration();
+                if (c.getDuration() == 0) {
+                    it.remove(); // 効果切れ
+                }
+            }
+        }
+    }
+
+    private int calcConditionAccuracyBonus(java.util.List<BattleState.ActiveCombatCondition> conditions) {
+        if (conditions == null) return 0;
+        int bonus = 0;
+        for (BattleState.ActiveCombatCondition c : conditions) {
+            com.kh.tbrr.data.models.CombatConditionData data = com.kh.tbrr.data.CombatConditionRegistry.getConditionById(c.getConditionId());
+            if (data != null && data.getModifiers() != null) {
+                bonus += data.getModifiers().getAccuracyBonus();
+            }
+        }
+        return bonus;
+    }
+
+    private int calcConditionAvoidanceBonus(java.util.List<BattleState.ActiveCombatCondition> conditions) {
+        if (conditions == null) return 0;
+        int bonus = 0;
+        for (BattleState.ActiveCombatCondition c : conditions) {
+            com.kh.tbrr.data.models.CombatConditionData data = com.kh.tbrr.data.CombatConditionRegistry.getConditionById(c.getConditionId());
+            if (data != null && data.getModifiers() != null) {
+                bonus += data.getModifiers().getAvoidanceBonus();
+            }
+        }
+        return bonus;
+    }
+
+    private double calcConditionDamageMultiplier(java.util.List<BattleState.ActiveCombatCondition> conditions) {
+        if (conditions == null) return 1.0;
+        double mult = 1.0;
+        for (BattleState.ActiveCombatCondition c : conditions) {
+            com.kh.tbrr.data.models.CombatConditionData data = com.kh.tbrr.data.CombatConditionRegistry.getConditionById(c.getConditionId());
+            if (data != null && data.getModifiers() != null) {
+                mult *= data.getModifiers().getDamageMultiplier();
+            }
+        }
+        return mult;
+    }
+
+    private static class HitResult {
+        public final boolean isHit;
+        public final boolean isCritical;
+        public HitResult(boolean isHit, boolean isCritical) {
+            this.isHit = isHit;
+            this.isCritical = isCritical;
+        }
+    }
 }

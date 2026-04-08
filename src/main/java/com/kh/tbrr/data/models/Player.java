@@ -66,6 +66,7 @@ public class Player {
 
     // lists
     private List<String> skills;
+    private List<String> abilities; // アクティブスキル（技・魔法）
     private List<String> passives; // パッシブ能力用リスト
     private List<String> traits;
     private List<String> inventory;
@@ -130,6 +131,7 @@ public class Player {
     public Player() {
         this.baseSkills = new ArrayList<>();
         this.skills = new ArrayList<>();
+        this.abilities = new ArrayList<>();
         this.passives = new ArrayList<>();
         this.traits = new ArrayList<>();
         this.inventory = new ArrayList<>();
@@ -778,6 +780,20 @@ public class Player {
 
     public void setSkills(List<String> skills) {
         this.skills = skills;
+    }
+
+    public List<String> getAbilities() {
+        return abilities;
+    }
+
+    public void setAbilities(List<String> abilities) {
+        this.abilities = abilities;
+    }
+
+    public void addAbility(String abilityId) {
+        if (!abilities.contains(abilityId)) {
+            abilities.add(abilityId);
+        }
     }
 
     public List<String> getPassives() {

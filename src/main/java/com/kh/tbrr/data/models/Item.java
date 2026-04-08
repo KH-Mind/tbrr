@@ -24,6 +24,7 @@ public class Item {
 	private int damageReduction;      // ダメージ軽減値
 	private String rangeType;         // 射程タイプ: "melee" / "ranged" / "magic"
 	private java.util.Map<String, String> rangeOverride; // 距離→結果の個別上書きマップ（任意。槍など）
+	private java.util.Map<String, CombatConditionModifiers> combatConditionModifiers; // 相手のCombatConditionに対する特効補正
 
 	// コンストラクタ
 	public Item() {
@@ -166,5 +167,13 @@ public class Item {
 
 	public void setRangeOverride(java.util.Map<String, String> rangeOverride) {
 		this.rangeOverride = rangeOverride;
+	}
+
+	public java.util.Map<String, CombatConditionModifiers> getCombatConditionModifiers() {
+		return combatConditionModifiers;
+	}
+
+	public void setCombatConditionModifiers(java.util.Map<String, CombatConditionModifiers> combatConditionModifiers) {
+		this.combatConditionModifiers = combatConditionModifiers;
 	}
 }

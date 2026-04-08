@@ -9,6 +9,7 @@ public class AbilityData {
     private int apCost;
     private Check check;
     private List<String> description;
+    private java.util.Map<String, com.kh.tbrr.data.models.CombatConditionModifiers> combatConditionModifiers;
 
     public static class Check {
         private Integer baseChance;
@@ -32,4 +33,21 @@ public class AbilityData {
     public int getApCost() { return apCost; }
     public Check getCheck() { return check; }
     public List<String> getDescription() { return description; }
+    public java.util.Map<String, com.kh.tbrr.data.models.CombatConditionModifiers> getCombatConditionModifiers() { return combatConditionModifiers; }
+
+    private List<ConditionApplication> applyCombatConditions;
+
+    public static class ConditionApplication {
+        private String conditionId;
+        private int chance; // %
+        private int duration;
+
+        public String getConditionId() { return conditionId; }
+        public int getChance() { return chance; }
+        public int getDuration() { return duration; }
+    }
+
+    public List<ConditionApplication> getApplyCombatConditions() {
+        return applyCombatConditions;
+    }
 }

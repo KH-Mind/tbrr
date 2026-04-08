@@ -572,7 +572,7 @@ public class JavaFXUI implements GameUI {
 		moveComboBox.setValue("停止");
 		
 		actionComboBox = new ComboBox<>();
-		actionComboBox.getItems().addAll("攻撃", "全力移動", "逃げる");
+		actionComboBox.getItems().addAll("攻撃", "全力移動", "防御", "逃げる");
 		actionComboBox.setValue("攻撃");
 
 		stanceComboBox = new ComboBox<>();
@@ -580,7 +580,8 @@ public class JavaFXUI implements GameUI {
 		stanceComboBox.setValue("なし");
 
 		specialComboBox = new ComboBox<>();
-		specialComboBox.getItems().addAll("なし");
+		specialComboBox.setPrefWidth(120); // 長い技名が見切れないように幅を広げる
+		specialComboBox.getItems().add("なし");
 		specialComboBox.setValue("なし");
 		specialComboBox.setOnAction(e -> {
 			if(!"なし".equals(specialComboBox.getValue())) {
@@ -609,7 +610,7 @@ public class JavaFXUI implements GameUI {
 			new Label("ムーブ:"), moveComboBox,
 			new Label("アクション:"), actionComboBox,
 			new Label("スタンス:"), stanceComboBox,
-			new Label("特殊:"), specialComboBox,
+			new Label("技:"), specialComboBox,
 			executeTurnButton
 		);
 
@@ -636,6 +637,18 @@ public class JavaFXUI implements GameUI {
 				battleCommandBox.setManaged(isBattle);
 				
 				if(isBattle) {
+					// 技コンボボックスの中身をプレイヤーの所持アビリティから再生成する
+					specialComboBox.getItems().clear();
+					specialComboBox.getItems().add("なし");
+					if (currentPlayer != null && currentPlayer.getAbilities() != null) {
+						for (String abilityId : currentPlayer.getAbilities()) {
+							com.kh.tbrr.battle.data.AbilityData data = com.kh.tbrr.battle.data.CombatDataLoader.getAbility(abilityId);
+							if (data != null) {
+								specialComboBox.getItems().add(data.getName());
+							}
+						}
+					}
+
 					moveComboBox.setValue("停止");
 					actionComboBox.setValue("攻撃");
 					stanceComboBox.setValue("なし");
@@ -1000,6 +1013,7 @@ public class JavaFXUI implements GameUI {
 
 	@Override
 	public void printPlayerStatus(Player player) {
+		this.currentPlayer = player; // ここで現在のプレイヤーインスタンスを保持する
 		Platform.runLater(() -> {
 			// HP/AP/銀貨更新
 			hpLabel.setText(String.format("HP: %s/%s",
