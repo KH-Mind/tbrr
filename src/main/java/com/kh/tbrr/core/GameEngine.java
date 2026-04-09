@@ -85,21 +85,8 @@ public class GameEngine {
 			com.kh.tbrr.data.ItemRegistry.register(item);
 		}
 		
-		// --- パッシブデータのロード ---
-		try (java.io.InputStream is = getClass().getResourceAsStream("/data/passives/basic_passives.json")) {
-			if (is != null) {
-				java.io.Reader reader = new java.io.InputStreamReader(is, java.nio.charset.StandardCharsets.UTF_8);
-				java.util.List<com.kh.tbrr.data.models.PassiveData> passives = new com.google.gson.Gson().fromJson(reader, 
-				        new com.google.gson.reflect.TypeToken<java.util.List<com.kh.tbrr.data.models.PassiveData>>(){}.getType());
-				for (com.kh.tbrr.data.models.PassiveData p : passives) {
-					com.kh.tbrr.data.PassiveRegistry.register(p);
-				}
-			} else {
-				System.err.println("Warning: basic_passives.json not found in resources!");
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		// パッシブデータのロードは戦闘開始時（BattleManager）に移管。
+		// → CombatDataLoader.loadAllPassives() が data/battle/passives/ から読み込む。
 
 		// イベントデータのロード登録
 		for (com.kh.tbrr.data.models.StatusEffect effect : dataManager

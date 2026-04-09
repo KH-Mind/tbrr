@@ -1,10 +1,13 @@
-package com.kh.tbrr.data;
+package com.kh.tbrr.battle.data;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import com.kh.tbrr.data.models.PassiveData;
 
+/**
+ * パッシブスキルのレジストリ（IDをキーにした一覧管理）。
+ * 旧: com.kh.tbrr.data.PassiveRegistry
+ */
 public class PassiveRegistry {
     private static final Map<String, PassiveData> PASSIVES = new HashMap<>();
 

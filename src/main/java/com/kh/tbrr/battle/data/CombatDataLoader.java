@@ -13,6 +13,7 @@ public class CombatDataLoader {
     private static CombatBaseRules baseRules;
     private static Map<String, AbilityData> abilities = new HashMap<>();
     private static Map<String, StanceData> stances = new HashMap<>();
+    private static boolean passivesLoaded = false;
 
     public static CombatBaseRules getBaseRules() {
         if (baseRules == null) {
@@ -39,6 +40,37 @@ public class CombatDataLoader {
             }
         }
         return stances.get(id);
+    }
+
+    /**
+     * 全パッシブJSONを読み込んでPassiveRegistryへ登録する。
+     * battle開始時に1度だけ呼ばれる想定（二重読み込み防止済み）。
+     */
+    public static void loadAllPassives() {
+        if (passivesLoaded) return;
+        loadPassivesFromFile("/data/battle/passives/basic_passives.json");
+        loadPassivesFromFile("/data/battle/passives/class_passives.json");
+        loadPassivesFromFile("/data/battle/passives/systemic_passives.json");
+        passivesLoaded = true;
+    }
+
+    private static void loadPassivesFromFile(String path) {
+        try (InputStream is = CombatDataLoader.class.getResourceAsStream(path)) {
+            if (is == null) {
+                System.out.println("[CombatDataLoader] Passive file not found (skipped): " + path);
+                return;
+            }
+            PassiveData[] passives = GSON.fromJson(
+                    new InputStreamReader(is, StandardCharsets.UTF_8), PassiveData[].class);
+            if (passives != null) {
+                for (PassiveData p : passives) {
+                    PassiveRegistry.register(p);
+                }
+                System.out.println("[CombatDataLoader] Loaded " + passives.length + " passives from: " + path);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private static <T> T loadJson(String path, Class<T> clazz) {

@@ -48,6 +48,7 @@ public class BattleManager {
     public void startBattle(String enemyId) {
         state = new BattleState();
         com.kh.tbrr.data.CombatConditionRegistry.loadAll(); // 戦闘用状態異常データの読み込み
+        CombatDataLoader.loadAllPassives(); // パッシブデータの読み込み（二重読み込み防止済み）
         
         EnemyData enemy = loadEnemyData(enemyId);
         if (enemy == null) {
@@ -303,6 +304,11 @@ public class BattleManager {
                         }
                     }
                 }
+
+                // --- DUAL_WIELD（二刀流）処理 ---
+                // メイン攻撃が命中した後、二刀流パッシブがあればオフハンド（予備スロット0）でも追加攻撃を行う
+                processOffHandAttack(enemy, ability, baseRules);
+
             } else {
                 ui.print("　かわされた！（ミス！）");
             }
@@ -310,11 +316,87 @@ public class BattleManager {
         return false;
     }
 
+    /**
+     * DUAL_WIELD（二刀流）パッシブが存在する場合、予備スロット0の武器（オフハンド）で追加攻撃を行う。
+     * - オフハンド武器が dagger または offhand タグを持つ場合：ペナルティなし
+     * - それ以外：命中率 offHandHitPenalty（デフォルト-20%）、ダメージ offHandDamageMultiplier（デフォルト0.5倍）
+     * - オフハンド武器のcombatStatsボーナスは適用しない（仕様）
+     */
+    private void processOffHandAttack(EnemyData enemy, AbilityData ability, CombatBaseRules baseRules) {
+        // 二刀流パッシブを探す（Stream APIで取得することでeffectively finalを確保）
+        final PassiveData dualWield = player.getPassives().stream()
+                .map(PassiveRegistry::getPassiveById)
+                .filter(p -> p != null && "SYSTEMIC".equals(p.getType()) && "DUAL_WIELD".equals(p.getSystemicEffect()))
+                .findFirst()
+                .orElse(null);
+        if (dualWield == null) return; // 二刀流パッシブなし → スキップ
+
+        // 予備スロット0をオフハンド武器として取得
+        java.util.List<String> reserves = player.getReserveEquipments();
+        if (reserves == null || reserves.isEmpty()) {
+            return; // 予備武器なし → スキップ
+        }
+        String offHandId = reserves.get(0);
+        com.kh.tbrr.data.models.Item offHandWeapon = com.kh.tbrr.data.ItemRegistry.getItemById(offHandId);
+        if (offHandWeapon == null || offHandWeapon.getDamageDice() == null) {
+            return; // 予備スロットが空か武器でない → スキップ
+        }
+
+        ui.print("　【二刀流】オフハンドで追加攻撃！（" + offHandWeapon.getName() + "）");
+
+        // ペナルティ免除条件の判定：offHandFreeTagConditionsのいずれかのタグを持つか
+        boolean penaltyFree = false;
+        if (offHandWeapon.getTags() != null && dualWield.getOffHandFreeTagConditions() != null) {
+            penaltyFree = offHandWeapon.getTags().stream()
+                    .anyMatch(tag -> dualWield.getOffHandFreeTagConditions().contains(tag));
+        }
+
+        // 命中判定（ペナルティ考慮）
+        int atkStat = getCombatStat(player, ability.getCheck().getAttackerStat());
+        String defStatName = ability.getCheck().getDefenderStat();
+        int defStat = (defStatName != null && !defStatName.isEmpty()) ? enemy.getStatByName(defStatName) : 0;
+
+        // ペナルティ: 命中ベース値をoffHandHitPenalty分だけ補正してcheckHitを呼ぶ
+        // overrideBaseChanceを使ってペナルティを適用する
+        int baseChanceOverride = baseRules.getAccuracy().getBaseChance() + (penaltyFree ? 0 : dualWield.getOffHandHitPenalty());
+        HitResult offResult = checkHit(atkStat, defStat, baseChanceOverride, state.isEnemyDefending(),
+                state.getPlayerConditions(), state.getEnemyConditions());
+
+        if (offResult.isHit) {
+            // ダメージ計算（オフハンド武器ダイス使用、マスタリー・ステ補正は計算する）
+            String offDice = offHandWeapon.getDamageDice();
+            int offRoll = DiceRoller.roll(offDice);
+            int offMastery = calculateMasteryLevel(offHandWeapon);
+            int offMasteryDice = calculateMasteryDice(offMastery);
+            int offMasteryFixed = calculateMasteryFixedBonus(offMastery);
+            int rawStat = getCombatStat(player, ability.getCheck().getScalingStat());
+            int offScaling = (int)(rawStat * 0.5);
+            int offBase = offRoll + offMasteryDice + offMasteryFixed + offScaling;
+
+            // ダメージ倍率の適用（ペナルティなしなら1.0、ありなら offHandDamageMultiplier）
+            double offDmgMult = penaltyFree ? 1.0 : dualWield.getOffHandDamageMultiplier();
+            if (offResult.isCritical) {
+                offDmgMult *= resolveCritMultiplier(player);
+            }
+            int offDamage = (int)(offBase * offDmgMult);
+            if (state.isEnemyDefending()) {
+                offDamage /= 2;
+            }
+
+            enemy.setHp(enemy.getHp() - offDamage);
+            String penaltyMsg = penaltyFree ? "（ペナルティなし）" : "（命中" + dualWield.getOffHandHitPenalty() + "%・ダメージ×" + offDmgMult + "）";
+            String critMsg2 = offResult.isCritical ? " 【クリティカル！】" : "";
+            ui.print("　　オフハンド命中！ " + enemy.getName() + " に " + offDamage + " のダメージ！" + penaltyMsg + critMsg2);
+        } else {
+            ui.print("　　オフハンドは外れた！");
+        }
+    }
+
     private int calculateMasteryLevel(com.kh.tbrr.data.models.Item weapon) {
         int masteryLevel = 0;
         if (weapon != null && weapon.getTags() != null) {
             for (String passiveId : player.getPassives()) {
-                com.kh.tbrr.data.models.PassiveData passive = com.kh.tbrr.data.PassiveRegistry.getPassiveById(passiveId);
+                PassiveData passive = PassiveRegistry.getPassiveById(passiveId);
                 if (passive != null && "MASTERY".equals(passive.getType()) && passive.getTargetTags() != null) {
                     boolean match = weapon.getTags().stream().anyMatch(tag -> passive.getTargetTags().contains(tag));
                     if (match) {
@@ -364,11 +446,11 @@ public class BattleManager {
         double base = rules.getDamage().getCritMultiplier(); // デフォルト 1.5
         // CRIT_MULTIPLIER型パッシブが存在する場合、最大値で上書き
         double override = p.getPassives().stream()
-                .map(id -> com.kh.tbrr.data.PassiveRegistry.getPassiveById(id))
+                .map(id -> PassiveRegistry.getPassiveById(id))
                 .filter(passive -> passive != null
                         && "CRIT_MULTIPLIER".equals(passive.getType())
                         && passive.getCritMultiplier() > 0)
-                .mapToDouble(com.kh.tbrr.data.models.PassiveData::getCritMultiplier)
+                .mapToDouble(PassiveData::getCritMultiplier)
                 .max()
                 .orElse(base);
         return override;
