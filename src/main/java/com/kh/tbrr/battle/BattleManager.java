@@ -225,6 +225,19 @@ public class BattleManager {
             String rangeResult = resolveRangeResult(baseRules, ability, weapon, stanceData, state.getDistance());
 
             if ("MISS".equals(rangeResult)) {
+                com.kh.tbrr.data.models.Item switchedWeapon = resolveAutoWeaponSwitch(weapon);
+                if (switchedWeapon != null) {
+                    // 予備武器で射程を再判定
+                    String switchedRange = resolveRangeResult(baseRules, ability, switchedWeapon, stanceData, state.getDistance());
+                    if (!"MISS".equals(switchedRange)) {
+                        ui.print("　【武器の自動切り替え】" + switchedWeapon.getName() + " で攻撃を解決する。");
+                        weapon = switchedWeapon;
+                        rangeResult = switchedRange;
+                    }
+                }
+            }
+
+            if ("MISS".equals(rangeResult)) {
                 ui.print("　ミス！距離が適していません。 (" + ability.getName() + ")");
                 return false;
             }
@@ -258,9 +271,11 @@ public class BattleManager {
                 int masteryDiceSum = calculateMasteryDice(masteryLevel);
                 int masteryFixedBonus = calculateMasteryFixedBonus(masteryLevel);
 
-                // ステータス加算計算（暫定的に0.5倍を適用）
+                // ステータス加算計算（ability.getCheck().getStatScaling()を参照、未指定は0.5）
                 int rawStatVal = getCombatStat(player, ability.getCheck().getScalingStat());
-                int scalingStatVal = (int)(rawStatVal * 0.5);
+                double scaling = (ability.getCheck().getStatScaling() != null)
+                        ? ability.getCheck().getStatScaling() : 0.5;
+                int scalingStatVal = (int)(rawStatVal * scaling);
                 int baseDamage = diceRoll + masteryDiceSum + masteryFixedBonus + scalingStatVal;
 
                 // クリティカル処理（BONUS判定 または ダイス1〜5）
@@ -420,25 +435,63 @@ public class BattleManager {
         if (masteryLevel <= 0) return 0;
         return (masteryLevel - 1) * (masteryLevel + 2) / 2;
     }
-
+    /**
+     * 射程判定のフォールバックチェーン（Ability is King の実装）。
+     * 優先順：アビリティ rangeOverride > アビリティ rangeType
+     *        > 武器 rangeOverride > 武器 rangeType > デフォルト "melee"
+     *
+     * アビリティに rangeType を指定しない（null）技は、武器の射程をそのまま引き継ぐ。
+     * 武器も未装備なら最終フォールバック "melee" で素手扱い（1d4+0+強靭*0.5）となる。
+     */
     private String resolveRangeResult(CombatBaseRules rules, AbilityData ability,
             com.kh.tbrr.data.models.Item weapon, StanceData stance, int distance) {
-        // 1. 武器の rangeOverride が存在する場合は最優先
-        if (weapon != null && weapon.getRangeOverride() != null) {
-            String custom = weapon.getRangeOverride().get(String.valueOf(distance));
+        String distKey = String.valueOf(distance);
+
+        // 1. アビリティの rangeOverride が存在する距離なら最優先
+        if (ability.getRangeOverride() != null) {
+            String custom = ability.getRangeOverride().get(distKey);
             if (custom != null) return custom;
         }
-        // 2. スタンスがアビリティを差し替えた場合は、その ability.getType() を使用
-        boolean abilityOverridden = stance != null
-                && stance.getOverrideAbilityId() != null
-                && !stance.getOverrideAbilityId().isEmpty();
-        if (abilityOverridden) {
-            return rules.getRangeResult(ability.getType(), distance);
+        // 2. アビリティの rangeType が明示されていればそれを使用
+        if (ability.getRangeType() != null && !ability.getRangeType().isEmpty()) {
+            return rules.getRangeResult(ability.getRangeType(), distance);
         }
-        // 3. ノースタンスの場合は武器の rangeType を使用（未指定は melee デフォルト）
-        String weaponRange = (weapon != null && weapon.getRangeType() != null)
-                ? weapon.getRangeType() : "melee";
-        return rules.getRangeResult(weaponRange, distance);
+        // 3. 武器の rangeOverride が存在する距離なら使用
+        if (weapon != null && weapon.getRangeOverride() != null) {
+            String custom = weapon.getRangeOverride().get(distKey);
+            if (custom != null) return custom;
+        }
+        // 4. 武器の rangeType を使用
+        if (weapon != null && weapon.getRangeType() != null && !weapon.getRangeType().isEmpty()) {
+            return rules.getRangeResult(weapon.getRangeType(), distance);
+        }
+        // 5. 最終フォールバック（素手 = 近接扱い）
+        return rules.getRangeResult("melee", distance);
+    }
+
+    /**
+     * AUTO_WEAPON_SWITCH パッシブが有効な場合、予備スロット0の武器を返す。
+     * - メイン武器がMISSになる距離で発動。
+     * - 装備の入れ替えは行わず、攻撃解決のみ予備武器で行う。
+     * - パッシブがない・予備武器がない場合は null を返す。
+     */
+    private com.kh.tbrr.data.models.Item resolveAutoWeaponSwitch(com.kh.tbrr.data.models.Item mainWeapon) {
+        // AUTO_WEAPON_SWITCHパッシブを確認
+        boolean hasPassive = player.getPassives().stream()
+                .map(PassiveRegistry::getPassiveById)
+                .anyMatch(p -> p != null
+                        && "SYSTEMIC".equals(p.getType())
+                        && "AUTO_WEAPON_SWITCH".equals(p.getSystemicEffect()));
+        if (!hasPassive) return null;
+
+        // 予備スロット0の武器を取得
+        java.util.List<String> reserves = player.getReserveEquipments();
+        if (reserves == null || reserves.isEmpty()) return null;
+        String reserveId = reserves.get(0);
+        com.kh.tbrr.data.models.Item reserveWeapon = com.kh.tbrr.data.ItemRegistry.getItemById(reserveId);
+        if (reserveWeapon == null || reserveWeapon.getDamageDice() == null) return null;
+
+        return reserveWeapon;
     }
 
     private double resolveCritMultiplier(Player p) {
@@ -494,7 +547,7 @@ public class BattleManager {
                 ui.print("【エラー】敵のアビリティデータが見つかりません: basic_attack");
                 return;
             }
-            String rangeResult = baseRules.getRangeResult(ability.getType(), distance);
+            String rangeResult = resolveRangeResult(baseRules, ability, null, null, distance);
 
             // 敵も「機敏vs機敏」で命中判定を行う（ユーザー原案準拠）
             HitResult result = checkHit(enemy.getFinesse(), player.getCombatStats().finesse(), null, state.isPlayerDefending(), state.getEnemyConditions(), state.getPlayerConditions());

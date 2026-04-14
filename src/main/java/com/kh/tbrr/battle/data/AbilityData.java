@@ -1,11 +1,20 @@
 package com.kh.tbrr.battle.data;
 
 import java.util.List;
+import java.util.Map;
 
 public class AbilityData {
     private String id;
     private String name;
-    private String type;
+    /** 射程テーブルの参照キー（melee/ranged/projectile/sweep/spear）。
+     *  null の場合は武器の rangeType にフォールバック。武器も無ければ "melee" で確定。 */
+    private String rangeType;
+    /** 攻撃の属性タグ（例: ["magic","fire"], ["physical"]）。
+     *  将来の耐性・特効・マスタリー拡張の基盤。武器の武器カテゴリタグとは別物。 */
+    private List<String> tags;
+    /** アビリティ個別の距離テーブル。キーは距離(String)、値は"HIT"/"MISS"/"BONUS"。
+     *  指定した距離のみ上書き。rangeType より優先される（Ability is King）。 */
+    private Map<String, String> rangeOverride;
     private int apCost;
     private Check check;
     private List<String> description;
@@ -29,7 +38,9 @@ public class AbilityData {
 
     public String getId() { return id; }
     public String getName() { return name; }
-    public String getType() { return type; }
+    public String getRangeType() { return rangeType; }
+    public List<String> getTags() { return tags; }
+    public Map<String, String> getRangeOverride() { return rangeOverride; }
     public int getApCost() { return apCost; }
     public Check getCheck() { return check; }
     public List<String> getDescription() { return description; }
