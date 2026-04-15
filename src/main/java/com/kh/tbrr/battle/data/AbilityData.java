@@ -46,6 +46,10 @@ public class AbilityData {
     public List<String> getDescription() { return description; }
     public java.util.Map<String, com.kh.tbrr.data.models.CombatConditionModifiers> getCombatConditionModifiers() { return combatConditionModifiers; }
 
+    /** 命中時に距離をこの値に強制上書きする（null なら何もしない）。
+     *  例: 稲妻の衝撃が命中したら強制的に距離2にする → 2 を指定。 */
+    private Integer forceDistanceTo;
+
     private List<ConditionApplication> applyCombatConditions;
 
     public static class ConditionApplication {
@@ -61,4 +65,6 @@ public class AbilityData {
     public List<ConditionApplication> getApplyCombatConditions() {
         return applyCombatConditions;
     }
+
+    public Integer getForceDistanceTo() { return forceDistanceTo; }
 }

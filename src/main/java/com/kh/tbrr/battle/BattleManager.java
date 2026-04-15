@@ -320,6 +320,13 @@ public class BattleManager {
                     }
                 }
 
+                // --- アビリティによる強制距離変更（ノックバック等）---
+                if (ability.getForceDistanceTo() != null) {
+                    int forced = Math.max(0, Math.min(4, ability.getForceDistanceTo()));
+                    state.setDistance(forced);
+                    ui.print("　★ 吹き飛ばし！ 距離が " + forced + " に変化した。");
+                }
+
                 // --- DUAL_WIELD（二刀流）処理 ---
                 // メイン攻撃が命中した後、二刀流パッシブがあればオフハンド（予備スロット0）でも追加攻撃を行う
                 processOffHandAttack(enemy, ability, baseRules);

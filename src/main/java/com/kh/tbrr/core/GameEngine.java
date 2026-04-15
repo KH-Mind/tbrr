@@ -81,7 +81,13 @@ public class GameEngine {
 		for (Item item : dataManager.loadAllItemsFromFile("legendary_weapons.json")) {
 			com.kh.tbrr.data.ItemRegistry.register(item);
 		}
-		for (Item item : dataManager.loadAllItemsFromFile("accessories.json")) {
+		for (Item item : dataManager.loadAllItemsFromFile("minor_accessories.json")) {
+			com.kh.tbrr.data.ItemRegistry.register(item);
+		}
+		for (Item item : dataManager.loadAllItemsFromFile("major_accessories.json")) {
+			com.kh.tbrr.data.ItemRegistry.register(item);
+		}
+		for (Item item : dataManager.loadAllItemsFromFile("mythic_accessories.json")) {
 			com.kh.tbrr.data.ItemRegistry.register(item);
 		}
 		
