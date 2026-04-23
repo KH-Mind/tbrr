@@ -87,31 +87,56 @@ public class BattleManager {
                 
                 BattleCommand cmd = jfxUi.getBattleCommand();
                 if (cmd != null) {
-                    ui.print("＞プレイヤーの行動: " + cmd.toString());
+                    // --- イニシアチブ判定（機敏 + 1d6） ---
+                    int playerFinesse = (player.getCombatStats() != null) ? player.getCombatStats().finesse() : 0;
+                    int enemyFinesse = enemy.getFinesse();
+                    int playerInitiative = playerFinesse + DiceRoller.roll("1d6");
+                    int enemyInitiative = enemyFinesse + DiceRoller.roll("1d6");
 
-                    // --- プレイヤーのターン処理 ---
-                    boolean escapeSuccess = processPlayerTurn(cmd, enemy);
-                    if (escapeSuccess) {
-                    	// 逃走完了
-                        battleEnded = true;
-                        continue;
-                    }
+                    boolean playerGoesFirst = playerInitiative >= enemyInitiative;
+                    String initMsg = playerGoesFirst ? "(プレイヤー先行)" : "(敵先行)";
+                    ui.print("　[行動順判定: プレイヤー " + playerInitiative + " vs 敵 " + enemyInitiative + "] " + initMsg);
 
-                    // 敵の死亡判定
-                    if (enemy.getHp() <= 0) {
-                        ui.print("【勝利！】 " + enemy.getName() + " を倒した！");
-                        battleEnded = true;
-                        continue;
-                    }
-
-                    // --- 敵のターン処理 ---
-                    processEnemyTurn(enemy);
-                    
-                    // プレイヤーの死亡判定
-                    if (player.getHp() <= 0) {
-                        ui.print("【敗北】 プレイヤーのHPが0になった……");
-                        battleEnded = true;
-                        continue;
+                    if (playerGoesFirst) {
+                        // プレイヤー先行
+                        ui.print("＞プレイヤーの行動: " + cmd.toString());
+                        boolean escapeSuccess = processPlayerTurn(cmd, enemy);
+                        if (escapeSuccess) {
+                            battleEnded = true;
+                            continue;
+                        }
+                        if (enemy.getHp() <= 0) {
+                            ui.print("【勝利！】 " + enemy.getName() + " を倒した！");
+                            battleEnded = true;
+                            continue;
+                        }
+                        // 敵のターン
+                        processEnemyTurn(enemy);
+                        if (player.getHp() <= 0) {
+                            ui.print("【敗北】 プレイヤーのHPが0になった……");
+                            battleEnded = true;
+                            continue;
+                        }
+                    } else {
+                        // 敵先行
+                        processEnemyTurn(enemy);
+                        if (player.getHp() <= 0) {
+                            ui.print("【敗北】 プレイヤーのHPが0になった……");
+                            battleEnded = true;
+                            continue;
+                        }
+                        // プレイヤーのターン
+                        ui.print("＞プレイヤーの行動: " + cmd.toString());
+                        boolean escapeSuccess = processPlayerTurn(cmd, enemy);
+                        if (escapeSuccess) {
+                            battleEnded = true;
+                            continue;
+                        }
+                        if (enemy.getHp() <= 0) {
+                            ui.print("【勝利！】 " + enemy.getName() + " を倒した！");
+                            battleEnded = true;
+                            continue;
+                        }
                     }
                     
                     // --- ターン終了処理（ステータス更新） ---
@@ -221,6 +246,33 @@ public class BattleManager {
         }
 
         if ("攻撃".equals(action) || (cmd.getSpecial() != null && !cmd.getSpecial().equals("なし"))) {
+            // --- AP不足チェックと転倒処理 ---
+            if (ability.getApCost() > 0) {
+                if (player.getAp() < ability.getApCost()) {
+                    String playerName = player.getName() != null ? player.getName() : "冒険者";
+                    ui.print("　" + playerName + " は満身創痍で「" + ability.getName() + "」を出す気力が無い…。");
+                    ui.print("　" + playerName + " は無様に転んでしまった！");
+                    
+                    // 転倒 (prone) を1ターン付与
+                    boolean foundProne = false;
+                    for (var c : state.getPlayerConditions()) {
+                        if (c.getConditionId().equals("prone")) {
+                            c.setDuration(1);
+                            foundProne = true;
+                            break;
+                        }
+                    }
+                    if (!foundProne) {
+                        state.getPlayerConditions().add(new BattleState.ActiveCombatCondition("prone", 1));
+                    }
+                    ui.print("　★ " + playerName + " は [転倒] になった！");
+                    
+                    return false; // 以降の攻撃処理をすべて不発にする
+                } else {
+                    player.modifyAp(-ability.getApCost());
+                }
+            }
+
             // 距離による結果（HIT/MISS/BONUS）の判定
             String rangeResult = resolveRangeResult(baseRules, ability, weapon, stanceData, state.getDistance());
 

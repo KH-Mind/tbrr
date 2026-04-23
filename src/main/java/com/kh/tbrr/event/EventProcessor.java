@@ -976,31 +976,15 @@ public class EventProcessor {
 			}
 		}
 
-		// 単一アイテム入手（後方互換性）
+		// 単一アイテム入手（後方互換性・装備品は自動でDropEquipmentPanelへ）
 		if (result.getItemGained() != null && !result.getItemGained().isEmpty()) {
-			player.addItem(result.getItemGained());
-			String itemName = ItemRegistry.getNameById(result.getItemGained());
-			if (itemName == null) {
-				itemName = result.getItemGained();
-			}
-			String logMessage = "【" + itemName + "を手に入れた】";
-			// ui.print(logMessage); // ← コメントアウト：左下メッセージエリアには表示しない
-			printFloorDividerIfNeeded(gameState);
-			ui.printImportantLog(logMessage); // 重要ログには表示
+			handleItemDrop(result.getItemGained(), player, gameState);
 		}
 
-		// 複数アイテム入手
+		// 複数アイテム入手（装備品は自動でDropEquipmentPanelへ）
 		if (result.getItemsGained() != null && !result.getItemsGained().isEmpty()) {
 			for (String itemId : result.getItemsGained()) {
-				player.addItem(itemId);
-				String itemName = ItemRegistry.getNameById(itemId);
-				if (itemName == null) {
-					itemName = itemId;
-				}
-				String logMessage = "【" + itemName + "を手に入れた】";
-				// ui.print(logMessage); // ← コメントアウト：左下メッセージエリアには表示しない
-				printFloorDividerIfNeeded(gameState);
-				ui.printImportantLog(logMessage); // 重要ログには表示
+				handleItemDrop(itemId, player, gameState);
 			}
 		}
 
@@ -1216,7 +1200,9 @@ public class EventProcessor {
 			}
 		}
 
-		if (result.getNextEventId() != null && !result.getNextEventId().isEmpty()) {
+		// battle が存在する場合は、battle ブロック内で nextEventId を処理するためここではスキップ
+		boolean hasBattle = result.getBattle() != null && !result.getBattle().isEmpty();
+		if (result.getNextEventId() != null && !result.getNextEventId().isEmpty() && !hasBattle) {
 			boolean wasInRecursive = gameState.isInRecursiveEvent();
 
 			if (!wasInRecursive) {
@@ -1319,17 +1305,80 @@ public class EventProcessor {
 		if (result.getBattle() != null && !result.getBattle().isEmpty()) {
 			com.kh.tbrr.battle.BattleManager battleManager = new com.kh.tbrr.battle.BattleManager(ui, player);
 			battleManager.startBattle(result.getBattle());
-			
+
 			// 戦闘終了後の死亡判定
 			if (player.getHp() <= 0) {
 				if (deathManager != null) {
 					deathManager.processDeath(battleManager.getDeathCause(), player, gameState);
 				}
 				died = true;
+			} else if (result.getNextEventId() != null && !result.getNextEventId().isEmpty()) {
+				// 戦闘勝利後に nextEventId へ連鎖（戦後イベント等）
+				boolean wasInRecursive = gameState.isInRecursiveEvent();
+				if (!wasInRecursive) gameState.setInRecursiveEvent(true);
+				GameEvent nextAfterBattle = dataManager.loadEvent(result.getNextEventId());
+				if (nextAfterBattle != null) {
+					processEvent(nextAfterBattle, player, gameState);
+				}
+				gameState.setInRecursiveEvent(wasInRecursive);
+				return died;
+			}
+		}
+
+		// ★追加: 確率付きアイテムドロップ処理（A案: 独立抽選）
+		if (result.getItemDrops() != null && !result.getItemDrops().isEmpty()) {
+			for (com.kh.tbrr.data.models.GameEvent.ItemDrop drop : result.getItemDrops()) {
+				if (drop.getItemId() == null || drop.getItemId().isEmpty()) continue;
+				int roll = random.nextInt(100) + 1; // 1〜100
+				if (developerMode != null && developerMode.isDebugVisible()) {
+					System.err.println("[DEBUG] ドロップ抽選: " + drop.getItemId()
+						+ " chance=" + drop.getChance() + "% roll=" + roll);
+				}
+				if (roll <= drop.getChance()) {
+					handleItemDrop(drop.getItemId(), player, gameState);
+				}
 			}
 		}
 
 		return died;
+	}
+
+	/**
+	 * ドロップしたアイテム1件を処理する。
+	 * 装備品（WEAPON/ACCESSORY）の場合はDropEquipmentPanelを開き取捨選択させる。
+	 * 通常アイテムの場合はインベントリに直接追加する。
+	 */
+	private void handleItemDrop(String itemId, Player player, GameState gameState) {
+		com.kh.tbrr.data.models.Item item = ItemRegistry.getItemById(itemId);
+		if (item == null) {
+			ui.print("【システム】未知のアイテムID: " + itemId);
+			return;
+		}
+
+		String category = item.getEquipmentCategory();
+		boolean isEquipment = "WEAPON".equalsIgnoreCase(category)
+				|| "ACCESSORY".equalsIgnoreCase(category);
+
+		if (isEquipment) {
+			// 装備品 → ドロップ専用UIで取捨選択
+			ui.print("【" + item.getName() + " を入手した！】");
+			printFloorDividerIfNeeded(gameState);
+			ui.printImportantLog("【" + item.getName() + " を入手した】");
+
+			if (ui instanceof com.kh.tbrr.ui.JavaFXUI) {
+				((com.kh.tbrr.ui.JavaFXUI) ui).showDropEquipmentPanel(item, player);
+			} else {
+				// JavaFXUI 以外の場合は安全のためインベントリに追加
+				player.addItem(itemId);
+			}
+		} else {
+			// 通常アイテム → インベントリに直接追加
+			player.addItem(itemId);
+			String logMessage = "【" + item.getName() + " を手に入れた】";
+			ui.print(logMessage);
+			printFloorDividerIfNeeded(gameState);
+			ui.printImportantLog(logMessage);
+		}
 	}
 
 	/**

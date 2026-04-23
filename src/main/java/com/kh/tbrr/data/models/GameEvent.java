@@ -490,6 +490,9 @@ public class GameEvent {
 		// バトルシステム呼び出し用
 		private String battle;
 
+		// 確率付きドロップ（独立抽選方式）
+		private List<ItemDrop> itemDrops;
+
 		public Result() {
 			this.description = new ArrayList<>();
 			this.chance = 100;
@@ -806,6 +809,31 @@ public class GameEvent {
 			this.battle = battle;
 		}
 
+		public List<ItemDrop> getItemDrops() {
+			return itemDrops;
+		}
+
+		public void setItemDrops(List<ItemDrop> itemDrops) {
+			this.itemDrops = itemDrops;
+		}
+
+	}
+
+	// ======== 内部クラス: ItemDrop ========
+
+	/**
+	 * 確率付きアイテムドロップ定義（A案：独立抽選方式）
+	 * 各エントリは独立して chance % の確率で当選する。
+	 * 装備品・通常アイテムどちらのIDも指定可能。
+	 */
+	public static class ItemDrop {
+		private String itemId; // アイテムID
+		private int chance;    // 0〜100 の当選確率
+
+		public String getItemId() { return itemId; }
+		public void setItemId(String itemId) { this.itemId = itemId; }
+		public int getChance() { return chance; }
+		public void setChance(int chance) { this.chance = chance; }
 	}
 
 	// ======== 内部クラス: DeathData ========

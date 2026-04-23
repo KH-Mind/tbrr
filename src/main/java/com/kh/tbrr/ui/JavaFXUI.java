@@ -1483,6 +1483,63 @@ public class JavaFXUI implements GameUI {
 		});
 	}
 
+	/**
+	 * ドロップした装備品の割り当てUIを開く。
+	 * ゲームスレッドを CountDownLatch でブロックし、プレイヤーが「決定して閉じる」を押すまで待機する。
+	 * 未配置の場合はテキストエリアで「置いていきますか？」を問い、「いいえ」なら再度パネルを開く。
+	 *
+	 * @param item   入手した装備アイテム
+	 * @param player プレイヤー
+	 */
+	public void showDropEquipmentPanel(com.kh.tbrr.data.models.Item item, Player player) {
+		while (true) {
+			CountDownLatch latch = new CountDownLatch(1);
+			DropEquipmentPanel[] panelHolder = new DropEquipmentPanel[1];
+
+			Platform.runLater(() -> {
+				DropEquipmentPanel panel = new DropEquipmentPanel(
+					player,
+					item,
+					() -> {
+						// 「決定して閉じる」押下時：サブウィンドウを元に戻してラッチ解放
+						subWindowBox.getChildren().clear();
+						subWindowBox.getChildren().add(subWindowImageView);
+						printPlayerStatus(player);
+						latch.countDown();
+					}
+				);
+				panelHolder[0] = panel;
+				subWindowBox.getChildren().clear();
+				subWindowBox.getChildren().add(panel);
+			});
+
+			try {
+				latch.await();
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				return;
+			}
+
+			// 配置済みなら終了
+			DropEquipmentPanel panel = panelHolder[0];
+			if (panel != null && panel.isPendingPlaced()) {
+				printPlayerStatus(player);
+				return;
+			}
+
+			// 未配置（置いていく or もう一度） → テキストで確認
+			print("「" + item.getName() + "」を置いていきますか？");
+			print("1. はい（このアイテムを破棄して次へ）");
+			print("2. いいえ（装備画面に戻る）");
+			int choice = getPlayerChoice(2, player);
+			if (choice == 1) {
+				// 破棄して終了
+				return;
+			}
+			// choice == 2 → ループして再度パネルを開く
+		}
+	}
+
 	@Override
 	public void close() {
 		// 入力待機中のスレッドを解放
