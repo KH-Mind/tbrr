@@ -42,6 +42,40 @@ public class CombatDataLoader {
         return stances.get(id);
     }
 
+    private static boolean stancesLoaded = false;
+
+    /**
+     * 現在存在するスタンスを初期ロードする。
+     * UIの名前からの逆引き用。
+     */
+    public static void loadAllStances() {
+        if (stancesLoaded) return;
+        getStance("stance_fast");
+        getStance("stance_godspeed");
+        getStance("stance_wait");
+        stancesLoaded = true;
+    }
+
+    /**
+     * 表示名からロード済みのスタンスデータを検索して返す。
+     */
+    public static StanceData getStanceByName(String name) {
+        if (name == null || name.isEmpty() || "なし".equals(name)) return null;
+        for (StanceData data : stances.values()) {
+            if (name.equals(data.getName())) {
+                return data;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * ロード済みの全スタンスデータを返す。
+     */
+    public static java.util.Collection<StanceData> getAllStances() {
+        return stances.values();
+    }
+
     /**
      * 全パッシブJSONを読み込んでPassiveRegistryへ登録する。
      * battle開始時に1度だけ呼ばれる想定（二重読み込み防止済み）。
@@ -51,6 +85,7 @@ public class CombatDataLoader {
         loadPassivesFromFile("/data/battle/passives/basic_passives.json");
         loadPassivesFromFile("/data/battle/passives/class_passives.json");
         loadPassivesFromFile("/data/battle/passives/systemic_passives.json");
+        loadPassivesFromFile("/data/battle/passives/initiative_passives.json");
         passivesLoaded = true;
     }
 

@@ -15,6 +15,7 @@ public class EnemyData {
     private String imagePath;
     private String battleBackground;
     private String deathCause = "generic"; // 敗北時の死因（デフォルトはgeneric）
+    private java.util.List<String> passives; // 敵が所持するパッシブ
     private java.util.List<com.kh.tbrr.battle.BattleState.ActiveCombatCondition> initialCombatConditions;
 
     public String getId() { return id; }
@@ -32,6 +33,7 @@ public class EnemyData {
     public String getImagePath() { return imagePath; }
     public String getBattleBackground() { return battleBackground; }
     public String getDeathCause() { return deathCause; }
+    public java.util.List<String> getPassives() { return passives; }
     public java.util.List<com.kh.tbrr.battle.BattleState.ActiveCombatCondition> getInitialCombatConditions() { return initialCombatConditions; }
 
     public int getStatByName(String statName) {

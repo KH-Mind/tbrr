@@ -9,11 +9,38 @@ public class StanceData {
     private int apCost;
     private String message;
     private List<String> description;
+    private List<String> grantedPassiveIds;
+    private boolean isDefault;
 
-    public String getId() { return id; }
-    public String getName() { return name; }
-    public String getOverrideAbilityId() { return overrideAbilityId; }
-    public int getApCost() { return apCost; }
-    public String getMessage() { return message; }
-    public List<String> getDescription() { return description; }
+    public String getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getOverrideAbilityId() {
+        return overrideAbilityId;
+    }
+
+    public int getApCost() {
+        return apCost;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public List<String> getDescription() {
+        return description;
+    }
+
+    public List<String> getGrantedPassiveIds() {
+        return grantedPassiveIds;
+    }
+
+    public boolean isDefault() {
+        return isDefault;
+    }
 }

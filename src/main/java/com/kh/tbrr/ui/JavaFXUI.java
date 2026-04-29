@@ -1567,6 +1567,20 @@ public class JavaFXUI implements GameUI {
 		this.interactionInputHandler = handler;
 	}
 
+	@Override
+	public void updateAvailableStances(List<String> stanceNames) {
+		Platform.runLater(() -> {
+			if (stanceComboBox != null) {
+				stanceComboBox.getItems().clear();
+				stanceComboBox.getItems().add("なし");
+				if (stanceNames != null) {
+					stanceComboBox.getItems().addAll(stanceNames);
+				}
+				stanceComboBox.setValue("なし");
+			}
+		});
+	}
+
 	/**
 	 * サブウィンドウをミニゲーム用のStackPaneに変換
 	 * 

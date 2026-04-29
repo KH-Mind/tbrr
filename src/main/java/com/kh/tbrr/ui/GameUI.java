@@ -163,4 +163,12 @@ public interface GameUI {
 	default void setInteractionInputHandler(java.util.function.Consumer<String> handler) {
 		// デフォルト実装は何もしない（コンソールUI向け）
 	}
+
+	/**
+	 * 使用可能なスタンスのリストを受け取り、UIの選択肢を更新する
+	 * @param stanceNames 使用可能なスタンスの表示名リスト
+	 */
+	default void updateAvailableStances(List<String> stanceNames) {
+		// デフォルト実装は何もしない
+	}
 }
