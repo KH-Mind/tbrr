@@ -171,4 +171,12 @@ public interface GameUI {
 	default void updateAvailableStances(List<String> stanceNames) {
 		// デフォルト実装は何もしない
 	}
+
+	/**
+	 * 逃走コマンドの有効/無効をUIへ通知する
+	 * @param canFlee true なら「逃げる」を選択可能にする
+	 */
+	default void updateFleeAvailability(boolean canFlee) {
+		// デフォルト実装は何もしない
+	}
 }

@@ -50,9 +50,24 @@ public class CombatDataLoader {
      */
     public static void loadAllStances() {
         if (stancesLoaded) return;
-        getStance("stance_fast");
-        getStance("stance_godspeed");
-        getStance("stance_wait");
+        try {
+            java.io.InputStream is = CombatDataLoader.class.getResourceAsStream("/data/battle/stances/stance_list.txt");
+            if (is != null) {
+                try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(is, java.nio.charset.StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        String id = line.replace(".json", "").trim();
+                        if (!id.isEmpty()) {
+                            getStance(id);
+                        }
+                    }
+                }
+            } else {
+                System.err.println("stance_list.txt not found!");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         stancesLoaded = true;
     }
 

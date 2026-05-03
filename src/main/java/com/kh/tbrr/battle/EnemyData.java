@@ -15,6 +15,7 @@ public class EnemyData {
     private String imagePath;
     private String battleBackground;
     private String deathCause = "generic"; // 敗北時の死因（デフォルトはgeneric）
+    private boolean canFlee = false; // 逃走可能かどうか（明示的にtrueと書かないと逃走不可）
     private java.util.List<String> passives; // 敵が所持するパッシブ
     private java.util.List<com.kh.tbrr.battle.BattleState.ActiveCombatCondition> initialCombatConditions;
 
@@ -33,6 +34,7 @@ public class EnemyData {
     public String getImagePath() { return imagePath; }
     public String getBattleBackground() { return battleBackground; }
     public String getDeathCause() { return deathCause; }
+    public boolean isCanFlee() { return canFlee; }
     public java.util.List<String> getPassives() { return passives; }
     public java.util.List<com.kh.tbrr.battle.BattleState.ActiveCombatCondition> getInitialCombatConditions() { return initialCombatConditions; }
 

@@ -204,6 +204,13 @@
                                 </pathconvert>
                                 <echo file="src/main/resources/data/events/event_list.txt">
                                     ${event.list}</echo>
+
+                                <fileset id="stances" dir="src/main/resources/data/battle/stances"
+                                    includes="*.json" />
+                                <pathconvert property="stance.list" refid="stances" pathsep="&#10;">
+                                    <mapper type="flatten" />
+                                </pathconvert>
+                                <echo file="src/main/resources/data/battle/stances/stance_list.txt">${stance.list}</echo>
                             </target>
                         </configuration>
                     </execution>

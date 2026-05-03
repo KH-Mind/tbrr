@@ -1581,6 +1581,51 @@ public class JavaFXUI implements GameUI {
 		});
 	}
 
+	@Override
+	public void updateFleeAvailability(boolean canFlee) {
+		// ゲームスレッドから呼ばれるため、FXスレッドの完了を待ってから戻る（同期実行）
+		if (javafx.application.Platform.isFxApplicationThread()) {
+			// すでにFXスレッド上なら直接実行
+			applyFleeAvailability(canFlee);
+		} else {
+			java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+			Platform.runLater(() -> {
+				try {
+					applyFleeAvailability(canFlee);
+				} finally {
+					latch.countDown();
+				}
+			});
+			try {
+				latch.await();
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+		}
+	}
+
+	/** updateFleeAvailability の実体（FXスレッド上で呼ぶこと） */
+	private void applyFleeAvailability(boolean canFlee) {
+		if (actionComboBox == null) return;
+		// 「逃げる」が選択中のまま不可になった場合は「攻撃」に戻す
+		if (!canFlee && "逃げる".equals(actionComboBox.getValue())) {
+			actionComboBox.setValue("攻撃");
+		}
+		// リストを再構築
+		String current = actionComboBox.getValue();
+		actionComboBox.getItems().clear();
+		actionComboBox.getItems().addAll("攻撃", "全力移動", "防御");
+		if (canFlee) {
+			actionComboBox.getItems().add("逃げる");
+		}
+		// 元の選択値を復元（除外されていなければ）
+		if (actionComboBox.getItems().contains(current)) {
+			actionComboBox.setValue(current);
+		} else {
+			actionComboBox.setValue("攻撃");
+		}
+	}
+
 	/**
 	 * サブウィンドウをミニゲーム用のStackPaneに変換
 	 * 

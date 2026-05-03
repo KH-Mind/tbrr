@@ -490,6 +490,9 @@ public class GameEvent {
 		// バトルシステム呼び出し用
 		private String battle;
 
+		// 逃走成功時の遷移先イベントID（省略時はそのまま戦闘終了）
+		private String fleeEventId;
+
 		// 確率付きドロップ（独立抽選方式）
 		private List<ItemDrop> itemDrops;
 
@@ -807,6 +810,14 @@ public class GameEvent {
 
 		public void setBattle(String battle) {
 			this.battle = battle;
+		}
+
+		public String getFleeEventId() {
+			return fleeEventId;
+		}
+
+		public void setFleeEventId(String fleeEventId) {
+			this.fleeEventId = fleeEventId;
 		}
 
 		public List<ItemDrop> getItemDrops() {

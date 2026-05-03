@@ -12,6 +12,16 @@ import com.kh.tbrr.battle.data.*;
 import com.google.gson.Gson;
 
 public class BattleManager {
+
+    /** 戦闘の終了結果を表すenum */
+    public enum BattleResult {
+        VICTORY,  // 敵を倒した
+        DEFEAT,   // 戦闘不能になった
+        FLED      // 逃走成功
+    }
+
+    /** 最後の戦闘結果（EventProcessorから参照する） */
+    private BattleResult lastResult = BattleResult.DEFEAT;
     private GameUI ui;
     private Player player;
     private BattleState state;
@@ -29,6 +39,10 @@ public class BattleManager {
             return (cause != null && !cause.isEmpty()) ? cause : "generic";
         }
         return "generic";
+    }
+
+    public BattleResult getLastResult() {
+        return lastResult;
     }
 
     private EnemyData loadEnemyData(String enemyId) {
@@ -85,7 +99,7 @@ public class BattleManager {
         return list;
     }
 
-    public void startBattle(String enemyId) {
+    public BattleResult startBattle(String enemyId) {
         state = new BattleState();
         com.kh.tbrr.data.CombatConditionRegistry.loadAll(); // 戦闘用状態異常データの読み込み
         CombatDataLoader.loadAllPassives(); // パッシブデータの読み込み（二重読み込み防止済み）
@@ -103,7 +117,7 @@ public class BattleManager {
         EnemyData enemy = loadEnemyData(enemyId);
         if (enemy == null) {
             ui.print("【エラー】敵データの読み込みに失敗しました: " + enemyId);
-            return;
+            return lastResult;
         }
         state.setCurrentEnemy(enemy);
         if (enemy.getInitialCombatConditions() != null) {
@@ -135,6 +149,12 @@ public class BattleManager {
                 ui.print("--- ターン " + state.getTurnCount() + " --- [現在距離: " + state.getDistance() + "]");
                 ui.print("【敵】" + enemy.getName() + " (HP: " + enemy.getHp() + "/" + enemy.getMaxHp() + ")");
                 ui.print("コマンドを選択してください。");
+
+                // 逃走可否をUIへ通知
+                // 距離3以上かつcanFlee=trueなら「逃げる」を表示する
+                // （後退+1で距離4に達するため、距離3からでも逃走できる）
+                boolean fleeAvailable = (state.getDistance() >= 3) && enemy.isCanFlee();
+                ui.updateFleeAvailability(fleeAvailable);
 
                 BattleCommand cmd = jfxUi.getBattleCommand();
                 if (cmd != null) {
@@ -172,11 +192,13 @@ public class BattleManager {
                         ui.print("＞プレイヤーの行動: " + cmd.toString());
                         boolean escapeSuccess = processPlayerTurn(cmd, enemy);
                         if (escapeSuccess) {
+                            lastResult = BattleResult.FLED;
                             battleEnded = true;
                             continue;
                         }
                         if (enemy.getHp() <= 0) {
                             ui.print("【勝利！】 " + enemy.getName() + " を倒した！");
+                            lastResult = BattleResult.VICTORY;
                             battleEnded = true;
                             continue;
                         }
@@ -184,6 +206,7 @@ public class BattleManager {
                         processEnemyTurn(enemy);
                         if (player.getHp() <= 0) {
                             ui.print("【敗北】 プレイヤーのHPが0になった……");
+                            lastResult = BattleResult.DEFEAT;
                             battleEnded = true;
                             continue;
                         }
@@ -192,6 +215,7 @@ public class BattleManager {
                         processEnemyTurn(enemy);
                         if (player.getHp() <= 0) {
                             ui.print("【敗北】 プレイヤーのHPが0になった……");
+                            lastResult = BattleResult.DEFEAT;
                             battleEnded = true;
                             continue;
                         }
@@ -199,11 +223,13 @@ public class BattleManager {
                         ui.print("＞プレイヤーの行動: " + cmd.toString());
                         boolean escapeSuccess = processPlayerTurn(cmd, enemy);
                         if (escapeSuccess) {
+                            lastResult = BattleResult.FLED;
                             battleEnded = true;
                             continue;
                         }
                         if (enemy.getHp() <= 0) {
                             ui.print("【勝利！】 " + enemy.getName() + " を倒した！");
+                            lastResult = BattleResult.VICTORY;
                             battleEnded = true;
                             continue;
                         }
@@ -221,6 +247,7 @@ public class BattleManager {
             jfxUi.setBattleMode(false);
             ui.showImage("enemy", ""); // 敵画像を消去（非表示にする）
         }
+        return lastResult;
     }
 
     private boolean processPlayerTurn(BattleCommand cmd, EnemyData enemy) {
@@ -294,8 +321,16 @@ public class BattleManager {
         // [3] アクション（腕）の解決：確定した距離に基づく判定
         String action = cmd.getAction();
         if ("逃げる".equals(action)) {
-            ui.print("　戦闘から無事に逃走した！");
-            return true;
+            // 逃走条件: 距離4 かつ 敵が逃走可能フラグを持つ
+            if (state.getDistance() >= 4 && enemy.isCanFlee()) {
+                ui.print("　戦闘から無事に逃走した！");
+                return true;
+            } else if (!enemy.isCanFlee()) {
+                ui.print("　この敵からは逃げられない！");
+            } else {
+                ui.print("　逃走には距離が足りない！（距離4まで離れる必要がある）");
+            }
+            return false;
         }
 
         if ("防御".equals(action)) {
