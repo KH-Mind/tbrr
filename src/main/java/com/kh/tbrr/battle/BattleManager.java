@@ -60,25 +60,25 @@ public class BattleManager {
     }
 
     /**
-     * 現在のプレイヤーの恒常パッシブと、現在選択中のスタンスから得られる一時パッシブを合算して返す。
+     * 現在のプレイヤーの恒常特徴（Trait）と、現在選択中のスタンスから得られる一時特徴を合算して返す。
      */
-    private java.util.List<PassiveData> getActivePlayerPassives() {
-        java.util.List<PassiveData> list = new java.util.ArrayList<>();
-        if (player.getPassives() != null) {
-            for (String id : player.getPassives()) {
-                PassiveData passive = PassiveRegistry.getPassiveById(id);
-                if (passive != null) list.add(passive);
+    private java.util.List<TraitData> getActivePlayerTraits() {
+        java.util.List<TraitData> list = new java.util.ArrayList<>();
+        if (player.getTraits() != null) {
+            for (String id : player.getTraits()) {
+                TraitData trait = TraitRegistry.getTraitById(id);
+                if (trait != null) list.add(trait);
             }
         }
         
-        // スタンスからの一時パッシブを合算
+        // スタンスからの一時特徴を合算
         if (state != null) {
             String stanceName = state.getCurrentPlayerStance();
             StanceData sd = CombatDataLoader.getStanceByName(stanceName);
             if (sd != null && sd.getGrantedPassiveIds() != null) {
                 for (String id : sd.getGrantedPassiveIds()) {
-                    PassiveData passive = PassiveRegistry.getPassiveById(id);
-                    if (passive != null) list.add(passive);
+                    TraitData trait = TraitRegistry.getTraitById(id);
+                    if (trait != null) list.add(trait);
                 }
             }
         }
@@ -86,14 +86,14 @@ public class BattleManager {
     }
 
     /**
-     * 現在の敵のパッシブを返す（将来の敵のスタンス実装等を見据えた一元化）。
+     * 現在の敵の特徴（Trait）を返す（将来の敵のスタンス実装等を見据えた一元化）。
      */
-    private java.util.List<PassiveData> getActiveEnemyPassives() {
-        java.util.List<PassiveData> list = new java.util.ArrayList<>();
-        if (state != null && state.getCurrentEnemy() != null && state.getCurrentEnemy().getPassives() != null) {
-            for (String id : state.getCurrentEnemy().getPassives()) {
-                PassiveData passive = PassiveRegistry.getPassiveById(id);
-                if (passive != null) list.add(passive);
+    private java.util.List<TraitData> getActiveEnemyTraits() {
+        java.util.List<TraitData> list = new java.util.ArrayList<>();
+        if (state != null && state.getCurrentEnemy() != null && state.getCurrentEnemy().getTraits() != null) {
+            for (String id : state.getCurrentEnemy().getTraits()) {
+                TraitData trait = TraitRegistry.getTraitById(id);
+                if (trait != null) list.add(trait);
             }
         }
         return list;
@@ -102,7 +102,7 @@ public class BattleManager {
     public BattleResult startBattle(String enemyId) {
         state = new BattleState();
         com.kh.tbrr.data.CombatConditionRegistry.loadAll(); // 戦闘用状態異常データの読み込み
-        CombatDataLoader.loadAllPassives(); // パッシブデータの読み込み（二重読み込み防止済み）
+        CombatDataLoader.loadAllTraits(); // 特徴（Trait）データの読み込み（二重読み込み防止済み）
         CombatDataLoader.loadAllStances(); // スタンスデータの読み込み（UI表示名からの自動検索用）
 
         // 使用可能なスタンスリストを構築してUIに渡す
@@ -163,14 +163,14 @@ public class BattleManager {
 
                     // プレイヤーの行動順ボーナスを計算
                     int playerInitBonus = 0;
-                    for (PassiveData pd : getActivePlayerPassives()) {
-                        if (pd.getInitiativeBonus() != 0) playerInitBonus += pd.getInitiativeBonus();
+                    for (TraitData td : getActivePlayerTraits()) {
+                        if (td.getInitiativeBonus() != 0) playerInitBonus += td.getInitiativeBonus();
                     }
 
                     // 敵の行動順ボーナスを計算
                     int enemyInitBonus = 0;
-                    for (PassiveData pd : getActiveEnemyPassives()) {
-                        if (pd.getInitiativeBonus() != 0) enemyInitBonus += pd.getInitiativeBonus();
+                    for (TraitData td : getActiveEnemyTraits()) {
+                        if (td.getInitiativeBonus() != 0) enemyInitBonus += td.getInitiativeBonus();
                     }
 
                     // --- イニシアチブ判定（機敏 + 1d6 + ボーナス） ---
@@ -503,13 +503,13 @@ public class BattleManager {
      * - オフハンド武器のcombatStatsボーナスは適用しない（仕様）
      */
     private void processOffHandAttack(EnemyData enemy, AbilityData ability, CombatBaseRules baseRules) {
-        // 二刀流パッシブを探す
-        final PassiveData dualWield = getActivePlayerPassives().stream()
-                .filter(p -> p != null && "SYSTEMIC".equals(p.getType()) && "DUAL_WIELD".equals(p.getSystemicEffect()))
+        // 二刀流特徴（Trait）を探す
+        final TraitData dualWield = getActivePlayerTraits().stream()
+                .filter(t -> t != null && "SYSTEMIC".equals(t.getType()) && "DUAL_WIELD".equals(t.getSystemicEffect()))
                 .findFirst()
                 .orElse(null);
         if (dualWield == null)
-            return; // 二刀流パッシブなし → スキップ
+            return; // 二刀流特徴なし → スキップ
 
         // 予備スロット0をオフハンド武器として取得
         java.util.List<String> reserves = player.getReserveEquipments();
@@ -577,11 +577,11 @@ public class BattleManager {
     private int calculateMasteryLevel(com.kh.tbrr.data.models.Item weapon) {
         int masteryLevel = 0;
         if (weapon != null && weapon.getTags() != null) {
-            for (PassiveData passive : getActivePlayerPassives()) {
-                if (passive != null && "MASTERY".equals(passive.getType()) && passive.getTargetTags() != null) {
-                    boolean match = weapon.getTags().stream().anyMatch(tag -> passive.getTargetTags().contains(tag));
+            for (TraitData trait : getActivePlayerTraits()) {
+                if (trait != null && "MASTERY".equals(trait.getType()) && trait.getTargetTags() != null) {
+                    boolean match = weapon.getTags().stream().anyMatch(tag -> trait.getTargetTags().contains(tag));
                     if (match) {
-                        masteryLevel += passive.getLevel();
+                        masteryLevel += trait.getLevel();
                     }
                 }
             }
@@ -646,12 +646,12 @@ public class BattleManager {
      * - パッシブがない・予備武器がない場合は null を返す。
      */
     private com.kh.tbrr.data.models.Item resolveAutoWeaponSwitch(com.kh.tbrr.data.models.Item mainWeapon) {
-        // AUTO_WEAPON_SWITCHパッシブを確認
-        boolean hasPassive = getActivePlayerPassives().stream()
-                .anyMatch(p -> p != null
-                        && "SYSTEMIC".equals(p.getType())
-                        && "AUTO_WEAPON_SWITCH".equals(p.getSystemicEffect()));
-        if (!hasPassive)
+        // AUTO_WEAPON_SWITCH特徴（Trait）を確認
+        boolean hasTrait = getActivePlayerTraits().stream()
+                .anyMatch(t -> t != null
+                        && "SYSTEMIC".equals(t.getType())
+                        && "AUTO_WEAPON_SWITCH".equals(t.getSystemicEffect()));
+        if (!hasTrait)
             return null;
 
         // 予備スロット0の武器を取得
@@ -669,12 +669,12 @@ public class BattleManager {
     private double resolveCritMultiplier(Player p) {
         CombatBaseRules rules = CombatDataLoader.getBaseRules();
         double base = rules.getDamage().getCritMultiplier(); // デフォルト 1.5
-        // CRIT_MULTIPLIER型パッシブが存在する場合、最大値で上書き
-        double override = getActivePlayerPassives().stream()
-                .filter(passive -> passive != null
-                        && "CRIT_MULTIPLIER".equals(passive.getType())
-                        && passive.getCritMultiplier() > 0)
-                .mapToDouble(PassiveData::getCritMultiplier)
+        // CRIT_MULTIPLIER型特徴が存在する場合、最大値で上書き
+        double override = getActivePlayerTraits().stream()
+                .filter(trait -> trait != null
+                        && "CRIT_MULTIPLIER".equals(trait.getType())
+                        && trait.getCritMultiplier() > 0)
+                .mapToDouble(TraitData::getCritMultiplier)
                 .max()
                 .orElse(base);
         return override;

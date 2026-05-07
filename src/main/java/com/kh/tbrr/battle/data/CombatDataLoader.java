@@ -13,7 +13,7 @@ public class CombatDataLoader {
     private static CombatBaseRules baseRules;
     private static Map<String, AbilityData> abilities = new HashMap<>();
     private static Map<String, StanceData> stances = new HashMap<>();
-    private static boolean passivesLoaded = false;
+    private static boolean traitsLoaded = false;
 
     public static CombatBaseRules getBaseRules() {
         if (baseRules == null) {
@@ -92,31 +92,31 @@ public class CombatDataLoader {
     }
 
     /**
-     * 全パッシブJSONを読み込んでPassiveRegistryへ登録する。
+     * 全TraitJSONを読み込んでTraitRegistryへ登録する。
      * battle開始時に1度だけ呼ばれる想定（二重読み込み防止済み）。
      */
-    public static void loadAllPassives() {
-        if (passivesLoaded) return;
-        loadPassivesFromFile("/data/battle/passives/basic_passives.json");
-        loadPassivesFromFile("/data/battle/passives/class_passives.json");
-        loadPassivesFromFile("/data/battle/passives/systemic_passives.json");
-        loadPassivesFromFile("/data/battle/passives/initiative_passives.json");
-        passivesLoaded = true;
+    public static void loadAllTraits() {
+        if (traitsLoaded) return;
+        loadTraitsFromFile("/data/battle/traits/basic_traits.json");
+        loadTraitsFromFile("/data/battle/traits/class_traits.json");
+        loadTraitsFromFile("/data/battle/traits/systemic_traits.json");
+        loadTraitsFromFile("/data/battle/traits/initiative_traits.json");
+        traitsLoaded = true;
     }
 
-    private static void loadPassivesFromFile(String path) {
+    private static void loadTraitsFromFile(String path) {
         try (InputStream is = CombatDataLoader.class.getResourceAsStream(path)) {
             if (is == null) {
-                System.out.println("[CombatDataLoader] Passive file not found (skipped): " + path);
+                System.out.println("[CombatDataLoader] Trait file not found (skipped): " + path);
                 return;
             }
-            PassiveData[] passives = GSON.fromJson(
-                    new InputStreamReader(is, StandardCharsets.UTF_8), PassiveData[].class);
-            if (passives != null) {
-                for (PassiveData p : passives) {
-                    PassiveRegistry.register(p);
+            TraitData[] traits = GSON.fromJson(
+                    new InputStreamReader(is, StandardCharsets.UTF_8), TraitData[].class);
+            if (traits != null) {
+                for (TraitData t : traits) {
+                    TraitRegistry.register(t);
                 }
-                System.out.println("[CombatDataLoader] Loaded " + passives.length + " passives from: " + path);
+                System.out.println("[CombatDataLoader] Loaded " + traits.length + " traits from: " + path);
             }
         } catch (Exception e) {
             e.printStackTrace();

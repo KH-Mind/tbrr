@@ -91,8 +91,8 @@ public class GameEngine {
 			com.kh.tbrr.data.ItemRegistry.register(item);
 		}
 		
-		// パッシブデータのロードは戦闘開始時（BattleManager）に移管。
-		// → CombatDataLoader.loadAllPassives() が data/battle/passives/ から読み込む。
+		// 特徴（Trait）データのロードは戦闘開始時（BattleManager）に移管。
+		// → CombatDataLoader.loadAllTraits() が data/battle/traits/ から読み込む。
 
 		// イベントデータのロード登録
 		for (com.kh.tbrr.data.models.StatusEffect effect : dataManager

@@ -170,7 +170,7 @@ public class CharacterCreator {
                 player.addBaseSkill("軽業");
                 player.addBaseSkill("自然の知識");
                 player.addBaseSkill("料理");
-                player.addPassive("warrior_weapon_mastery"); // 原案メモ：戦士の武器習熟Lv1
+                player.addTrait("warrior_weapon_mastery"); // 戦士の武器習熟Lv1
                 player.addItem("steel_axe");
                 break;
             case 2:
@@ -191,7 +191,7 @@ public class CharacterCreator {
                 player.addBaseSkill("自然の知識");
                 player.addBaseSkill("料理");
                 player.addBaseSkill("薬識");
-                player.addPassive("ranger_forest_upbringing"); // 原案メモ：森育ち（短剣・弓）Lv1
+                player.addTrait("ranger_forest_upbringing"); // 森育ち（短剣・弓）Lv1
                 player.addItem("hunter_bow");
                 break;
             case 4:
