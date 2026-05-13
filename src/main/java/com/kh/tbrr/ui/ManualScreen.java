@@ -14,6 +14,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import java.util.Base64;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.scene.Scene;
@@ -32,6 +36,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+import javafx.scene.web.WebView;
 
 /**
  * マニュアル画面
@@ -50,8 +55,7 @@ public class ManualScreen {
     private TextField searchField;
     private TreeView<ManualItem> treeView;
     private Label contentTitleLabel;
-    private Label contentBodyLabel;
-    private ScrollPane contentScrollPane;
+    private WebView webView;
 
     // Data
     private TreeItem<ManualItem> rootNode;
@@ -225,46 +229,81 @@ public class ManualScreen {
         // 区切り線
         Separator separator = new Separator(Orientation.HORIZONTAL);
 
-        // コンテンツ本文
-        contentBodyLabel = new Label("ここに内容が表示されます。");
-        contentBodyLabel.setFont(Font.font("Arial", 18));
-        contentBodyLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-smoothing-type: lcd;");
-        contentBodyLabel.setWrapText(true);
-        contentBodyLabel.setFocusTraversable(false);
+        // WebView (本文)
+        webView = new WebView();
+        // 背景色を統一（HTML側でも指定するが念のため）
+        webView.setPageFill(javafx.scene.paint.Color.web("#333132"));
+        // 右クリックメニューを無効化
+        webView.setContextMenuEnabled(false);
+        webView.setFocusTraversable(false);
+        
+        VBox.setVgrow(webView, Priority.ALWAYS);
 
-        // スクロールペインに入れる
-        VBox contentBox = new VBox(15);
-        contentBox.getChildren().addAll(contentTitleLabel, separator, contentBodyLabel);
-        contentBox.setStyle("-fx-background-color: transparent;");
-
-        contentScrollPane = new ScrollPane(contentBox);
-        contentScrollPane.setFitToWidth(true);
-        contentScrollPane.setStyle("-fx-background: #333132; -fx-background-color: transparent;");
-        contentScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        contentScrollPane.setFocusTraversable(false);
-
-        VBox.setVgrow(contentScrollPane, Priority.ALWAYS);
-        pane.getChildren().add(contentScrollPane);
+        pane.getChildren().addAll(contentTitleLabel, separator, webView);
 
         return pane;
     }
 
-    /**
-     * コンテンツ表示を更新
-     */
     private void updateContent(ManualItem item) {
         contentTitleLabel.setText(item.getTitle());
 
-        // 子項目の場合はJSONファイルから本文を読み込む
         if (item.getFilePath() != null && !item.getFilePath().isEmpty()) {
-            String content = loadContentFromFile(item.getFilePath());
-            contentBodyLabel.setText(content != null ? content : item.getContent());
+            if (item.getFilePath().endsWith(".html")) {
+                loadHtmlContent(item.getFilePath());
+            } else {
+                String content = loadContentFromFile(item.getFilePath());
+                displayPlainTextAsHtml(content != null ? content : item.getContent());
+            }
         } else {
-            contentBodyLabel.setText(item.getContent());
+            displayPlainTextAsHtml(item.getContent());
         }
+    }
 
-        // スクロールを一番上に戻す
-        contentScrollPane.setVvalue(0);
+    private void displayPlainTextAsHtml(String text) {
+        if (text == null) text = "";
+        String html = "<!DOCTYPE html><html lang=\"ja\"><head><meta charset=\"UTF-8\">" +
+                "<style>body { background-color: #333132; color: white; font-family: Arial, sans-serif; font-size: 18px; line-height: 1.6; white-space: pre-wrap; margin: 0; padding: 0; }</style>" +
+                "</head><body>" + text + "</body></html>";
+        webView.getEngine().loadContent(html);
+    }
+
+    private void loadHtmlContent(String filePath) {
+        try {
+            String fullPath = MANUAL_ROOT + filePath;
+            String html = loadResourceContent(fullPath);
+
+            // 画像タグのBase64置換処理
+            // 例: <img src="data/images/manual/sample.png">
+            Pattern pattern = Pattern.compile("src=[\"'](data/images/manual/[^\"']+)[\"']", Pattern.CASE_INSENSITIVE);
+            Matcher matcher = pattern.matcher(html);
+            StringBuilder sb = new StringBuilder();
+            
+            while (matcher.find()) {
+                String imgPath = matcher.group(1);
+                try {
+                    byte[] imgBytes = loadResourceContentBytes(imgPath);
+                    String base64 = Base64.getEncoder().encodeToString(imgBytes);
+                    String mimeType = "image/png";
+                    if (imgPath.toLowerCase().endsWith(".jpg") || imgPath.toLowerCase().endsWith(".jpeg")) {
+                        mimeType = "image/jpeg";
+                    } else if (imgPath.toLowerCase().endsWith(".gif")) {
+                        mimeType = "image/gif";
+                    }
+                    String replacement = "src=\"data:" + mimeType + ";base64," + base64 + "\"";
+                    matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
+                } catch (Exception e) {
+                    System.err.println("[ManualScreen] 画像のBase64変換に失敗: " + imgPath + " - " + e.getMessage());
+                    matcher.appendReplacement(sb, Matcher.quoteReplacement(matcher.group(0))); // 置換せずそのまま
+                }
+            }
+            matcher.appendTail(sb);
+            
+            webView.getEngine().loadContent(sb.toString());
+
+        } catch (Exception e) {
+            System.err.println("[ManualScreen] HTML読み込みエラー: " + filePath + " - " + e.getMessage());
+            displayPlainTextAsHtml("HTMLコンテンツの読み込みに失敗しました。\n" + e.getMessage());
+        }
     }
 
     /**
@@ -382,7 +421,15 @@ public class ManualScreen {
 
         // コンテンツでもマッチを確認（ファイルから読み込んで検索）
         if (!match && manualItem.getFilePath() != null) {
-            String content = loadContentFromFile(manualItem.getFilePath());
+            String content = null;
+            if (manualItem.getFilePath().endsWith(".html")) {
+                try {
+                    content = loadResourceContent(MANUAL_ROOT + manualItem.getFilePath());
+                } catch (Exception e) {}
+            } else {
+                content = loadContentFromFile(manualItem.getFilePath());
+            }
+            
             if (content != null && content.contains(filter)) {
                 match = true;
             }
@@ -420,7 +467,14 @@ public class ManualScreen {
 
         // コンテンツでマッチ（ファイルから読み込んで検索）
         if (manualItem.getFilePath() != null) {
-            String content = loadContentFromFile(manualItem.getFilePath());
+            String content = null;
+            if (manualItem.getFilePath().endsWith(".html")) {
+                try {
+                    content = loadResourceContent(MANUAL_ROOT + manualItem.getFilePath());
+                } catch (Exception e) {}
+            } else {
+                content = loadContentFromFile(manualItem.getFilePath());
+            }
             if (content != null && content.contains(filter)) {
                 return true;
             }
@@ -490,6 +544,54 @@ public class ManualScreen {
                 if (is != null) {
                     return new String(is.readAllBytes(), StandardCharsets.UTF_8);
                 }
+            }
+        }
+
+        throw new IOException("Resource not found: " + path);
+    }
+
+    /**
+     * リソースコンテンツをバイト配列として読み込む（Base64画像用）
+     */
+    private byte[] loadResourceContentBytes(String path) throws IOException {
+        // 1. ローカルファイルシステム
+        File file = new File(path);
+        if (file.exists()) {
+            return Files.readAllBytes(file.toPath());
+        }
+
+        // 2. 開発環境用フォールバック
+        File devFile = new File("src/main/resources/" + path);
+        if (devFile.exists()) {
+            return Files.readAllBytes(devFile.toPath());
+        }
+
+        // 3. jpackageポータブル版用パス
+        String jpackagePath = "app/" + path;
+        File jpackageFile = new File(jpackagePath);
+        if (jpackageFile.exists()) {
+            return Files.readAllBytes(jpackageFile.toPath());
+        }
+
+        // 4. クラスパス
+        String resourcePath = path.replace("\\", "/");
+
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+            if (is != null) return is.readAllBytes();
+        }
+
+        String absolutePath = "/" + resourcePath;
+        try (InputStream is = getClass().getResourceAsStream(absolutePath)) {
+            if (is != null) return is.readAllBytes();
+        }
+
+        if (resourcePath.startsWith("data/")) {
+            String strippedPath = resourcePath.substring(5);
+            try (InputStream is = getClass().getClassLoader().getResourceAsStream(strippedPath)) {
+                if (is != null) return is.readAllBytes();
+            }
+            try (InputStream is = getClass().getResourceAsStream("/" + strippedPath)) {
+                if (is != null) return is.readAllBytes();
             }
         }
 

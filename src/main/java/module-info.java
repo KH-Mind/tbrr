@@ -4,6 +4,7 @@ module com.kh.tbrr {
 	requires transitive javafx.graphics;
 	requires javafx.fxml;
 	requires javafx.media;
+	requires javafx.web;
 
 	// Gson - 正確なモジュール名を使用
 	requires transitive com.google.gson;
