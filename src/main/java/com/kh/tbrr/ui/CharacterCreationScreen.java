@@ -175,7 +175,7 @@ public class CharacterCreationScreen {
 
     // チャームポイント用の選択肢
     private static final String[] HAIR_OPTIONS = { "黒髪", "金髪", "銀髪", "赤毛", "青髪", "緑髪", "紫髪", "ピンク髪", "ショートヘア",
-            "ロングヘアー", "癖毛", "アップスタイル", "ポニーテール", "オールバック", "モヒカンヘアー", "むじょうさヘアー", "ぼさぼさ", "三つ編み",
+            "ロングヘアー", "癖毛", "アップスタイル", "ポニーテール", "オールバック", "モヒカンヘアー", "むぞうさヘアー", "ぼさぼさ", "三つ編み",
             "ゆるふわウェーブ", "ボブカット", "ツインドリル" };
 
     private static final String[] PHYSICAL_OPTIONS = { "ほくろ", "八重歯", "色白", "色黒", "日焼け肌", "日焼け跡", "火傷跡", "剛毛", "困り眉",
@@ -1133,7 +1133,7 @@ public class CharacterCreationScreen {
                 player.addBaseSkill("料理");
                 player.addTrait("warrior_weapon_mastery"); // 戦士の武器習熟Lv1
                 // TODO: 後に特徴（Trait）を足す場合はここに player.addTrait(...) を追加していく
-                player.addItem("steel_axe");
+                player.addItem("favorite_liquor");
                 break;
             case "魔法使い":
                 player.addBaseSkill("知力");
@@ -1142,7 +1142,7 @@ public class CharacterCreationScreen {
                 player.addBaseSkill("古代の知識");
                 player.addBaseSkill("解錠術");
                 player.addBaseSkill("機巧");
-                player.addItem("magic_staff");
+                player.addItem("infinite_light");
                 break;
             case "クレリック":
                 player.addBaseSkill("判断力");
@@ -1161,7 +1161,7 @@ public class CharacterCreationScreen {
                 player.addBaseSkill("料理");
                 player.addBaseSkill("薬識");
                 player.addTrait("ranger_forest_upbringing"); // 森育ち（短剣・弓）Lv1
-                player.addItem("hunter_bow");
+                player.addItem("medicinal_herbs");
                 break;
             case "盗賊":
                 player.addBaseSkill("敏捷力");

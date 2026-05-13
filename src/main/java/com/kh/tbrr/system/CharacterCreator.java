@@ -171,7 +171,7 @@ public class CharacterCreator {
                 player.addBaseSkill("自然の知識");
                 player.addBaseSkill("料理");
                 player.addTrait("warrior_weapon_mastery"); // 戦士の武器習熟Lv1
-                player.addItem("steel_axe");
+                player.addItem("favorite_liquor");
                 break;
             case 2:
                 player.setJob("魔法使い");
@@ -181,7 +181,7 @@ public class CharacterCreator {
                 player.addBaseSkill("古代の知識");
                 player.addBaseSkill("薬識");
                 player.addBaseSkill("機巧");
-                player.addItem("magic_staff");
+                player.addItem("infinite_light");
                 break;
             case 3:
                 player.setJob("レンジャー");
@@ -192,7 +192,7 @@ public class CharacterCreator {
                 player.addBaseSkill("料理");
                 player.addBaseSkill("薬識");
                 player.addTrait("ranger_forest_upbringing"); // 森育ち（短剣・弓）Lv1
-                player.addItem("hunter_bow");
+                player.addItem("medicinal_herbs");
                 break;
             case 4:
                 player.setJob("盗賊");
@@ -236,7 +236,7 @@ public class CharacterCreator {
                 player.addBaseSkill("軽業");
                 player.addBaseSkill("自然の知識");
                 player.addBaseSkill("料理");
-                player.addItem("steel_axe");
+                player.addItem("favorite_liquor");
                 break;
         }
     }

@@ -198,13 +198,13 @@ public class Player {
         }
 
         // 職業アイテムによるみなし所持判定
-        if (itemId.equals("crowbar") && inventory.contains("steel_axe")) {
+        if (itemId.equals("liquor") && inventory.contains("favorite_liquor")) {
             return true;
         }
-        if (itemId.equals("crossbow") && inventory.contains("hunter_bow")) {
+        if (itemId.equals("antidote") && inventory.contains("medicinal_herbs")) {
             return true;
         }
-        if (itemId.equals("torch") && inventory.contains("magic_staff")) {
+        if (itemId.equals("torch") && inventory.contains("infinite_light")) {
             return true;
         }
         if (itemId.equals("dagger") && inventory.contains("thieves_tools")) {
