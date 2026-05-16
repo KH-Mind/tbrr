@@ -69,7 +69,7 @@ public class Player {
     private List<String> abilities; // アクティブスキル（技・魔法）
     // passivesフィールドはtraitsに統合済み
     private List<String> stances; // 習得しているスタンス用リスト
-    private List<String> traits;  // 特徴/Trait（恒常パッシブ効果）
+    private List<String> traits; // 特徴/Trait（恒常パッシブ効果）
     private List<String> inventory;
 
     // equipments
@@ -77,8 +77,8 @@ public class Player {
 
     // accessories and reserve (Phase 3)
     private List<String> equippedAccessories; // max 3, Accessory item IDs
-    private List<String> reserveEquipments;   // max limits by maxReserveSlots
-    private int maxReserveSlots = 1;          // default is 1
+    private List<String> reserveEquipments; // max limits by maxReserveSlots
+    private int maxReserveSlots = 1; // default is 1
 
     // status effects (プレイヤー状態、状態異常系の管理用)
     private java.util.Map<String, Integer> statusEffects;
@@ -137,7 +137,7 @@ public class Player {
         this.traits = new ArrayList<>();
         this.inventory = new ArrayList<>();
         this.charmPoints = new ArrayList<>();
-        
+
         // Phase 3 additions
         this.equippedAccessories = new ArrayList<>();
         this.reserveEquipments = new ArrayList<>();
@@ -213,7 +213,6 @@ public class Player {
         if (itemId.equals("expedition_map") && inventory.contains("merchant_ledger")) {
             return true;
         }
-        // 新職業アイテムの見做し判定
         if (itemId.equals("silver_knife") && inventory.contains("holy_silver_scissors")) {
             return true;
         }
@@ -521,7 +520,7 @@ public class Player {
         sb.append("機敏:").append(combatStats.finesse()).append(" ");
         sb.append("風格:").append(combatStats.presence()).append("\n");
         // sb.append("官能性:").append(combatStats.sensuality()).append("\n"); //
-        // そういうゲームにするなら
+        // 現状は隠しステータスとする
         sb.append("\n");
 
         // スキル表示（baseSkills + アイテム由来）
@@ -810,7 +809,6 @@ public class Player {
             stances.add(stanceId);
         }
     }
-
 
     public List<String> getTraits() {
         return traits;

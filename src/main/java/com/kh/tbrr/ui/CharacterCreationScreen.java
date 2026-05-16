@@ -1120,119 +1120,81 @@ public class CharacterCreationScreen {
     }
 
     /**
-     * 職業に応じたスキルを付与
+     * 職業に応じたスキル・装備を付与する。
+     * <p>
+     * jobs.json から対象職業のデータを読み込み、以下を順番に処理する：
+     * <ol>
+     *   <li>baseSkills（職業技能）の付与</li>
+     *   <li>traits（特徴）の付与</li>
+     *   <li>flavorItem（フレーバーアイテム）の所持</li>
+     *   <li>mainWeapon（メイン武器）の所持・装備</li>
+     *   <li>reserveWeapons（予備スロット武器）の所持・登録</li>
+     *   <li>accessories（アクセサリ）の所持・装備</li>
+     * </ol>
+     * JSONの読み込みに失敗した場合は何も付与しない（エラーログを出力）。
      */
     private void applyJobSkills(Player player, String job) {
-        switch (job) {
-            case "戦士":
-                player.addBaseSkill("筋力");
-                player.addBaseSkill("耐久力");
-                player.addBaseSkill("運動");
-                player.addBaseSkill("軽業");
-                player.addBaseSkill("自然の知識");
-                player.addBaseSkill("料理");
-                player.addTrait("warrior_weapon_mastery"); // 戦士の武器習熟Lv1
-                // TODO: 後に特徴（Trait）を足す場合はここに player.addTrait(...) を追加していく
-                player.addItem("favorite_liquor");
-                break;
-            case "魔法使い":
-                player.addBaseSkill("知力");
-                player.addBaseSkill("耐久力");
-                player.addBaseSkill("魔法の知識");
-                player.addBaseSkill("古代の知識");
-                player.addBaseSkill("解錠術");
-                player.addBaseSkill("機巧");
-                player.addItem("infinite_light");
-                break;
-            case "クレリック":
-                player.addBaseSkill("判断力");
-                player.addBaseSkill("耐久力");
-                player.addBaseSkill("古代の知識");
-                player.addBaseSkill("料理");
-                player.addBaseSkill("薬識");
-                player.addBaseSkill("話術");
-                player.addItem("holy_silver_scissors");
-                break;
-            case "レンジャー":
-                player.addBaseSkill("敏捷力");
-                player.addBaseSkill("判断力");
-                player.addBaseSkill("隠密");
-                player.addBaseSkill("自然の知識");
-                player.addBaseSkill("料理");
-                player.addBaseSkill("薬識");
-                player.addTrait("ranger_forest_upbringing"); // 森育ち（短剣・弓）Lv1
-                player.addItem("medicinal_herbs");
-                break;
-            case "盗賊":
-                player.addBaseSkill("敏捷力");
-                player.addBaseSkill("知力");
-                player.addBaseSkill("軽業");
-                player.addBaseSkill("隠密");
-                player.addBaseSkill("解錠術");
-                player.addBaseSkill("機巧");
-                player.addItem("thieves_tools");
-                break;
-            case "商人":
-                player.addBaseSkill("判断力");
-                player.addBaseSkill("魅力");
-                player.addBaseSkill("魔法の知識");
-                player.addBaseSkill("解錠術");
-                player.addBaseSkill("話術");
-                player.addBaseSkill("経世");
-                player.addItem("merchant_ledger");
-                break;
-            case "踊り子":
-                player.addBaseSkill("敏捷力");
-                player.addBaseSkill("魅力");
-                player.addBaseSkill("軽業");
-                player.addBaseSkill("隠密");
-                player.addBaseSkill("自然の知識");
-                player.addBaseSkill("話術");
-                player.addItem("hand_mirror");
-                break;
-            case "魔闘士":
-                player.addBaseSkill("筋力");
-                player.addBaseSkill("知力");
-                player.addBaseSkill("運動");
-                player.addBaseSkill("魔法の知識");
-                player.addBaseSkill("経世");
-                player.addBaseSkill("機巧");
-                player.addItem("treasure");
-                break;
-            case "パラディン":
-                player.addBaseSkill("筋力");
-                player.addBaseSkill("魅力");
-                player.addBaseSkill("運動");
-                player.addBaseSkill("古代の知識");
-                player.addBaseSkill("薬識");
-                player.addBaseSkill("経世");
-                player.addItem("holy_silver_shovel");
-                break;
-            case "観光客":
-                // スキルなし
-                break;
-            case "異世界転生者":
-                // 全技能を付与（チート）
-                player.addBaseSkill("筋力");
-                player.addBaseSkill("敏捷力");
-                player.addBaseSkill("耐久力");
-                player.addBaseSkill("知力");
-                player.addBaseSkill("判断力");
-                player.addBaseSkill("魅力");
-                player.addBaseSkill("運動");
-                player.addBaseSkill("軽業");
-                player.addBaseSkill("隠密");
-                player.addBaseSkill("解錠術");
-                player.addBaseSkill("自然の知識");
-                player.addBaseSkill("料理");
-                player.addBaseSkill("薬識");
-                player.addBaseSkill("機巧");
-                player.addBaseSkill("魔法の知識");
-                player.addBaseSkill("古代の知識");
-                player.addBaseSkill("経世");
-                player.addBaseSkill("話術");
-                player.addItem("smartphone");
-                break;
+        try {
+            java.io.InputStream is = getClass().getResourceAsStream("/data/jobs.json");
+            if (is == null) {
+                System.err.println("[applyJobSkills] jobs.json が見つかりません。");
+                return;
+            }
+            java.io.InputStreamReader reader = new java.io.InputStreamReader(is,
+                    java.nio.charset.StandardCharsets.UTF_8);
+            com.google.gson.JsonArray jobsArray = new com.google.gson.Gson()
+                    .fromJson(reader, com.google.gson.JsonArray.class);
+            reader.close();
+
+            for (com.google.gson.JsonElement elem : jobsArray) {
+                com.google.gson.JsonObject jobObj = elem.getAsJsonObject();
+                if (!job.equals(jobObj.get("id").getAsString())) {
+                    continue;
+                }
+
+                // 1. baseSkills
+                for (com.google.gson.JsonElement s : jobObj.getAsJsonArray("baseSkills")) {
+                    player.addBaseSkill(s.getAsString());
+                }
+
+                // 2. traits
+                for (com.google.gson.JsonElement t : jobObj.getAsJsonArray("traits")) {
+                    player.addTrait(t.getAsString());
+                }
+
+                // 3. フレーバーアイテム（所持のみ）
+                com.google.gson.JsonElement flavorElem = jobObj.get("flavorItem");
+                if (!flavorElem.isJsonNull()) {
+                    player.addItem(flavorElem.getAsString());
+                }
+
+                // 4. メイン武器（所持してから装備）
+                com.google.gson.JsonElement mainWeaponElem = jobObj.get("mainWeapon");
+                if (!mainWeaponElem.isJsonNull()) {
+                    String weaponId = mainWeaponElem.getAsString();
+                    player.addItem(weaponId);
+                    player.equipMainWeapon(weaponId);
+                }
+
+                // 5. 予備スロット武器（所持してから予備スロットに追加）
+                for (com.google.gson.JsonElement r : jobObj.getAsJsonArray("reserveWeapons")) {
+                    String reserveId = r.getAsString();
+                    player.addItem(reserveId);
+                    player.getReserveEquipments().add(reserveId);
+                }
+
+                // 6. アクセサリ（所持してから装備）
+                for (com.google.gson.JsonElement a : jobObj.getAsJsonArray("accessories")) {
+                    String accessoryId = a.getAsString();
+                    player.addItem(accessoryId);
+                    player.equipAccessory(accessoryId);
+                }
+
+                break; // 対象職業が見つかったのでループを抜ける
+            }
+        } catch (Exception e) {
+            System.err.println("[applyJobSkills] jobs.json の読み込みに失敗しました: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
