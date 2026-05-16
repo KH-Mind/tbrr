@@ -314,8 +314,19 @@ public class BattleManager {
             state.setDistance(Math.max(0, state.getDistance() - moveAmount));
             ui.print("　プレイヤーは前進した。（現在距離: " + state.getDistance() + "）");
         } else if ("後退".equals(move)) {
-            state.setDistance(Math.min(4, state.getDistance() + moveAmount));
-            ui.print("　プレイヤーは後退した。（現在距離: " + state.getDistance() + "）");
+            if (state.getDistance() == 0) {
+                boolean enemyHasVigilance = getActiveEnemyTraits().stream()
+                        .anyMatch(t -> t != null && "SYSTEMIC".equals(t.getType()) && "VIGILANCE".equals(t.getSystemicEffect()));
+                if (enemyHasVigilance) {
+                    ui.print("　" + enemy.getName() + " はプレイヤーが離れる隙を見逃さなかった！（警戒心による機会攻撃）");
+                    executeEnemyOpportunityAttack(player);
+                }
+            }
+            // プレイヤーが死んでいなければ後退する
+            if (player.getHp() > 0) {
+                state.setDistance(Math.min(4, state.getDistance() + moveAmount));
+                ui.print("　プレイヤーは後退した。（現在距離: " + state.getDistance() + "）");
+            }
         }
 
         // [3] アクション（腕）の解決：確定した距離に基づく判定
@@ -703,7 +714,7 @@ public class BattleManager {
         String pStanceStr = state.getCurrentPlayerStance();
         // TODO: ここで特注の割り込み処理（魔法の無効化など）を記述する予定
 
-        ui.print("＞敵の行動: [" + enemy.getName() + " の攻撃]");
+        ui.print("＞敵の行動: [" + enemy.getName() + " の行動]");
         CombatBaseRules baseRules = CombatDataLoader.getBaseRules();
 
         int distance = state.getDistance();
@@ -759,6 +770,89 @@ public class BattleManager {
             } else {
                 ui.print("　回避した！");
             }
+        }
+    }
+
+    private void executePlayerOpportunityAttack(EnemyData enemy) {
+        CombatBaseRules baseRules = CombatDataLoader.getBaseRules();
+        AbilityData ability = CombatDataLoader.getAbility("basic_attack");
+        if (ability == null) return;
+        com.kh.tbrr.data.models.Item weapon = null;
+        String mainWeaponId = player.getEquippedMainWeapon();
+        if (mainWeaponId != null) {
+            weapon = com.kh.tbrr.data.ItemRegistry.getItemById(mainWeaponId);
+        }
+        
+        int atkStatVal = getCombatStat(player, ability.getCheck().getAttackerStat());
+        String defStatName = ability.getCheck().getDefenderStat();
+        int defStatVal = (defStatName != null && !defStatName.isEmpty()) ? enemy.getStatByName(defStatName) : 0;
+        
+        HitResult result = checkHit(atkStatVal, defStatVal, ability.getCheck().getBaseChance(), state.isEnemyDefending(),
+                state.getPlayerConditions(), state.getEnemyConditions());
+
+        if (result.isHit) {
+            String dice = ability.getCheck().getDamageDice();
+            if (dice == null || dice.isEmpty() || "WEAPON".equalsIgnoreCase(dice)) {
+                dice = "1d4";
+                if (weapon != null && weapon.getDamageDice() != null && !weapon.getDamageDice().isEmpty()) {
+                    dice = weapon.getDamageDice();
+                }
+            }
+            int diceRoll = DiceRoller.roll(dice);
+            int masteryLevel = calculateMasteryLevel(weapon);
+            int masteryDiceSum = calculateMasteryDice(masteryLevel);
+            int masteryFixedBonus = calculateMasteryFixedBonus(masteryLevel);
+            
+            int rawStatVal = getCombatStat(player, ability.getCheck().getScalingStat());
+            double scaling = (ability.getCheck().getStatScaling() != null) ? ability.getCheck().getStatScaling() : 0.5;
+            int scalingStatVal = (int) (rawStatVal * scaling);
+            
+            int baseDamage = diceRoll + masteryDiceSum + masteryFixedBonus + scalingStatVal;
+            double critMult = result.isCritical ? resolveCritMultiplier(player) : 1.0;
+            double conditionMult = calcConditionDamageMultiplier(state.getPlayerConditions());
+            int totalDamage = (int) (baseDamage * critMult * conditionMult);
+            
+            if (state.isEnemyDefending()) {
+                totalDamage /= 2;
+            }
+            
+            enemy.setHp(enemy.getHp() - totalDamage);
+            String critMsg = result.isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
+            ui.print("　機会攻撃命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！" + critMsg);
+            
+            processOffHandAttack(enemy, ability, baseRules);
+        } else {
+            ui.print("　機会攻撃はかわされた！");
+        }
+    }
+
+    private void executeEnemyOpportunityAttack(Player p) {
+        CombatBaseRules baseRules = CombatDataLoader.getBaseRules();
+        HitResult result = checkHit(state.getCurrentEnemy().getFinesse(), p.getCombatStats().finesse(), null,
+                state.isPlayerDefending(), state.getEnemyConditions(), state.getPlayerConditions());
+                
+        if (result.isHit) {
+            int diceRoll = DiceRoller.roll("1d4");
+            int scalingStatVal = (int) (state.getCurrentEnemy().getMight() * baseRules.getGlobalStatScaling());
+            double conditionMult = calcConditionDamageMultiplier(state.getEnemyConditions());
+            int totalDamage = (int) ((diceRoll + scalingStatVal) * (result.isCritical ? baseRules.getDamage().getCritMultiplier() : 1.0) * conditionMult);
+            
+            int reduction = 0;
+            if (p.getEquippedAccessories() != null) {
+                for (String accId : p.getEquippedAccessories()) {
+                    com.kh.tbrr.data.models.Item acc = com.kh.tbrr.data.ItemRegistry.getItemById(accId);
+                    if (acc != null) { reduction += acc.getDamageReduction(); }
+                }
+            }
+            totalDamage = Math.max(0, totalDamage - reduction);
+            if (state.isPlayerDefending()) totalDamage /= 2;
+            
+            p.modifyHp(-totalDamage);
+            String reduceMsg = reduction > 0 ? "（" + reduction + "ダメージ軽減）" : "";
+            ui.print("　機会攻撃命中！ プレイヤーに " + totalDamage + " のダメージ！" + reduceMsg);
+            ui.printPlayerStatus(p);
+        } else {
+            ui.print("　機会攻撃を回避した！");
         }
     }
 
