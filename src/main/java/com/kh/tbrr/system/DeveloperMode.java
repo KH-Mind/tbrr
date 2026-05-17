@@ -6,6 +6,7 @@ import com.kh.tbrr.ui.GameUI;
 /**
  * 開発者モード
  * デバッグ用の機能を提供
+ * それっぽいコマンド名になっているが、コマンド・イベント駆動方式ではなく直接操作である
  */
 public class DeveloperMode {
 	private boolean debugVisible = true;
@@ -202,6 +203,135 @@ public class DeveloperMode {
 				player.removeStatusEffect(effectId);
 				if (debugVisible && ui != null)
 					ui.print("[DEBUG] 状態異常 '" + effectId + "' を削除しました");
+			}
+		} else if (cmd.startsWith("player.addtrait ")) {
+			String traitId = cmd.substring("player.addtrait ".length()).trim();
+			if (!traitId.isEmpty()) {
+				player.addTrait(traitId);
+				if (debugVisible && ui != null)
+					ui.print("[DEBUG] 特徴 '" + traitId + "' を追加しました");
+			}
+		} else if (cmd.startsWith("player.removetrait ")) {
+			String traitId = cmd.substring("player.removetrait ".length()).trim();
+			if (!traitId.isEmpty()) {
+				player.getTraits().remove(traitId);
+				if (debugVisible && ui != null)
+					ui.print("[DEBUG] 特徴 '" + traitId + "' を削除しました");
+			}
+		} else if (cmd.startsWith("player.addability ")) {
+			String abilityId = cmd.substring("player.addability ".length()).trim();
+			if (!abilityId.isEmpty()) {
+				player.addAbility(abilityId);
+				if (debugVisible && ui != null)
+					ui.print("[DEBUG] アビリティ '" + abilityId + "' を追加しました");
+			}
+		} else if (cmd.startsWith("player.removeability ")) {
+			String abilityId = cmd.substring("player.removeability ".length()).trim();
+			if (!abilityId.isEmpty()) {
+				player.getAbilities().remove(abilityId);
+				if (debugVisible && ui != null)
+					ui.print("[DEBUG] アビリティ '" + abilityId + "' を削除しました");
+			}
+		} else if (cmd.startsWith("player.addstance ")) {
+			String stanceId = cmd.substring("player.addstance ".length()).trim();
+			if (!stanceId.isEmpty()) {
+				player.addStance(stanceId);
+				if (debugVisible && ui != null)
+					ui.print("[DEBUG] スタンス '" + stanceId + "' を追加しました");
+			}
+		} else if (cmd.startsWith("player.removestance ")) {
+			String stanceId = cmd.substring("player.removestance ".length()).trim();
+			if (!stanceId.isEmpty()) {
+				player.getStances().remove(stanceId);
+				if (debugVisible && ui != null)
+					ui.print("[DEBUG] スタンス '" + stanceId + "' を削除しました");
+			}
+		} else if (cmd.startsWith("player.equipweapon ")) {
+			String itemId = cmd.substring("player.equipweapon ".length()).trim();
+			if (!itemId.isEmpty()) {
+				if (itemId.equalsIgnoreCase("null") || itemId.equalsIgnoreCase("none")) {
+					player.setEquippedMainWeapon(null);
+					if (debugVisible && ui != null)
+						ui.print("[DEBUG] メイン武器を外しました");
+				} else {
+					player.setEquippedMainWeapon(itemId);
+					if (!player.getInventory().contains(itemId)) {
+						player.addItem(itemId);
+					}
+					if (debugVisible && ui != null)
+						ui.print("[DEBUG] メイン武器に '" + itemId + "' を装備しました");
+				}
+			}
+		} else if (cmd.startsWith("player.equipaccessory ")) {
+			String[] parts = cmd.substring("player.equipaccessory ".length()).trim().split("\\s+");
+			if (parts.length >= 2) {
+				try {
+					int slot = Integer.parseInt(parts[0]);
+					String itemId = parts[1];
+					if (slot >= 1 && slot <= 3) {
+						java.util.List<String> accs = player.getEquippedAccessories();
+						while (accs.size() < 3) {
+							accs.add(null);
+						}
+						if (itemId.equalsIgnoreCase("null") || itemId.equalsIgnoreCase("none")) {
+							accs.set(slot - 1, null);
+							if (debugVisible && ui != null)
+								ui.print("[DEBUG] アクセサリー枠 " + slot + " を外しました");
+						} else {
+							accs.set(slot - 1, itemId);
+							if (!player.getInventory().contains(itemId)) {
+								player.addItem(itemId);
+							}
+							if (debugVisible && ui != null)
+								ui.print("[DEBUG] アクセサリー枠 " + slot + " に '" + itemId + "' を装備しました");
+						}
+					} else {
+						if (ui != null)
+							ui.printError("[DEBUG] アクセサリースロットは 1 から 3 の間です");
+					}
+				} catch (NumberFormatException e) {
+					if (ui != null)
+						ui.printError("[DEBUG] スロット番号が不正です");
+				}
+			} else {
+				if (ui != null)
+					ui.printError("[DEBUG] 使用法: player.equipaccessory <スロット番号1-3> <アイテムID>");
+			}
+		} else if (cmd.startsWith("player.equipreserve ")) {
+			String[] parts = cmd.substring("player.equipreserve ".length()).trim().split("\\s+");
+			if (parts.length >= 2) {
+				try {
+					int slot = Integer.parseInt(parts[0]);
+					String itemId = parts[1];
+					int maxSlots = player.getMaxReserveSlots();
+					if (slot >= 1 && slot <= maxSlots) {
+						java.util.List<String> res = player.getReserveEquipments();
+						while (res.size() < maxSlots) {
+							res.add(null);
+						}
+						if (itemId.equalsIgnoreCase("null") || itemId.equalsIgnoreCase("none")) {
+							res.set(slot - 1, null);
+							if (debugVisible && ui != null)
+								ui.print("[DEBUG] 予備装備枠 " + slot + " を外しました");
+						} else {
+							res.set(slot - 1, itemId);
+							if (!player.getInventory().contains(itemId)) {
+								player.addItem(itemId);
+							}
+							if (debugVisible && ui != null)
+								ui.print("[DEBUG] 予備装備枠 " + slot + " に '" + itemId + "' を装備しました");
+						}
+					} else {
+						if (ui != null)
+							ui.printError("[DEBUG] 予備スロットは 1 から " + maxSlots + " の間です");
+					}
+				} catch (NumberFormatException e) {
+					if (ui != null)
+						ui.printError("[DEBUG] スロット番号が不正です");
+				}
+			} else {
+				if (ui != null)
+					ui.printError("[DEBUG] 使用法: player.equipreserve <スロット番号> <アイテムID>");
 			}
 		}
 	}
