@@ -1,6 +1,8 @@
 package com.kh.tbrr.system;
 
 import com.kh.tbrr.data.models.Player;
+import com.kh.tbrr.data.models.Item;
+import com.kh.tbrr.data.ItemRegistry;
 import com.kh.tbrr.ui.GameUI;
 
 /**
@@ -254,12 +256,19 @@ public class DeveloperMode {
 					if (debugVisible && ui != null)
 						ui.print("[DEBUG] メイン武器を外しました");
 				} else {
-					player.setEquippedMainWeapon(itemId);
-					if (!player.getInventory().contains(itemId)) {
-						player.addItem(itemId);
+					Item item = ItemRegistry.getItemById(itemId);
+					if (item == null) {
+						if (ui != null) ui.printError("[DEBUG] エラー: アイテム '" + itemId + "' は存在しません");
+					} else if (!"WEAPON".equalsIgnoreCase(item.getEquipmentCategory())) {
+						if (ui != null) ui.printError("[DEBUG] エラー: '" + itemId + "' は武器ではありません");
+					} else {
+						player.setEquippedMainWeapon(itemId);
+						if (!player.getInventory().contains(itemId)) {
+							player.addItem(itemId);
+						}
+						if (debugVisible && ui != null)
+							ui.print("[DEBUG] メイン武器に '" + itemId + "' を装備しました");
 					}
-					if (debugVisible && ui != null)
-						ui.print("[DEBUG] メイン武器に '" + itemId + "' を装備しました");
 				}
 			}
 		} else if (cmd.startsWith("player.equipaccessory ")) {
@@ -278,12 +287,19 @@ public class DeveloperMode {
 							if (debugVisible && ui != null)
 								ui.print("[DEBUG] アクセサリー枠 " + slot + " を外しました");
 						} else {
-							accs.set(slot - 1, itemId);
-							if (!player.getInventory().contains(itemId)) {
-								player.addItem(itemId);
+							Item item = ItemRegistry.getItemById(itemId);
+							if (item == null) {
+								if (ui != null) ui.printError("[DEBUG] エラー: アイテム '" + itemId + "' は存在しません");
+							} else if (!"ACCESSORY".equalsIgnoreCase(item.getEquipmentCategory())) {
+								if (ui != null) ui.printError("[DEBUG] エラー: '" + itemId + "' はアクセサリーではありません");
+							} else {
+								accs.set(slot - 1, itemId);
+								if (!player.getInventory().contains(itemId)) {
+									player.addItem(itemId);
+								}
+								if (debugVisible && ui != null)
+									ui.print("[DEBUG] アクセサリー枠 " + slot + " に '" + itemId + "' を装備しました");
 							}
-							if (debugVisible && ui != null)
-								ui.print("[DEBUG] アクセサリー枠 " + slot + " に '" + itemId + "' を装備しました");
 						}
 					} else {
 						if (ui != null)
@@ -314,12 +330,19 @@ public class DeveloperMode {
 							if (debugVisible && ui != null)
 								ui.print("[DEBUG] 予備装備枠 " + slot + " を外しました");
 						} else {
-							res.set(slot - 1, itemId);
-							if (!player.getInventory().contains(itemId)) {
-								player.addItem(itemId);
+							Item item = ItemRegistry.getItemById(itemId);
+							if (item == null) {
+								if (ui != null) ui.printError("[DEBUG] エラー: アイテム '" + itemId + "' は存在しません");
+							} else if (!("WEAPON".equalsIgnoreCase(item.getEquipmentCategory()) || "ACCESSORY".equalsIgnoreCase(item.getEquipmentCategory()))) {
+								if (ui != null) ui.printError("[DEBUG] エラー: '" + itemId + "' は装備品ではありません");
+							} else {
+								res.set(slot - 1, itemId);
+								if (!player.getInventory().contains(itemId)) {
+									player.addItem(itemId);
+								}
+								if (debugVisible && ui != null)
+									ui.print("[DEBUG] 予備装備枠 " + slot + " に '" + itemId + "' を装備しました");
 							}
-							if (debugVisible && ui != null)
-								ui.print("[DEBUG] 予備装備枠 " + slot + " に '" + itemId + "' を装備しました");
 						}
 					} else {
 						if (ui != null)
