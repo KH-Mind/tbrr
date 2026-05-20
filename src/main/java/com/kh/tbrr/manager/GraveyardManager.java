@@ -8,6 +8,7 @@ import com.kh.tbrr.data.models.GraveRecord;
 /**
  * 墓地管理クラス
  * 死亡キャラの記録・蘇生・閲覧を担当
+ * 現状outdated
  */
 public class GraveyardManager {
     private GameState gameState;
@@ -35,9 +36,9 @@ public class GraveyardManager {
      */
     public boolean canRevive(String charId) {
         GraveRecord record = gameState.getGraveyardRecords().stream()
-            .filter(r -> r.getId().equals(charId))
-            .findFirst()
-            .orElse(null);
+                .filter(r -> r.getId().equals(charId))
+                .findFirst()
+                .orElse(null);
         return record != null && !record.isRevived() && record.isFated();
     }
 }
