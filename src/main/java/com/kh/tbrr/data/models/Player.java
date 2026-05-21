@@ -314,9 +314,8 @@ public class Player {
     }
 
     public void addTrait(String traitName) {
-        if (!traits.contains(traitName)) {
-            traits.add(traitName);
-        }
+        // 各Traitの効果上限はTrait自身の処理ロジック側で管理する（重複チェックなし）
+        traits.add(traitName);
     }
 
     public void addCharmPoint(String charmPoint) {
@@ -752,12 +751,20 @@ public class Player {
         this.reserveEquipments = reserveEquipments;
     }
 
+    /**
+     * 予備スロットの最大数を返す。
+     * デフォルト1 + 「物持ち」(big_bag) Traitの所持数を加算。上限は3。
+     * JSONフィールド maxReserveSlots は後方互換用に残すが、ゲーム中はこのメソッドで取得すること。
+     */
     public int getMaxReserveSlots() {
-        return maxReserveSlots;
+        long bigBagCount = (traits != null)
+                ? traits.stream().filter("big_bag"::equals).count()
+                : 0;
+        return (int) Math.min(3, 1 + bigBagCount);
     }
 
     public void setMaxReserveSlots(int maxReserveSlots) {
-        this.maxReserveSlots = maxReserveSlots;
+        this.maxReserveSlots = maxReserveSlots; // 後方互換用（現在は動的計算のため参照されない）
     }
 
     public List<String> getBaseSkills() {
