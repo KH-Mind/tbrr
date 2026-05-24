@@ -1017,12 +1017,12 @@ public class JavaFXUI implements GameUI {
 		Platform.runLater(() -> {
 			// HP/AP/銀貨更新
 			hpLabel.setText(String.format("HP: %s/%s",
-					player.getCurrentHP(), player.getMaxHP()));
+					player.getCurrentHP(), player.getEffectiveMaxHp()));
 			apLabel.setText(String.format("AP: %s/%s",
-					player.getCurrentAP(), player.getMaxAP()));
+					player.getCurrentAP(), player.getEffectiveMaxAp()));
 
 			moneyLabel.setText(String.format("銀貨: %s/%s",
-					player.getMoney(), player.getMaxMoney()));
+					player.getMoney(), player.getEffectiveMaxMoney()));
 
 			// スキル表示（アイコン表示）
 			List<String> skills = player.getEffectiveSkills();

@@ -1306,11 +1306,11 @@ public class CharacterCreationScreen {
         switch (constellation) {
             case "親方座":
                 player.setMaxHp(player.getMaxHp() + 25);
-                player.setHp(player.getMaxHp());
+                player.fullHeal();
                 break;
             case "学者座":
                 player.setMaxAp(player.getMaxAp() + 5);
-                player.setAp(player.getMaxAp());
+                player.fullHeal();
                 break;
             case "庭師座":
                 player.modifyMoney(20);

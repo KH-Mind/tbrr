@@ -50,7 +50,7 @@ public class Player {
     }
 
     public int getMaxHP() {
-        return getMaxHp();
+        return getEffectiveMaxHp();
     }
 
     public int getCurrentAP() {
@@ -58,7 +58,7 @@ public class Player {
     }
 
     public int getMaxAP() {
-        return getMaxAp();
+        return getEffectiveMaxAp();
     }
 
     // skill sources
@@ -156,8 +156,8 @@ public class Player {
         if (this.hp < 0) {
             this.hp = 0;
         }
-        if (this.hp > this.maxHp) {
-            this.hp = this.maxHp;
+        if (this.hp > getEffectiveMaxHp()) {
+            this.hp = getEffectiveMaxHp();
         }
     }
 
@@ -166,8 +166,8 @@ public class Player {
         if (this.ap < 0) {
             this.ap = 0;
         }
-        if (this.ap > this.maxAp) {
-            this.ap = this.maxAp;
+        if (this.ap > getEffectiveMaxAp()) {
+            this.ap = getEffectiveMaxAp();
         }
     }
 
@@ -176,15 +176,21 @@ public class Player {
         if (this.money < 0) {
             this.money = 0;
         }
-        if (this.money > this.maxMoney) {
-            this.money = this.maxMoney;
+        if (this.money > getEffectiveMaxMoney()) {
+            this.money = getEffectiveMaxMoney();
         }
+    }
+
+    // ゲーム開始時にバフ込みの最大値まで全回復する
+    public void fullHeal() {
+        this.hp = getEffectiveMaxHp();
+        this.ap = getEffectiveMaxAp();
     }
 
     public String getStatusString() {
         return String.format("[%s] HP:%d/%d AP:%d/%d 銀貨:%d/%d",
                 name != null ? name : "冒険者",
-                hp, maxHp, ap, maxAp, money, maxMoney);
+                hp, getEffectiveMaxHp(), ap, getEffectiveMaxAp(), money, getEffectiveMaxMoney());
     }
 
     public boolean isAlive() {
@@ -472,6 +478,18 @@ public class Player {
             }
         }
 
+        // 特徴(Trait)からステータスを加算
+        for (String traitId : traits) {
+            com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+            if (td != null && td.getStatBonuses() != null) {
+                totalMight += td.getStatBonuses().getOrDefault("might", 0);
+                totalInsight += td.getStatBonuses().getOrDefault("insight", 0);
+                totalFinesse += td.getStatBonuses().getOrDefault("finesse", 0);
+                totalPresence += td.getStatBonuses().getOrDefault("presence", 0);
+                totalSensuality += td.getStatBonuses().getOrDefault("sensuality", 0);
+            }
+        }
+
         return CombatStats.of(totalMight, totalInsight, totalFinesse, totalPresence, totalSensuality);
     }
 
@@ -507,9 +525,9 @@ public class Player {
         sb.append("チャームポイント: ").append(charmPoints.isEmpty() ? "なし" : String.join(", ", charmPoints))
                 .append("\n\n");
 
-        sb.append("HP: ").append(hp).append("/").append(maxHp).append("\n");
-        sb.append("AP: ").append(ap).append("/").append(maxAp).append("\n\n");
-        sb.append("銀貨: ").append(money).append("/").append(maxMoney).append("\n");
+        sb.append("HP: ").append(hp).append("/").append(getEffectiveMaxHp()).append("\n");
+        sb.append("AP: ").append(ap).append("/").append(getEffectiveMaxAp()).append("\n\n");
+        sb.append("銀貨: ").append(money).append("/").append(getEffectiveMaxMoney()).append("\n");
 
         // 戦闘ステータス表示
         CombatStats combatStats = getCombatStats();
@@ -699,6 +717,19 @@ public class Player {
         return maxHp;
     }
 
+    public int getEffectiveMaxHp() {
+        int bonus = 0;
+        if (traits != null) {
+            for (String traitId : traits) {
+                com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+                if (td != null && td.getStatBonuses() != null) {
+                    bonus += td.getStatBonuses().getOrDefault("max_hp", 0);
+                }
+            }
+        }
+        return maxHp + bonus;
+    }
+
     public void setMaxHp(int maxHp) {
         this.maxHp = maxHp;
     }
@@ -715,6 +746,19 @@ public class Player {
         return maxAp;
     }
 
+    public int getEffectiveMaxAp() {
+        int bonus = 0;
+        if (traits != null) {
+            for (String traitId : traits) {
+                com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+                if (td != null && td.getStatBonuses() != null) {
+                    bonus += td.getStatBonuses().getOrDefault("max_ap", 0);
+                }
+            }
+        }
+        return maxAp + bonus;
+    }
+
     public void setMaxAp(int maxAp) {
         this.maxAp = maxAp;
     }
@@ -729,6 +773,19 @@ public class Player {
 
     public int getMaxMoney() {
         return maxMoney;
+    }
+
+    public int getEffectiveMaxMoney() {
+        int bonus = 0;
+        if (traits != null) {
+            for (String traitId : traits) {
+                com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+                if (td != null && td.getStatBonuses() != null) {
+                    bonus += td.getStatBonuses().getOrDefault("max_money", 0);
+                }
+            }
+        }
+        return maxMoney + bonus;
     }
 
     public void setMaxMoney(int maxMoney) {

@@ -325,6 +325,8 @@ public class MainMenuScreen {
 						dataManager);
 
 				// 7. プレイヤー情報を表示
+				// ★表示直前に、新規スタート時のための全回復処理を行う
+				player.fullHeal();
 				gameUI.printPlayerStatus(player);
 
 				// 7.5. シナリオ選択前の画像を表示（冒険者ギルド、自宅、酒場など）

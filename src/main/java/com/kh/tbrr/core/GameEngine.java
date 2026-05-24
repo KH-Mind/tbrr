@@ -90,9 +90,9 @@ public class GameEngine {
 		for (Item item : dataManager.loadAllItemsFromFile("mythic_accessories.json")) {
 			com.kh.tbrr.data.ItemRegistry.register(item);
 		}
-		
-		// 特徴（Trait）データのロードは戦闘開始時（BattleManager）に移管。
-		// → CombatDataLoader.loadAllTraits() が data/battle/traits/ から読み込む。
+
+		// 特徴（Trait）データのロードはここで一括で行うように変更（非戦闘時バフ対応）
+		com.kh.tbrr.battle.data.CombatDataLoader.loadAllTraits();
 
 		// イベントデータのロード登録
 		for (com.kh.tbrr.data.models.StatusEffect effect : dataManager
@@ -180,6 +180,10 @@ public class GameEngine {
 		// フロアを0から開始
 		gameState.setCurrentFloor(0);
 
+		// 新規ゲーム開始時のみHP/APを全回復させる（Trait等によるバフ込みの最大値まで）
+		player.setHp(player.getEffectiveMaxHp());
+		player.setAp(player.getEffectiveMaxAp());
+
 		showPrologue();
 		gameLoop();
 	}
@@ -208,6 +212,10 @@ public class GameEngine {
 
 		// フロアを0から開始
 		gameState.setCurrentFloor(0);
+
+		// 新規ゲーム開始時のみHP/APを全回復させる（Trait等によるバフ込みの最大値まで）
+		player.setHp(player.getEffectiveMaxHp());
+		player.setAp(player.getEffectiveMaxAp());
 
 		showPrologue();
 		gameLoop();
@@ -415,7 +423,7 @@ public class GameEngine {
 
 		GameMap selectedTerrain = null;
 
-		// ★新規: プレイヤー選択が有効か?
+		// プレイヤー選択が有効か?
 		if (stageConfig.isAllowPlayerChoice() &&
 				stageConfig.getMapChoices() != null &&
 				!stageConfig.getMapChoices().isEmpty()) {
@@ -489,7 +497,6 @@ public class GameEngine {
 	 * フロアイベント処理
 	 */
 	private boolean processFloorEvent(GameMap map) {
-		// ★★★ ここから追加 ★★★
 		if (map == null) {
 			ui.printError("地形が選択できませんでした。ゲームを続行できません。");
 			return false;
