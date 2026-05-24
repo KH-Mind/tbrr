@@ -814,9 +814,15 @@ public class Player {
      * JSONフィールド maxReserveSlots は後方互換用に残すが、ゲーム中はこのメソッドで取得すること。
      */
     public int getMaxReserveSlots() {
-        long bigBagCount = (traits != null)
-                ? traits.stream().filter("big_bag"::equals).count()
-                : 0;
+        long bigBagCount = 0;
+        if (traits != null) {
+            for (String traitId : traits) {
+                com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+                if (td != null && "BIG_BAG".equals(td.getSystemicEffect())) {
+                    bigBagCount++;
+                }
+            }
+        }
         return (int) Math.min(3, 1 + bigBagCount);
     }
 
