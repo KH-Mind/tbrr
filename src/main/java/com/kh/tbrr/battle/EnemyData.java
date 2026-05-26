@@ -19,6 +19,30 @@ public class EnemyData {
     private java.util.List<String> traits; // 敵が所持する特徴（Trait）
     private java.util.List<com.kh.tbrr.battle.BattleState.ActiveCombatCondition> initialCombatConditions;
 
+    // --- AIロジック用追加フィールド ---
+    public static class AIActionChoice {
+        private String ability;
+        private int weight;
+        private String nameOverride; // 画面表示用のアビリティ名上書き
+        
+        public String getAbility() { return ability; }
+        public int getWeight() { return weight; }
+        public String getNameOverride() { return nameOverride; }
+    }
+
+    public static class AIActionRule {
+        private String condition;
+        private java.util.List<AIActionChoice> actions;
+        private int maxUses = -1;
+        public String getCondition() { return condition; }
+        public java.util.List<AIActionChoice> getActions() { return actions; }
+        public int getMaxUses() { return maxUses; }
+    }
+
+    private String aiType = "predator"; // デフォルトの移動ロジック
+    private java.util.List<AIActionRule> actionRules;
+    private transient java.util.Map<AIActionRule, Integer> ruleUsageCounts;
+
     public String getId() { return id; }
     public String getName() { return name; }
     public int getHp() { return hp; }
@@ -37,6 +61,15 @@ public class EnemyData {
     public boolean isCanFlee() { return canFlee; }
     public java.util.List<String> getTraits() { return traits; }
     public java.util.List<com.kh.tbrr.battle.BattleState.ActiveCombatCondition> getInitialCombatConditions() { return initialCombatConditions; }
+
+    public String getAiType() { return aiType; }
+    public java.util.List<AIActionRule> getActionRules() { return actionRules; }
+    public java.util.Map<AIActionRule, Integer> getRuleUsageCounts() {
+        if (ruleUsageCounts == null) {
+            ruleUsageCounts = new java.util.HashMap<>();
+        }
+        return ruleUsageCounts;
+    }
 
     public int getStatByName(String statName) {
         return switch (statName.toUpperCase()) {
