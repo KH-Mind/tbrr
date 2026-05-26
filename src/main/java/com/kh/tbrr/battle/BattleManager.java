@@ -728,29 +728,7 @@ public class BattleManager {
         ui.print("＞敵の行動: [" + enemy.getName() + " の行動]");
         CombatBaseRules baseRules = CombatDataLoader.getBaseRules();
 
-        // --- 1. ルール評価とアクション決定 ---
-        String selectedAbilityId = null;
-        EnemyData.AIActionRule matchedRule = null;
-
-        if (enemy.getActionRules() != null) {
-            for (EnemyData.AIActionRule rule : enemy.getActionRules()) {
-                // 使用回数チェック
-                int usedCount = enemy.getRuleUsageCounts().getOrDefault(rule, 0);
-                if (rule.getMaxUses() != -1 && usedCount >= rule.getMaxUses()) {
-                    continue; // 回数上限に達している場合はスキップ
-                }
-
-                // 条件チェック
-                boolean conditionMet = evaluateEnemyCondition(rule.getCondition(), state.getDistance(), enemy, player);
-                if (conditionMet) {
-                    matchedRule = rule;
-                    selectedAbilityId = selectAbilityFromRule(rule);
-                    break;
-                }
-            }
-        }
-
-        // --- 2. ムーブの実行 ---
+        // --- 1. ムーブの実行 ---
         if ("predator".equalsIgnoreCase(enemy.getAiType())) {
             // Predator: 可能なら前進する
             if (state.getDistance() > 0) {
@@ -772,6 +750,35 @@ public class BattleManager {
                 state.setDistance(state.getDistance() + 1);
                 ui.print("　" + enemy.getName() + " は後退して間合いを取った。（現在距離: " + state.getDistance() + "）");
             }
+        } else if ("stationary".equalsIgnoreCase(enemy.getAiType())) {
+            // Stationary: 一切移動しない（固定砲台、壁、城門など）
+            // 移動メッセージも出さず、距離の変化も起こさない
+        }
+
+        // --- 2. ルール評価とアクション決定 ---
+        EnemyData.AIActionChoice selectedChoice = null;
+        String selectedAbilityId = null;
+        EnemyData.AIActionRule matchedRule = null;
+
+        if (enemy.getActionRules() != null) {
+            for (EnemyData.AIActionRule rule : enemy.getActionRules()) {
+                // 使用回数チェック
+                int usedCount = enemy.getRuleUsageCounts().getOrDefault(rule, 0);
+                if (rule.getMaxUses() != -1 && usedCount >= rule.getMaxUses()) {
+                    continue; // 回数上限に達している場合はスキップ
+                }
+
+                // 条件チェック（移動後の距離で判定）
+                boolean conditionMet = evaluateEnemyCondition(rule.getCondition(), state.getDistance(), enemy, player);
+                if (conditionMet) {
+                    matchedRule = rule;
+                    selectedChoice = selectAbilityFromRule(rule);
+                    if (selectedChoice != null) {
+                        selectedAbilityId = selectedChoice.getAbility();
+                    }
+                    break;
+                }
+            }
         }
 
         // --- 3. アクションの実行 ---
@@ -789,7 +796,8 @@ public class BattleManager {
                     ui.print("【エラー】敵のアビリティデータが見つかりません: " + selectedAbilityId);
                     return;
                 }
-                executeEnemyAttack(enemy, ability, baseRules);
+                String nameOverride = (selectedChoice != null) ? selectedChoice.getNameOverride() : null;
+                executeEnemyAttack(enemy, ability, baseRules, nameOverride);
             }
         } else {
             ui.print("　" + enemy.getName() + " は様子をうかがっている……。（行動できる技がない）");
@@ -813,7 +821,7 @@ public class BattleManager {
     }
 
     // 重み付け抽選ヘルパーメソッド
-    private String selectAbilityFromRule(EnemyData.AIActionRule rule) {
+    private EnemyData.AIActionChoice selectAbilityFromRule(EnemyData.AIActionRule rule) {
         if (rule.getActions() == null || rule.getActions().isEmpty())
             return null;
         int totalWeight = 0;
@@ -821,25 +829,33 @@ public class BattleManager {
             totalWeight += choice.getWeight();
         }
         if (totalWeight <= 0)
-            return rule.getActions().get(0).getAbility();
+            return rule.getActions().get(0);
 
         int r = random.nextInt(totalWeight);
         int current = 0;
         for (EnemyData.AIActionChoice choice : rule.getActions()) {
             current += choice.getWeight();
             if (r < current) {
-                return choice.getAbility();
+                return choice;
             }
         }
-        return rule.getActions().get(0).getAbility(); // フォールバック
+        return rule.getActions().get(0); // フォールバック
     }
 
-    private void executeEnemyAttack(EnemyData enemy, AbilityData ability, CombatBaseRules baseRules) {
+    private void executeEnemyAttack(EnemyData enemy, AbilityData ability, CombatBaseRules baseRules, String nameOverride) {
+        String abilityName = (nameOverride != null && !nameOverride.isEmpty()) ? nameOverride : ability.getName();
+
+        // idle(非戦闘)タグを持つ行動なら、様子を見る等のテキストを出して終了
+        if (ability.getTags() != null && ability.getTags().contains("idle")) {
+            ui.print("　" + enemy.getName() + " は " + abilityName + "。");
+            return;
+        }
+
         int distance = state.getDistance();
         String rangeResult = resolveRangeResult(baseRules, ability, null, null, distance);
 
         if ("MISS".equals(rangeResult)) {
-            ui.print("　ミス！距離が適していません。 (" + ability.getName() + ")");
+            ui.print("　ミス！距離が適していません。 (" + abilityName + ")");
             return;
         }
 
@@ -896,11 +912,11 @@ public class BattleManager {
             String playerName = player.getName() != null ? player.getName() : "冒険者";
             String reduceMsg = reduction > 0 ? "（" + reduction + "ダメージ軽減）" : "";
             String critMsg = isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
-            ui.print("　" + enemy.getName() + " の攻撃！[" + ability.getName() + "] " + playerName + " に " + totalDamage
+            ui.print("　" + enemy.getName() + " の攻撃！[" + abilityName + "] " + playerName + " に " + totalDamage
                     + " のダメージ！" + reduceMsg + critMsg);
             ui.printPlayerStatus(player); // 右パネルのHP/AP表示を更新
         } else {
-            ui.print("　" + enemy.getName() + " の攻撃！[" + ability.getName() + "] ...しかし、回避した！");
+            ui.print("　" + enemy.getName() + " の攻撃！[" + abilityName + "] ...しかし、回避した！");
         }
     }
 
