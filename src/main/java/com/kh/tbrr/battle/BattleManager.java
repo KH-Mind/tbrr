@@ -444,8 +444,14 @@ public class BattleManager {
                 int diceRoll = DiceRoller.roll(dice);
 
                 // --- マスタリーの計算 ---
-                // 武器ダイスを使用する場合は武器のタグを、固有ダイス(魔法等)の場合はアビリティのタグを参照する
-                java.util.List<String> tagsForMastery = usesWeaponDice ? (weapon != null ? weapon.getTags() : null) : ability.getTags();
+                // アビリティのタグと、装備している武器のタグをすべて合算（マージ）して判定に渡す
+                java.util.List<String> tagsForMastery = new java.util.ArrayList<>();
+                if (ability.getTags() != null) {
+                    tagsForMastery.addAll(ability.getTags());
+                }
+                if (weapon != null && weapon.getTags() != null) {
+                    tagsForMastery.addAll(weapon.getTags());
+                }
                 int masteryLevel = calculateMasteryLevel(tagsForMastery);
                 int masteryDiceSum = calculateMasteryDice(masteryLevel);
                 int masteryFixedBonus = calculateMasteryFixedBonus(masteryLevel);
@@ -611,8 +617,24 @@ public class BattleManager {
         int masteryLevel = 0;
         if (tags != null) {
             for (TraitData trait : getActivePlayerTraits()) {
-                if (trait != null && "MASTERY".equals(trait.getType()) && trait.getTargetTags() != null) {
-                    boolean match = tags.stream().anyMatch(tag -> trait.getTargetTags().contains(tag));
+                if (trait != null && "MASTERY".equals(trait.getType())) {
+                    boolean match = false;
+                    
+                    // targetTags（OR条件）のチェック
+                    if (trait.getTargetTags() != null && !trait.getTargetTags().isEmpty()) {
+                        match = tags.stream().anyMatch(tag -> trait.getTargetTags().contains(tag));
+                    }
+                    
+                    // requiredTags（AND条件）のチェック
+                    if (trait.getRequiredTags() != null && !trait.getRequiredTags().isEmpty()) {
+                        boolean allMatch = trait.getRequiredTags().stream().allMatch(tag -> tags.contains(tag));
+                        if (trait.getTargetTags() != null && !trait.getTargetTags().isEmpty()) {
+                            match = match && allMatch; // 両方設定されている場合は両方満たす
+                        } else {
+                            match = allMatch; // requiredTagsのみ設定されている場合
+                        }
+                    }
+                    
                     if (match) {
                         masteryLevel += trait.getLevel();
                     }
@@ -966,7 +988,15 @@ public class BattleManager {
             int diceRoll = DiceRoller.roll(dice);
             
             boolean usesWeaponDice = (ability.getCheck().getDamageDice() == null || ability.getCheck().getDamageDice().isEmpty() || "WEAPON".equalsIgnoreCase(ability.getCheck().getDamageDice()));
-            java.util.List<String> tagsForMastery = usesWeaponDice ? (weapon != null ? weapon.getTags() : null) : ability.getTags();
+            
+            // アビリティのタグと武器のタグを合算
+            java.util.List<String> tagsForMastery = new java.util.ArrayList<>();
+            if (ability.getTags() != null) {
+                tagsForMastery.addAll(ability.getTags());
+            }
+            if (weapon != null && weapon.getTags() != null) {
+                tagsForMastery.addAll(weapon.getTags());
+            }
             int masteryLevel = calculateMasteryLevel(tagsForMastery);
             
             int masteryDiceSum = calculateMasteryDice(masteryLevel);

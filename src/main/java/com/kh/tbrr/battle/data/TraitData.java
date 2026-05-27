@@ -20,7 +20,8 @@ public class TraitData {
     private String type; // "MASTERY", "CRIT_MULTIPLIER", "SYSTEMIC", "INITIATIVE" 等
 
     // --- MASTERY 型用フィールド ---
-    private List<String> targetTags; // 対象となる武器タグ (例: "dagger", "sword")
+    private List<String> targetTags; // 対象となる武器タグ（OR条件） (例: "dagger", "sword")
+    private List<String> requiredTags; // 必須となる対象タグ（AND条件） (例: "magic", "attack")
     private int level;               // マスタリーレベル
 
     // --- CRIT_MULTIPLIER 型用フィールド ---
@@ -65,6 +66,7 @@ public class TraitData {
     public String getType() { return type; }
 
     public List<String> getTargetTags() { return targetTags; }
+    public List<String> getRequiredTags() { return requiredTags; }
     public int getLevel() { return level; }
 
     public double getCritMultiplier() { return critMultiplier; }
@@ -87,6 +89,7 @@ public class TraitData {
     public void setDescription(String description) { this.description = description; }
     public void setType(String type) { this.type = type; }
     public void setTargetTags(List<String> targetTags) { this.targetTags = targetTags; }
+    public void setRequiredTags(List<String> requiredTags) { this.requiredTags = requiredTags; }
     public void setLevel(int level) { this.level = level; }
     public void setCritMultiplier(double critMultiplier) { this.critMultiplier = critMultiplier; }
     public void setSystemicEffect(String systemicEffect) { this.systemicEffect = systemicEffect; }
