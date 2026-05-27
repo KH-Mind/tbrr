@@ -67,4 +67,11 @@ public class AbilityData {
     }
 
     public Integer getForceDistanceTo() { return forceDistanceTo; }
+    
+    // --- 追加: 二刀流および武器自動持ち替えのフラグ ---
+    private Boolean triggerOffHandAttack;
+    public Boolean getTriggerOffHandAttack() { return triggerOffHandAttack; }
+    
+    private Boolean triggerAutoWeaponSwitch;
+    public Boolean getTriggerAutoWeaponSwitch() { return triggerAutoWeaponSwitch; }
 }

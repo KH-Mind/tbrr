@@ -398,7 +398,9 @@ public class BattleManager {
             String rangeResult = resolveRangeResult(baseRules, ability, weapon, stanceData, state.getDistance());
 
             if ("MISS".equals(rangeResult)) {
-                com.kh.tbrr.data.models.Item switchedWeapon = resolveAutoWeaponSwitch(weapon);
+                // 武器自動持ち替え（アビリティで明示的に許可されている場合のみ）
+                boolean canAutoSwitch = Boolean.TRUE.equals(ability.getTriggerAutoWeaponSwitch());
+                com.kh.tbrr.data.models.Item switchedWeapon = canAutoSwitch ? resolveAutoWeaponSwitch(weapon) : null;
                 if (switchedWeapon != null) {
                     // 予備武器で射程を再判定
                     String switchedRange = resolveRangeResult(baseRules, ability, switchedWeapon, stanceData,
@@ -416,24 +418,24 @@ public class BattleManager {
                 return false;
             }
 
-            // 命中判定（防御側ステータスが未設定の場合は必中）
-            int atkStatVal = getCombatStat(player, ability.getCheck().getAttackerStat());
+            // 命中判定（アビリティの指定がない場合は機敏でフォールバック）
+            String atkStatName = ability.getCheck().getAttackerStat();
+            if (atkStatName == null || atkStatName.isEmpty()) atkStatName = "finesse";
+            int atkStatVal = getCombatStat(player, atkStatName);
+            
             String defStatName = ability.getCheck().getDefenderStat();
+            if (defStatName == null || defStatName.isEmpty()) defStatName = "finesse";
+            int defStatVal = enemy.getStatByName(defStatName);
 
-            HitResult result;
-            if (defStatName == null || defStatName.isEmpty()) {
-                result = new HitResult(true, false); // 防御側ステータスの指定がなければ必中
-            } else {
-                int defStatVal = enemy.getStatByName(defStatName);
-                Integer overrideChance = ability.getCheck().getBaseChance();
-                result = checkHit(atkStatVal, defStatVal, overrideChance, state.isEnemyDefending(),
-                        state.getPlayerConditions(), state.getEnemyConditions());
-            }
+            Integer overrideChance = ability.getCheck().getBaseChance();
+            HitResult result = checkHit(atkStatVal, defStatVal, overrideChance, state.isEnemyDefending(),
+                    state.getPlayerConditions(), state.getEnemyConditions());
 
             if (result.isHit) {
                 // ダイス計算: 未指定・WEAPONなら武器ダイスを使用
                 String dice = ability.getCheck().getDamageDice();
-                if (dice == null || dice.isEmpty() || "WEAPON".equalsIgnoreCase(dice)) {
+                boolean usesWeaponDice = (dice == null || dice.isEmpty() || "WEAPON".equalsIgnoreCase(dice));
+                if (usesWeaponDice) {
                     dice = "1d4"; // 素手/武器フォールバック
                     if (weapon != null && weapon.getDamageDice() != null && !weapon.getDamageDice().isEmpty()) {
                         dice = weapon.getDamageDice();
@@ -442,12 +444,16 @@ public class BattleManager {
                 int diceRoll = DiceRoller.roll(dice);
 
                 // --- マスタリーの計算 ---
-                int masteryLevel = calculateMasteryLevel(weapon);
+                // 武器ダイスを使用する場合は武器のタグを、固有ダイス(魔法等)の場合はアビリティのタグを参照する
+                java.util.List<String> tagsForMastery = usesWeaponDice ? (weapon != null ? weapon.getTags() : null) : ability.getTags();
+                int masteryLevel = calculateMasteryLevel(tagsForMastery);
                 int masteryDiceSum = calculateMasteryDice(masteryLevel);
                 int masteryFixedBonus = calculateMasteryFixedBonus(masteryLevel);
 
-                // ステータス加算計算（ability.getCheck().getStatScaling()を参照、未指定は0.5）
-                int rawStatVal = getCombatStat(player, ability.getCheck().getScalingStat());
+                // ステータス加算計算
+                String scalingStatName = ability.getCheck().getScalingStat();
+                if (scalingStatName == null || scalingStatName.isEmpty()) scalingStatName = "might";
+                int rawStatVal = getCombatStat(player, scalingStatName);
                 double scaling = (ability.getCheck().getStatScaling() != null)
                         ? ability.getCheck().getStatScaling()
                         : 0.5;
@@ -507,8 +513,11 @@ public class BattleManager {
                 }
 
                 // --- DUAL_WIELD（二刀流）処理 ---
-                // メイン攻撃が命中した後、二刀流パッシブがあればオフハンド（予備スロット0）でも追加攻撃を行う
-                processOffHandAttack(enemy, ability, baseRules);
+                // アビリティで明示的に許可されている場合のみオフハンド追撃を行う
+                boolean canOffHand = Boolean.TRUE.equals(ability.getTriggerOffHandAttack());
+                if (canOffHand) {
+                    processOffHandAttack(enemy, ability, baseRules);
+                }
 
             } else {
                 ui.print("　かわされた！（ミス！）");
@@ -569,10 +578,12 @@ public class BattleManager {
             // ダメージ計算（オフハンド武器ダイス使用、マスタリー・ステ補正は計算する）
             String offDice = offHandWeapon.getDamageDice();
             int offRoll = DiceRoller.roll(offDice);
-            int offMastery = calculateMasteryLevel(offHandWeapon);
+            int offMastery = calculateMasteryLevel(offHandWeapon.getTags());
             int offMasteryDice = calculateMasteryDice(offMastery);
             int offMasteryFixed = calculateMasteryFixedBonus(offMastery);
-            int rawStat = getCombatStat(player, ability.getCheck().getScalingStat());
+            String scalingStatName = ability.getCheck().getScalingStat();
+            if (scalingStatName == null || scalingStatName.isEmpty()) scalingStatName = "might";
+            int rawStat = getCombatStat(player, scalingStatName);
             int offScaling = (int) (rawStat * 0.5);
             int offBase = offRoll + offMasteryDice + offMasteryFixed + offScaling;
 
@@ -596,12 +607,12 @@ public class BattleManager {
         }
     }
 
-    private int calculateMasteryLevel(com.kh.tbrr.data.models.Item weapon) {
+    private int calculateMasteryLevel(java.util.List<String> tags) {
         int masteryLevel = 0;
-        if (weapon != null && weapon.getTags() != null) {
+        if (tags != null) {
             for (TraitData trait : getActivePlayerTraits()) {
                 if (trait != null && "MASTERY".equals(trait.getType()) && trait.getTargetTags() != null) {
-                    boolean match = weapon.getTags().stream().anyMatch(tag -> trait.getTargetTags().contains(tag));
+                    boolean match = tags.stream().anyMatch(tag -> trait.getTargetTags().contains(tag));
                     if (match) {
                         masteryLevel += trait.getLevel();
                     }
@@ -859,19 +870,18 @@ public class BattleManager {
             return;
         }
 
-        // 命中判定（防御側ステータスが未設定の場合は必中）
-        int atkStatVal = enemy.getFinesse(); // 現状は仮で機敏固定
-        String defStatName = ability.getCheck().getDefenderStat();
+        // 命中判定
+        String atkStatName = ability.getCheck().getAttackerStat();
+        if (atkStatName == null || atkStatName.isEmpty()) atkStatName = "finesse";
+        int atkStatVal = enemy.getStatByName(atkStatName);
 
-        HitResult result;
-        if (defStatName == null || defStatName.isEmpty()) {
-            result = new HitResult(true, false);
-        } else {
-            int defStatVal = getCombatStat(player, defStatName);
-            Integer overrideChance = ability.getCheck().getBaseChance();
-            result = checkHit(atkStatVal, defStatVal, overrideChance, state.isPlayerDefending(),
-                    state.getEnemyConditions(), state.getPlayerConditions());
-        }
+        String defStatName = ability.getCheck().getDefenderStat();
+        if (defStatName == null || defStatName.isEmpty()) defStatName = "finesse";
+        int defStatVal = getCombatStat(player, defStatName);
+
+        Integer overrideChance = ability.getCheck().getBaseChance();
+        HitResult result = checkHit(atkStatVal, defStatVal, overrideChance, state.isPlayerDefending(),
+                state.getEnemyConditions(), state.getPlayerConditions());
 
         if (result.isHit) {
             String dice = ability.getCheck().getDamageDice();
@@ -880,7 +890,9 @@ public class BattleManager {
             }
             int diceRoll = DiceRoller.roll(dice);
 
-            int rawStatVal = enemy.getMight(); // 敵は一旦強靭固定
+            String scalingStatName = ability.getCheck().getScalingStat();
+            if (scalingStatName == null || scalingStatName.isEmpty()) scalingStatName = "might";
+            int rawStatVal = enemy.getStatByName(scalingStatName);
             double scaling = (ability.getCheck().getStatScaling() != null) ? ability.getCheck().getStatScaling() : 0.5;
             int scalingStatVal = (int) (rawStatVal * scaling);
             int baseDamage = diceRoll + scalingStatVal;
@@ -931,9 +943,13 @@ public class BattleManager {
             weapon = com.kh.tbrr.data.ItemRegistry.getItemById(mainWeaponId);
         }
 
-        int atkStatVal = getCombatStat(player, ability.getCheck().getAttackerStat());
+        String atkStatName = ability.getCheck().getAttackerStat();
+        if (atkStatName == null || atkStatName.isEmpty()) atkStatName = "finesse";
+        int atkStatVal = getCombatStat(player, atkStatName);
+        
         String defStatName = ability.getCheck().getDefenderStat();
-        int defStatVal = (defStatName != null && !defStatName.isEmpty()) ? enemy.getStatByName(defStatName) : 0;
+        if (defStatName == null || defStatName.isEmpty()) defStatName = "finesse";
+        int defStatVal = enemy.getStatByName(defStatName);
 
         HitResult result = checkHit(atkStatVal, defStatVal, ability.getCheck().getBaseChance(),
                 state.isEnemyDefending(),
@@ -948,11 +964,17 @@ public class BattleManager {
                 }
             }
             int diceRoll = DiceRoller.roll(dice);
-            int masteryLevel = calculateMasteryLevel(weapon);
+            
+            boolean usesWeaponDice = (ability.getCheck().getDamageDice() == null || ability.getCheck().getDamageDice().isEmpty() || "WEAPON".equalsIgnoreCase(ability.getCheck().getDamageDice()));
+            java.util.List<String> tagsForMastery = usesWeaponDice ? (weapon != null ? weapon.getTags() : null) : ability.getTags();
+            int masteryLevel = calculateMasteryLevel(tagsForMastery);
+            
             int masteryDiceSum = calculateMasteryDice(masteryLevel);
             int masteryFixedBonus = calculateMasteryFixedBonus(masteryLevel);
 
-            int rawStatVal = getCombatStat(player, ability.getCheck().getScalingStat());
+            String scalingStatName = ability.getCheck().getScalingStat();
+            if (scalingStatName == null || scalingStatName.isEmpty()) scalingStatName = "might";
+            int rawStatVal = getCombatStat(player, scalingStatName);
             double scaling = (ability.getCheck().getStatScaling() != null) ? ability.getCheck().getStatScaling() : 0.5;
             int scalingStatVal = (int) (rawStatVal * scaling);
 
