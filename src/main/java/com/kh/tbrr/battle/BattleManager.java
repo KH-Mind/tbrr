@@ -76,8 +76,8 @@ public class BattleManager {
         if (state != null) {
             String stanceName = state.getCurrentPlayerStance();
             StanceData sd = CombatDataLoader.getStanceByName(stanceName);
-            if (sd != null && sd.getGrantedPassiveIds() != null) {
-                for (String id : sd.getGrantedPassiveIds()) {
+            if (sd != null && sd.getGrantedTraitIds() != null) {
+                for (String id : sd.getGrantedTraitIds()) {
                     TraitData trait = TraitRegistry.getTraitById(id);
                     if (trait != null)
                         list.add(trait);

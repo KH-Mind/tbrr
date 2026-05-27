@@ -9,7 +9,7 @@ public class StanceData {
     private int apCost;
     private String message;
     private List<String> description;
-    private List<String> grantedPassiveIds;
+    private List<String> grantedTraitIds;
     private boolean isDefault;
 
     public String getId() {
@@ -36,8 +36,8 @@ public class StanceData {
         return description;
     }
 
-    public List<String> getGrantedPassiveIds() {
-        return grantedPassiveIds;
+    public List<String> getGrantedTraitIds() {
+        return grantedTraitIds;
     }
 
     public boolean isDefault() {
