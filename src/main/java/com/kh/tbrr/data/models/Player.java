@@ -40,6 +40,12 @@ public class Player {
     private int money;
     private int maxMoney; // このゲームにおける所持金の最大値は100とする。
 
+    // SP（シールドポイント）：戦闘専用の耐久バッファー
+    /** SPの上限値（オーバーフロー防止のソフトキャップ） */
+    public static final int SP_MAX = 9999;
+    /** 現在のSP（戦闘開始時に初期化、戦闘終了時にリセット） */
+    private int currentSp = 0;
+
     // 立ち絵情報 portrait info
     private String portraitId; // 立ち絵の接頭辞 (例: ranger01)
     private String portraitFileName; // 選択された完全なファイル名 (例: ranger01.base.jpg)
@@ -148,6 +154,75 @@ public class Player {
         this.maxMoney = 100;
         this.gender = Gender.FEMALE; // デフォルト値
         this.genderIdentity = "女性"; // デフォルト値
+    }
+
+    // ========== SP管理 ==========
+
+    /**
+     * 現在のSPを返す。
+     */
+    public int getCurrentSp() {
+        return currentSp;
+    }
+
+    /**
+     * 現在のSPをセットする（0〜SP_MAXでクランプ）。
+     */
+    public void setCurrentSp(int sp) {
+        this.currentSp = Math.max(0, Math.min(SP_MAX, sp));
+    }
+
+    /**
+     * SPを増減する（0〜SP_MAXでクランプ）。
+     * 戦闘中にSPを回復するアビリティ等から呼び出す。
+     */
+    public void modifySp(int amount) {
+        setCurrentSp(this.currentSp + amount);
+    }
+
+    /**
+     * 戦闘開始時の初期SPを計算して返す。
+     * 基本値20 + 特徴（Trait）の statBonuses["initial_sp"] を合算する。
+     * getEffectiveMaxHp() と同じパターン。
+     */
+    public int calcInitialSp() {
+        int base = 20;
+        int bonus = 0;
+        if (traits != null) {
+            for (String traitId : traits) {
+                com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+                if (td != null && td.getStatBonuses() != null) {
+                    bonus += td.getStatBonuses().getOrDefault("initial_sp", 0);
+                }
+            }
+        }
+        return Math.min(SP_MAX, base + bonus);
+    }
+
+    /**
+     * 戦闘中の被ダメージ処理（SP → HP の順）。
+     * <p>
+     * isPenetrating=false（通常攻撃）の場合: まずSPでダメージを受け、0を下回った超過分がHPに通る。<br>
+     * isPenetrating=true（将来の貫通攻撃）の場合: SPをバイパスしてダメージをそのままHPに適用する。
+     * </p>
+     * @param damage       受けるダメージ量（正の整数）
+     * @param isPenetrating trueの場合はSPを無視してHPに直接ダメージ
+     * @return 実際にHPに通ったダメージ量（ログ表示用）
+     */
+    public int applyBattleDamage(int damage, boolean isPenetrating) {
+        if (isPenetrating || currentSp <= 0) {
+            // 貫通ダメージ、またはSPが既に0の場合はHPに直接
+            modifyHp(-damage);
+            return damage;
+        }
+        // SPで先にダメージを受ける
+        int spAbsorbed = Math.min(currentSp, damage);
+        int overflow = damage - spAbsorbed;
+        setCurrentSp(currentSp - spAbsorbed);
+        if (overflow > 0) {
+            modifyHp(-overflow);
+        }
+        return overflow; // HPに通ったダメージ量
     }
 
     // HP/AP/お金 の増減をやるやつ

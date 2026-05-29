@@ -19,6 +19,10 @@ public class EnemyData {
     private java.util.List<String> traits; // 敵が所持する特徴（Trait）
     private java.util.List<com.kh.tbrr.battle.BattleState.ActiveCombatCondition> initialCombatConditions;
 
+    // SP（シールドポイント）
+    private int initialSp = 0;  // JSONで設定可能（省略時は0）
+    private int currentSp = 0;  // 戦闘中の現在SP
+
     // --- AIロジック用追加フィールド ---
     public static class AIActionChoice {
         private String ability;
@@ -61,6 +65,46 @@ public class EnemyData {
     public boolean isCanFlee() { return canFlee; }
     public java.util.List<String> getTraits() { return traits; }
     public java.util.List<com.kh.tbrr.battle.BattleState.ActiveCombatCondition> getInitialCombatConditions() { return initialCombatConditions; }
+
+    // SP関連
+    public int getInitialSp() { return initialSp; }
+    public int getCurrentSp() { return currentSp; }
+
+    /**
+     * 敵の現在SPをセットする（0〜9999でクランプ）。
+     */
+    public void setCurrentSp(int sp) {
+        this.currentSp = Math.max(0, Math.min(9999, sp));
+    }
+
+    /**
+     * 敵のSPを増減する。
+     */
+    public void modifySp(int amount) {
+        setCurrentSp(this.currentSp + amount);
+    }
+
+    /**
+     * 戦闘中の被ダメージ処理（SP → HP の順）。
+     * @param damage       受けるダメージ量（正の整数）
+     * @param isPenetrating trueの場合はSPを無視してHPに直接ダメージ（将来の貫通攻撃実装用）
+     * @return 実際にHPに通ったダメージ量（ログ表示用）
+     */
+    public int applyBattleDamage(int damage, boolean isPenetrating) {
+        if (isPenetrating || currentSp <= 0) {
+            int newHp = Math.max(0, hp - damage);
+            int actualDamage = hp - newHp;
+            hp = newHp;
+            return actualDamage;
+        }
+        int spAbsorbed = Math.min(currentSp, damage);
+        int overflow = damage - spAbsorbed;
+        setCurrentSp(currentSp - spAbsorbed);
+        if (overflow > 0) {
+            hp = Math.max(0, hp - overflow);
+        }
+        return overflow;
+    }
 
     public String getAiType() { return aiType; }
     public java.util.List<AIActionRule> getActionRules() { return actionRules; }

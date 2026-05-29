@@ -130,6 +130,10 @@ public class BattleManager {
             }
         }
 
+        // --- SP初期化 ---
+        player.setCurrentSp(player.calcInitialSp());
+        enemy.setCurrentSp(enemy.getInitialSp());
+
         ui.print("【バトル開始！】 " + enemy.getName() + " に遭遇した！");
 
         if (ui instanceof com.kh.tbrr.ui.JavaFXUI) {
@@ -149,7 +153,9 @@ public class BattleManager {
             boolean battleEnded = false;
             while (!battleEnded) {
                 ui.print(" ");
-                ui.print("--- ターン " + state.getTurnCount() + " --- [現在距離: " + state.getDistance() + "]");
+                ui.print("--- ターン " + state.getTurnCount() + " --- [現在距離: " + state.getDistance()
+                        + " | SP: " + player.getCurrentSp()
+                        + " / 敵SP: " + enemy.getCurrentSp() + "]");
                 ui.print("【敵】" + enemy.getName() + " (HP: " + enemy.getHp() + "/" + enemy.getMaxHp() + ")");
                 ui.print("コマンドを選択してください。");
 
@@ -256,6 +262,7 @@ public class BattleManager {
             // 戦闘終了時にUIを通常モードに戻す
             jfxUi.setBattleMode(false);
             ui.showImage("enemy", ""); // 敵画像を消去（非表示にする）
+            player.setCurrentSp(0); // 戦闘終了時にSPをリセット
         }
         return lastResult;
     }
@@ -478,12 +485,16 @@ public class BattleManager {
                     totalDamage /= 2; // 防御中はダメージ半減
                 }
 
-                enemy.setHp(enemy.getHp() - totalDamage);
+                // ダメージ処理（SP→HPの順）
+                int hpDamage = enemy.applyBattleDamage(totalDamage, false);
 
                 String diceMsg = "(基礎ダイス:" + diceRoll + (masteryLevel > 0 ? " + 習熟追加" + masteryLevel + "d4" : "")
                         + " + 習熟固定:" + masteryFixedBonus + " + ステ修正:" + scalingStatVal + ")";
                 String critMsg = isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
-                ui.print("　命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！ " + diceMsg + critMsg);
+                // SPが機能した場合はSP吸収量を表示
+                int spAbsorbed = totalDamage - hpDamage;
+                String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
+                ui.print("　命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！ " + diceMsg + critMsg + spMsg);
 
                 // --- CombatCondition付与の処理 ---
                 if (ability.getApplyCombatConditions() != null) {
@@ -941,13 +952,17 @@ public class BattleManager {
                 totalDamage /= 2; // プレイヤーが防御していればダメージ半減
             }
 
-            player.modifyHp(-totalDamage);
+            // ダメージ処理（SP→HPの順）
+            int hpDamage = player.applyBattleDamage(totalDamage, false);
 
             String playerName = player.getName() != null ? player.getName() : "冒険者";
             String reduceMsg = reduction > 0 ? "（" + reduction + "ダメージ軽減）" : "";
             String critMsg = isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
+            // SPが機能した場合はSP吸収量を表示
+            int spAbsorbed = totalDamage - hpDamage;
+            String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
             ui.print("　" + enemy.getName() + " の攻撃！[" + abilityName + "] " + playerName + " に " + totalDamage
-                    + " のダメージ！" + reduceMsg + critMsg);
+                    + " のダメージ！" + reduceMsg + critMsg + spMsg);
             ui.printPlayerStatus(player); // 右パネルのHP/AP表示を更新
         } else {
             ui.print("　" + enemy.getName() + " の攻撃！[" + abilityName + "] ...しかし、回避した！");
@@ -1017,7 +1032,8 @@ public class BattleManager {
                 totalDamage /= 2;
             }
 
-            enemy.setHp(enemy.getHp() - totalDamage);
+            // 機会攻撃ダメージ処理（SP→HPの順）
+            enemy.applyBattleDamage(totalDamage, false);
             String critMsg = result.isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
             ui.print("　機会攻撃命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！" + critMsg);
 
@@ -1052,9 +1068,12 @@ public class BattleManager {
             if (state.isPlayerDefending())
                 totalDamage /= 2;
 
-            p.modifyHp(-totalDamage);
+            // 敵機会攻撃のダメージ処理（SP→HPの順）
+            int hpDamage = p.applyBattleDamage(totalDamage, false);
             String reduceMsg = reduction > 0 ? "（" + reduction + "ダメージ軽減）" : "";
-            ui.print("　機会攻撃命中！ プレイヤーに " + totalDamage + " のダメージ！" + reduceMsg);
+            int spAbsorbed = totalDamage - hpDamage;
+            String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収）" : "";
+            ui.print("　機会攻撃命中！ プレイヤーに " + totalDamage + " のダメージ！" + reduceMsg + spMsg);
             ui.printPlayerStatus(p);
         } else {
             ui.print("　機会攻撃を回避した！");
