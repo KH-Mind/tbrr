@@ -12,6 +12,7 @@ public class Item {
 	private String rarity; // common, magic, unique, job
 	private String description;
 	private List<String> grantedSkills; // このアイテムが付与する技能
+	private List<String> grantedTraits; // このアイテムを装備中に得られる特徴/Trait（特徴IDのリスト）
 	private List<String> tags; // 武器種などのタグ
 	private boolean consumable; // 消費アイテムか
 	private boolean losableRandom; // ランダム喪失の対象か（デフォルト: true）
@@ -29,6 +30,7 @@ public class Item {
 	// コンストラクタ
 	public Item() {
 		this.grantedSkills = new ArrayList<>();
+		this.grantedTraits = new ArrayList<>();
 		this.tags = new ArrayList<>();
 		this.consumable = false;
 		this.losableRandom = true;
@@ -76,6 +78,14 @@ public class Item {
 
 	public void setGrantedSkills(List<String> grantedSkills) {
 		this.grantedSkills = grantedSkills;
+	}
+
+	public List<String> getGrantedTraits() {
+		return grantedTraits;
+	}
+
+	public void setGrantedTraits(List<String> grantedTraits) {
+		this.grantedTraits = grantedTraits;
 	}
 
 	public List<String> getTags() {

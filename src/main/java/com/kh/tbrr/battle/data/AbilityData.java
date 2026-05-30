@@ -49,6 +49,10 @@ public class AbilityData {
     /** 命中時に距離をこの値に強制上書きする（null なら何もしない）。
      *  例: 稲妻の衝撃が命中したら強制的に距離2にする → 2 を指定。 */
     private Integer forceDistanceTo;
+    private Boolean inheritWeapon;
+
+    public Boolean getInheritWeapon() { return inheritWeapon; }
+    public void setInheritWeapon(Boolean inheritWeapon) { this.inheritWeapon = inheritWeapon; }
 
     private List<ConditionApplication> applyCombatConditions;
 
@@ -74,4 +78,11 @@ public class AbilityData {
     
     private Boolean triggerAutoWeaponSwitch;
     public Boolean getTriggerAutoWeaponSwitch() { return triggerAutoWeaponSwitch; }
+
+    // --- 追加: リスト式自動アップグレード用フィールド ---
+    private Map<String, String> upgrades;
+    private Boolean countAbilityAsLevel;
+
+    public Map<String, String> getUpgrades() { return upgrades; }
+    public boolean isCountAbilityAsLevel() { return Boolean.TRUE.equals(countAbilityAsLevel); }
 }

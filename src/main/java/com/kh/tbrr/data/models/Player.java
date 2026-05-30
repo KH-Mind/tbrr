@@ -3,6 +3,8 @@ package com.kh.tbrr.data.models;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.kh.tbrr.battle.data.TraitData;
+import com.kh.tbrr.battle.data.TraitRegistry;
 import com.kh.tbrr.data.ItemRegistry;
 import com.kh.tbrr.data.SkillStatsMapper;
 import com.kh.tbrr.data.SkillStatsMapper.CombatStats;
@@ -183,17 +185,15 @@ public class Player {
     /**
      * 戦闘開始時の初期SPを計算して返す。
      * 基本値20 + 特徴（Trait）の statBonuses["initial_sp"] を合算する。
-     * getEffectiveMaxHp() と同じパターン。
+     * 装備由来のTraitも含む（getEffectiveTraits() 経由）。
      */
     public int calcInitialSp() {
         int base = 20;
         int bonus = 0;
-        if (traits != null) {
-            for (String traitId : traits) {
-                com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
-                if (td != null && td.getStatBonuses() != null) {
-                    bonus += td.getStatBonuses().getOrDefault("initial_sp", 0);
-                }
+        for (String traitId : getEffectiveTraits()) {
+            com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+            if (td != null && td.getStatBonuses() != null) {
+                bonus += td.getStatBonuses().getOrDefault("initial_sp", 0);
             }
         }
         return Math.min(SP_MAX, base + bonus);
@@ -519,6 +519,75 @@ public class Player {
     }
 
     /**
+     * 有効な特徴（Trait）リストを取得する。
+     * 永続的な Trait（player.traits）に吐え、
+     * 現在装備中のアイテム（メイン武器・アクセサリ）が持つ grantedTraits を動的に合算する。
+     * アイテムの装備を外せば効果も消える。
+     */
+    public List<String> getEffectiveTraits() {
+        List<String> effective = new ArrayList<>(traits); // 永続 Trait
+
+        // メイン武器の grantedTraits
+        if (equippedMainWeapon != null) {
+            Item weapon = ItemRegistry.getItemById(equippedMainWeapon);
+            if (weapon != null && weapon.getGrantedTraits() != null) {
+                for (String traitId : weapon.getGrantedTraits()) {
+                    effective.add(traitId);
+                }
+            }
+        }
+
+        // 装備中アクセサリの grantedTraits
+        if (equippedAccessories != null) {
+            for (String accId : equippedAccessories) {
+                Item acc = ItemRegistry.getItemById(accId);
+                if (acc != null && acc.getGrantedTraits() != null) {
+                    for (String traitId : acc.getGrantedTraits()) {
+                        if (!effective.contains(traitId)) effective.add(traitId);
+                    }
+                }
+            }
+        }
+
+        // 特徴が付与する別の特徴を再帰的に展開する
+        boolean addedNew = true;
+        while (addedNew) {
+            addedNew = false;
+            List<String> currentSnapshot = new ArrayList<>(effective);
+            for (String traitId : currentSnapshot) {
+                TraitData td = TraitRegistry.getTraitById(traitId);
+                if (td != null && td.getGrantedTraits() != null) {
+                    for (String granted : td.getGrantedTraits()) {
+                        if (!effective.contains(granted)) {
+                            effective.add(granted);
+                            addedNew = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return effective;
+    }
+
+    /**
+     * 基本習得アビリティと、有効な特徴(Trait)によって自動付与されるアビリティを統合して返す。
+     */
+    public List<String> getEffectiveAbilities() {
+        List<String> effAbilities = new ArrayList<>(abilities);
+        List<String> effTraits = getEffectiveTraits();
+        for (String traitId : effTraits) {
+            TraitData td = TraitRegistry.getTraitById(traitId);
+            if (td != null && td.getGrantedAbilities() != null) {
+                for (String grantedAbility : td.getGrantedAbilities()) {
+                    effAbilities.add(grantedAbility);
+                }
+            }
+        }
+        return effAbilities;
+    }
+
+    /**
      * 戦闘ステータスを計算して取得
      * 技能（baseSkills + アイテム由来）とアイテムのcombatStatsを合算
      * 
@@ -553,8 +622,8 @@ public class Player {
             }
         }
 
-        // 特徴(Trait)からステータスを加算
-        for (String traitId : traits) {
+        // 特徴(Trait)からステータスを加算（装備由来のTraitも含む）
+        for (String traitId : getEffectiveTraits()) {
             com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
             if (td != null && td.getStatBonuses() != null) {
                 totalMight += td.getStatBonuses().getOrDefault("might", 0);
@@ -794,12 +863,10 @@ public class Player {
 
     public int getEffectiveMaxHp() {
         int bonus = 0;
-        if (traits != null) {
-            for (String traitId : traits) {
-                com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
-                if (td != null && td.getStatBonuses() != null) {
-                    bonus += td.getStatBonuses().getOrDefault("max_hp", 0);
-                }
+        for (String traitId : getEffectiveTraits()) {
+            com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+            if (td != null && td.getStatBonuses() != null) {
+                bonus += td.getStatBonuses().getOrDefault("max_hp", 0);
             }
         }
         return maxHp + bonus;
@@ -823,12 +890,10 @@ public class Player {
 
     public int getEffectiveMaxAp() {
         int bonus = 0;
-        if (traits != null) {
-            for (String traitId : traits) {
-                com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
-                if (td != null && td.getStatBonuses() != null) {
-                    bonus += td.getStatBonuses().getOrDefault("max_ap", 0);
-                }
+        for (String traitId : getEffectiveTraits()) {
+            com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+            if (td != null && td.getStatBonuses() != null) {
+                bonus += td.getStatBonuses().getOrDefault("max_ap", 0);
             }
         }
         return maxAp + bonus;
@@ -852,12 +917,10 @@ public class Player {
 
     public int getEffectiveMaxMoney() {
         int bonus = 0;
-        if (traits != null) {
-            for (String traitId : traits) {
-                com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
-                if (td != null && td.getStatBonuses() != null) {
-                    bonus += td.getStatBonuses().getOrDefault("max_money", 0);
-                }
+        for (String traitId : getEffectiveTraits()) {
+            com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+            if (td != null && td.getStatBonuses() != null) {
+                bonus += td.getStatBonuses().getOrDefault("max_money", 0);
             }
         }
         return maxMoney + bonus;

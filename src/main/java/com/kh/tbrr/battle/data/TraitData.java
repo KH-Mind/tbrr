@@ -47,6 +47,11 @@ public class TraitData {
     private List<String> grantedSkills;
 
     /**
+     * このTraitが自動で付与する別の特徴(Trait)のリスト。
+     */
+    private List<String> grantedTraits;
+
+    /**
      * このTraitを持つキャラクターが習得するアビリティIDのリスト。
      * 例: ["misty_step"] → getEffectiveAbilities() に反映予定。
      */
@@ -79,6 +84,7 @@ public class TraitData {
     public int getInitiativeBonus() { return initiativeBonus; }
 
     public List<String> getGrantedSkills() { return grantedSkills; }
+    public List<String> getGrantedTraits() { return grantedTraits; }
     public List<String> getGrantedAbilities() { return grantedAbilities; }
     public Map<String, Integer> getStatBonuses() { return statBonuses; }
 
@@ -98,6 +104,7 @@ public class TraitData {
     public void setOffHandDamageMultiplier(double offHandDamageMultiplier) { this.offHandDamageMultiplier = offHandDamageMultiplier; }
     public void setInitiativeBonus(int initiativeBonus) { this.initiativeBonus = initiativeBonus; }
     public void setGrantedSkills(List<String> grantedSkills) { this.grantedSkills = grantedSkills; }
+    public void setGrantedTraits(List<String> grantedTraits) { this.grantedTraits = grantedTraits; }
     public void setGrantedAbilities(List<String> grantedAbilities) { this.grantedAbilities = grantedAbilities; }
     public void setStatBonuses(Map<String, Integer> statBonuses) { this.statBonuses = statBonuses; }
 }

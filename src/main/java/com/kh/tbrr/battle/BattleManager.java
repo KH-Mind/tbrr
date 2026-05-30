@@ -1,5 +1,11 @@
 package com.kh.tbrr.battle;
 
+import com.kh.tbrr.data.models.Item;
+import com.kh.tbrr.data.models.CombatConditionData;
+import com.kh.tbrr.data.ItemRegistry;
+import com.kh.tbrr.data.CombatConditionRegistry;
+import com.kh.tbrr.ui.JavaFXUI;
+
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -60,16 +66,15 @@ public class BattleManager {
     }
 
     /**
-     * 現在のプレイヤーの恒常特徴（Trait）と、現在選択中のスタンスから得られる一時特徴を合算して返す。
+     * 現在のプレイヤーの恒常特徴（Trait）と、装備由来のTrait、スタンスから得られる一時特徴を合算して返す。
      */
     private java.util.List<TraitData> getActivePlayerTraits() {
         java.util.List<TraitData> list = new java.util.ArrayList<>();
-        if (player.getTraits() != null) {
-            for (String id : player.getTraits()) {
-                TraitData trait = TraitRegistry.getTraitById(id);
-                if (trait != null)
-                    list.add(trait);
-            }
+        // getEffectiveTraits() により永続Trait + 装備由来Traitを合算して取得
+        for (String id : player.getEffectiveTraits()) {
+            TraitData trait = TraitRegistry.getTraitById(id);
+            if (trait != null)
+                list.add(trait);
         }
 
         // スタンスからの一時特徴を合算
@@ -104,7 +109,7 @@ public class BattleManager {
 
     public BattleResult startBattle(String enemyId) {
         state = new BattleState();
-        com.kh.tbrr.data.CombatConditionRegistry.loadAll(); // 戦闘用状態異常データの読み込み
+        CombatConditionRegistry.loadAll(); // 戦闘用状態異常データの読み込み
         CombatDataLoader.loadAllTraits(); // 特徴（Trait）データの読み込み（二重読み込み防止済み）
         CombatDataLoader.loadAllStances(); // スタンスデータの読み込み（UI表示名からの自動検索用）
 
@@ -136,8 +141,8 @@ public class BattleManager {
 
         ui.print("【バトル開始！】 " + enemy.getName() + " に遭遇した！");
 
-        if (ui instanceof com.kh.tbrr.ui.JavaFXUI) {
-            com.kh.tbrr.ui.JavaFXUI jfxUi = (com.kh.tbrr.ui.JavaFXUI) ui;
+        if (ui instanceof JavaFXUI) {
+            JavaFXUI jfxUi = (JavaFXUI) ui;
             jfxUi.setBattleMode(true);
 
             // 背景と敵画像の表示
@@ -267,6 +272,49 @@ public class BattleManager {
         return lastResult;
     }
 
+    /**
+     * アビリティがリスト式自動アップグレードに対応している場合、プレイヤーの所持数に応じて上位のアビリティデータに変換して返す。
+     * 条件を満たさない場合は元のアビリティデータをそのまま返す。
+     */
+    public static AbilityData resolveAbilityUpgradeStatic(AbilityData baseAbility, Player player) {
+        if (baseAbility != null && baseAbility.isCountAbilityAsLevel() && baseAbility.getUpgrades() != null) {
+            int level = 0;
+            if (player != null && player.getEffectiveAbilities() != null) {
+                // 所持リストの中から同じIDのアビリティを数える
+                for (String id : player.getEffectiveAbilities()) {
+                    if (id.equals(baseAbility.getId())) {
+                        level++;
+                    }
+                }
+            }
+            
+            if (level > 1) {
+                int maxLevel = 1;
+                for (String key : baseAbility.getUpgrades().keySet()) {
+                    try {
+                        int k = Integer.parseInt(key);
+                        if (k <= level && k > maxLevel) {
+                            maxLevel = k;
+                        }
+                    } catch (NumberFormatException e) {
+                        // 数値としてパースできないキーは無視
+                    }
+                }
+                
+                if (maxLevel > 1) {
+                    String upgradedId = baseAbility.getUpgrades().get(String.valueOf(maxLevel));
+                    if (upgradedId != null) {
+                        AbilityData upgraded = CombatDataLoader.getAbility(upgradedId);
+                        if (upgraded != null) {
+                            return upgraded;
+                        }
+                    }
+                }
+            }
+        }
+        return baseAbility;
+    }
+
     private boolean processPlayerTurn(BattleCommand cmd, EnemyData enemy) {
         // [0] ターン開始時に自身の防御状態を解除
         state.setPlayerDefending(false);
@@ -280,11 +328,13 @@ public class BattleManager {
 
         // 技(special)が指定されていた場合、そちらを優先する（"なし"以外）
         if (cmd.getSpecial() != null && !cmd.getSpecial().equals("なし")) {
-            if (player.getAbilities() != null) {
-                for (String id : player.getAbilities()) {
+            if (player.getEffectiveAbilities() != null) {
+                for (String id : player.getEffectiveAbilities()) {
                     AbilityData data = CombatDataLoader.getAbility(id);
+                    // アップグレード版がある場合は解決してから名前を比較する
+                    data = resolveAbilityUpgradeStatic(data, player);
                     if (data != null && data.getName().equals(cmd.getSpecial())) {
-                        abilityId = id;
+                        abilityId = data.getId();
                         break;
                     }
                 }
@@ -314,10 +364,10 @@ public class BattleManager {
         }
 
         // 武器オブジェクトを射程判定より前に取得しておく
-        com.kh.tbrr.data.models.Item weapon = null;
+        Item weapon = null;
         String mainWeaponId = player.getEquippedMainWeapon();
         if (mainWeaponId != null) {
-            weapon = com.kh.tbrr.data.ItemRegistry.getItemById(mainWeaponId);
+            weapon = ItemRegistry.getItemById(mainWeaponId);
         }
 
         // [2] ムーブ（足）の解決：距離の確定
@@ -407,7 +457,7 @@ public class BattleManager {
             if ("MISS".equals(rangeResult)) {
                 // 武器自動持ち替え（アビリティで明示的に許可されている場合のみ）
                 boolean canAutoSwitch = Boolean.TRUE.equals(ability.getTriggerAutoWeaponSwitch());
-                com.kh.tbrr.data.models.Item switchedWeapon = canAutoSwitch ? resolveAutoWeaponSwitch(weapon) : null;
+                Item switchedWeapon = canAutoSwitch ? resolveAutoWeaponSwitch(weapon) : null;
                 if (switchedWeapon != null) {
                     // 予備武器で射程を再判定
                     String switchedRange = resolveRangeResult(baseRules, ability, switchedWeapon, stanceData,
@@ -451,14 +501,16 @@ public class BattleManager {
                 int diceRoll = DiceRoller.roll(dice);
 
                 // --- マスタリーの計算 ---
-                // アビリティのタグと、装備している武器のタグをすべて合算（マージ）して判定に渡す
+                // アビリティのタグと、装備している武器のタグを合算（マージ）して判定に渡す
                 java.util.List<String> tagsForMastery = new java.util.ArrayList<>();
                 if (ability.getTags() != null) {
                     tagsForMastery.addAll(ability.getTags());
                 }
-                if (weapon != null && weapon.getTags() != null) {
+                
+                if (Boolean.TRUE.equals(ability.getInheritWeapon()) && weapon != null && weapon.getTags() != null) {
                     tagsForMastery.addAll(weapon.getTags());
                 }
+                
                 int masteryLevel = calculateMasteryLevel(tagsForMastery);
                 int masteryDiceSum = calculateMasteryDice(masteryLevel);
                 int masteryFixedBonus = calculateMasteryFixedBonus(masteryLevel);
@@ -513,7 +565,7 @@ public class BattleManager {
                                 state.getEnemyConditions().add(
                                         new BattleState.ActiveCombatCondition(app.getConditionId(), app.getDuration()));
                             }
-                            com.kh.tbrr.data.models.CombatConditionData cData = com.kh.tbrr.data.CombatConditionRegistry
+                            CombatConditionData cData = CombatConditionRegistry
                                     .getConditionById(app.getConditionId());
                             if (cData != null) {
                                 ui.print("　★ " + enemy.getName() + " は [" + cData.getName() + "] になった！");
@@ -565,7 +617,7 @@ public class BattleManager {
             return; // 予備武器なし → スキップ
         }
         String offHandId = reserves.get(0);
-        com.kh.tbrr.data.models.Item offHandWeapon = com.kh.tbrr.data.ItemRegistry.getItemById(offHandId);
+        Item offHandWeapon = ItemRegistry.getItemById(offHandId);
         if (offHandWeapon == null || offHandWeapon.getDamageDice() == null) {
             return; // 予備スロットが空か武器でない → スキップ
         }
@@ -678,7 +730,7 @@ public class BattleManager {
      * 武器も未装備なら最終フォールバック "melee" で素手扱い（1d4+0+強靭*0.5）となる。
      */
     private String resolveRangeResult(CombatBaseRules rules, AbilityData ability,
-            com.kh.tbrr.data.models.Item weapon, StanceData stance, int distance) {
+            Item weapon, StanceData stance, int distance) {
         String distKey = String.valueOf(distance);
 
         // 1. アビリティの rangeOverride が存在する距離なら最優先
@@ -711,7 +763,7 @@ public class BattleManager {
      * - 装備の入れ替えは行わず、攻撃解決のみ予備武器で行う。
      * - パッシブがない・予備武器がない場合は null を返す。
      */
-    private com.kh.tbrr.data.models.Item resolveAutoWeaponSwitch(com.kh.tbrr.data.models.Item mainWeapon) {
+    private Item resolveAutoWeaponSwitch(Item mainWeapon) {
         // AUTO_WEAPON_SWITCH特徴（Trait）を確認
         boolean hasTrait = getActivePlayerTraits().stream()
                 .anyMatch(t -> t != null
@@ -725,7 +777,7 @@ public class BattleManager {
         if (reserves == null || reserves.isEmpty())
             return null;
         String reserveId = reserves.get(0);
-        com.kh.tbrr.data.models.Item reserveWeapon = com.kh.tbrr.data.ItemRegistry.getItemById(reserveId);
+        Item reserveWeapon = ItemRegistry.getItemById(reserveId);
         if (reserveWeapon == null || reserveWeapon.getDamageDice() == null)
             return null;
 
@@ -940,7 +992,7 @@ public class BattleManager {
             int reduction = 0;
             if (player.getEquippedAccessories() != null) {
                 for (String accId : player.getEquippedAccessories()) {
-                    com.kh.tbrr.data.models.Item acc = com.kh.tbrr.data.ItemRegistry.getItemById(accId);
+                    Item acc = ItemRegistry.getItemById(accId);
                     if (acc != null) {
                         reduction += acc.getDamageReduction();
                     }
@@ -974,10 +1026,10 @@ public class BattleManager {
         AbilityData ability = CombatDataLoader.getAbility("basic_attack");
         if (ability == null)
             return;
-        com.kh.tbrr.data.models.Item weapon = null;
+        Item weapon = null;
         String mainWeaponId = player.getEquippedMainWeapon();
         if (mainWeaponId != null) {
-            weapon = com.kh.tbrr.data.ItemRegistry.getItemById(mainWeaponId);
+            weapon = ItemRegistry.getItemById(mainWeaponId);
         }
 
         String atkStatName = ability.getCheck().getAttackerStat();
@@ -1058,7 +1110,7 @@ public class BattleManager {
             int reduction = 0;
             if (p.getEquippedAccessories() != null) {
                 for (String accId : p.getEquippedAccessories()) {
-                    com.kh.tbrr.data.models.Item acc = com.kh.tbrr.data.ItemRegistry.getItemById(accId);
+                    Item acc = ItemRegistry.getItemById(accId);
                     if (acc != null) {
                         reduction += acc.getDamageReduction();
                     }
@@ -1138,7 +1190,7 @@ public class BattleManager {
             return 0;
         int bonus = 0;
         for (BattleState.ActiveCombatCondition c : conditions) {
-            com.kh.tbrr.data.models.CombatConditionData data = com.kh.tbrr.data.CombatConditionRegistry
+            CombatConditionData data = CombatConditionRegistry
                     .getConditionById(c.getConditionId());
             if (data != null && data.getModifiers() != null) {
                 bonus += data.getModifiers().getAccuracyBonus();
@@ -1152,7 +1204,7 @@ public class BattleManager {
             return 0;
         int bonus = 0;
         for (BattleState.ActiveCombatCondition c : conditions) {
-            com.kh.tbrr.data.models.CombatConditionData data = com.kh.tbrr.data.CombatConditionRegistry
+            CombatConditionData data = CombatConditionRegistry
                     .getConditionById(c.getConditionId());
             if (data != null && data.getModifiers() != null) {
                 bonus += data.getModifiers().getAvoidanceBonus();
@@ -1166,7 +1218,7 @@ public class BattleManager {
             return 1.0;
         double mult = 1.0;
         for (BattleState.ActiveCombatCondition c : conditions) {
-            com.kh.tbrr.data.models.CombatConditionData data = com.kh.tbrr.data.CombatConditionRegistry
+            CombatConditionData data = CombatConditionRegistry
                     .getConditionById(c.getConditionId());
             if (data != null && data.getModifiers() != null) {
                 mult *= data.getModifiers().getDamageMultiplier();

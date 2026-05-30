@@ -1,10 +1,15 @@
 package com.kh.tbrr.ui;
 
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.kh.tbrr.battle.data.AbilityData;
+import com.kh.tbrr.battle.data.CombatDataLoader;
+import com.kh.tbrr.battle.BattleManager;
 import com.kh.tbrr.data.models.Player;
 import com.kh.tbrr.system.DeveloperMode;
 
@@ -585,6 +590,7 @@ public class JavaFXUI implements GameUI {
 		specialComboBox.setValue("なし");
 		specialComboBox.setOnAction(e -> {
 			if(!"なし".equals(specialComboBox.getValue())) {
+				actionComboBox.setValue("攻撃");
 				actionComboBox.setDisable(true);
 			} else {
 				actionComboBox.setDisable(false);
@@ -640,11 +646,16 @@ public class JavaFXUI implements GameUI {
 					// 技コンボボックスの中身をプレイヤーの所持アビリティから再生成する
 					specialComboBox.getItems().clear();
 					specialComboBox.getItems().add("なし");
-					if (currentPlayer != null && currentPlayer.getAbilities() != null) {
-						for (String abilityId : currentPlayer.getAbilities()) {
-							com.kh.tbrr.battle.data.AbilityData data = com.kh.tbrr.battle.data.CombatDataLoader.getAbility(abilityId);
+					if (currentPlayer != null && currentPlayer.getEffectiveAbilities() != null) {
+						// nullチェック追加
+						Set<String> addedNames = new HashSet<>();
+						for (String abilityId : currentPlayer.getEffectiveAbilities()) {
+							AbilityData data = CombatDataLoader.getAbility(abilityId);
 							if (data != null) {
-								specialComboBox.getItems().add(data.getName());
+								data = BattleManager.resolveAbilityUpgradeStatic(data, currentPlayer);
+								if (data != null && addedNames.add(data.getName())) {
+									specialComboBox.getItems().add(data.getName());
+								}
 							}
 						}
 					}
