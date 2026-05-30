@@ -144,6 +144,8 @@ public class BattleManager {
         if (ui instanceof JavaFXUI) {
             JavaFXUI jfxUi = (JavaFXUI) ui;
             jfxUi.setBattleMode(true);
+            // サブウィンドウに戦闘情報パネルを表示する
+            jfxUi.showBattlePanel();
 
             // 背景と敵画像の表示
             if (enemy.getBattleBackground() != null && !enemy.getBattleBackground().isEmpty()) {
@@ -163,6 +165,14 @@ public class BattleManager {
                         + " / 敵SP: " + enemy.getCurrentSp() + "]");
                 ui.print("【敵】" + enemy.getName() + " (HP: " + enemy.getHp() + "/" + enemy.getMaxHp() + ")");
                 ui.print("コマンドを選択してください。");
+
+                // サブウィンドウの戦闘情報をターン開始時に一括更新
+                jfxUi.updateBattlePanel(
+                        state.getTurnCount(), state.getDistance(),
+                        player, enemy,
+                        state.getPlayerConditions(), state.getEnemyConditions());
+                // ターン间切りログ
+                jfxUi.appendBattleLog("\u2500── ターン " + state.getTurnCount() + " ───");
 
                 // 逃走可否をUIへ通知
                 // 距離3以上かつcanFlee=trueなら「逃げる」を表示する
@@ -266,6 +276,7 @@ public class BattleManager {
 
             // 戦闘終了時にUIを通常モードに戻す
             jfxUi.setBattleMode(false);
+            jfxUi.hideBattlePanel(); // 戦闘パネルを閉じて背景画像に戻す
             ui.showImage("enemy", ""); // 敵画像を消去（非表示にする）
             player.setCurrentSp(0); // 戦闘終了時にSPをリセット
         }
@@ -547,6 +558,13 @@ public class BattleManager {
                 int spAbsorbed = totalDamage - hpDamage;
                 String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
                 ui.print("　命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！ " + diceMsg + critMsg + spMsg);
+                // サブウィンドウのログに要約を追記
+                if (ui instanceof JavaFXUI) {
+                    String logSummary = "命中！" + enemy.getName() + "に" + totalDamage + "ダメージ"
+                            + (isCritical ? "　[クリティカル]": "")
+                            + (spAbsorbed > 0 ? "　SP" + spAbsorbed + "吸収" : "");
+                    ((JavaFXUI) ui).appendBattleLog(logSummary);
+                }
 
                 // --- CombatCondition付与の処理 ---
                 if (ability.getApplyCombatConditions() != null) {
@@ -590,6 +608,10 @@ public class BattleManager {
 
             } else {
                 ui.print("　かわされた！（ミス！）");
+                // サブウィンドウのログに要約を追記
+                if (ui instanceof JavaFXUI) {
+                    ((JavaFXUI) ui).appendBattleLog("攻撃がかわされた！");
+                }
             }
         }
         return false;
@@ -1015,9 +1037,20 @@ public class BattleManager {
             String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
             ui.print("　" + enemy.getName() + " の攻撃！[" + abilityName + "] " + playerName + " に " + totalDamage
                     + " のダメージ！" + reduceMsg + critMsg + spMsg);
+            // サブウィンドウのログに要約を追記
+            if (ui instanceof JavaFXUI) {
+                String logSummary = enemy.getName() + "の攻撃！" + totalDamage + "ダメージ"
+                        + (isCritical ? "　[クリティカル]": "")
+                        + (spAbsorbed > 0 ? "　SP" + spAbsorbed + "吸収" : "");
+                ((JavaFXUI) ui).appendBattleLog(logSummary);
+            }
             ui.printPlayerStatus(player); // 右パネルのHP/AP表示を更新
         } else {
             ui.print("　" + enemy.getName() + " の攻撃！[" + abilityName + "] ...しかし、回避した！");
+            // サブウィンドウのログに要約を追記
+            if (ui instanceof JavaFXUI) {
+                ((JavaFXUI) ui).appendBattleLog(enemy.getName() + "の攻撃を回避！");
+            }
         }
     }
 

@@ -10,6 +10,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.kh.tbrr.battle.data.AbilityData;
 import com.kh.tbrr.battle.data.CombatDataLoader;
 import com.kh.tbrr.battle.BattleManager;
+import com.kh.tbrr.battle.BattleState;
+import com.kh.tbrr.battle.EnemyData;
 import com.kh.tbrr.data.models.Player;
 import com.kh.tbrr.system.DeveloperMode;
 
@@ -97,6 +99,9 @@ public class JavaFXUI implements GameUI {
 	private CountDownLatch battleCommandLatch;
 	private AtomicReference<BattleCommand> battleCommandResult = new AtomicReference<>();
 	private HBox inputBox; // inputBoxのクラスフィールド保存用
+
+	// 戦闘情報サブウィンドウ用コントローラー
+	private BattlePanelController battlePanelController;
 
 	public JavaFXUI(Stage stage, DeveloperMode developerMode) {
 		this.stage = stage;
@@ -1479,9 +1484,15 @@ public class JavaFXUI implements GameUI {
 			EquipmentPanel panel = new EquipmentPanel(
 				currentPlayer,
 				() -> {
-					// 閉じる処理: 元のイラスト画像に戻す
+					// 閉じる処理: 戦闘中なら戦闘パネルを復元、非戦闘中は背景画像に戻す
 					subWindowBox.getChildren().clear();
-					subWindowBox.getChildren().add(subWindowImageView);
+					if (battlePanelController != null) {
+						// 戦闘中：戦闘情報パネルを復元する
+						subWindowBox.getChildren().add(battlePanelController.getPanel());
+					} else {
+						// 非戦闘中：背景画像（元のイラスト）に戻す
+						subWindowBox.getChildren().add(subWindowImageView);
+					}
 				},
 				() -> {
 					// 装備変更時の処理: UIのステータス情報などを更新する
@@ -1549,6 +1560,71 @@ public class JavaFXUI implements GameUI {
 			}
 			// choice == 2 → ループして再度パネルを開く
 		}
+	}
+
+	// ========== 戦闘情報パネル（サブウィンドウ）==========
+
+	/**
+	 * 戦闘情報パネルをサブウィンドウに表示する。
+	 * BattleManager から setBattleMode(true) の直後に呼ぶ。
+	 */
+	public void showBattlePanel() {
+		battlePanelController = new BattlePanelController();
+		Platform.runLater(() -> {
+			if (subWindowBox != null) {
+				javafx.scene.layout.VBox panel = battlePanelController.createPanel();
+				subWindowBox.getChildren().clear();
+				subWindowBox.getChildren().add(panel);
+				battlePanelController.clearLog();
+			}
+		});
+	}
+
+	/**
+	 * 戦闘情報パネルを非表示にし、背景画像に戻す。
+	 * BattleManager から setBattleMode(false) の直後に呼ぶ。
+	 */
+	public void hideBattlePanel() {
+		Platform.runLater(() -> {
+			if (subWindowBox != null) {
+				subWindowBox.getChildren().clear();
+				subWindowBox.getChildren().add(subWindowImageView);
+			}
+		});
+		battlePanelController = null;
+	}
+
+	/**
+	 * 戦闘パネルの全情報を一括更新する。
+	 * ターン開始時（コマンド入力前）に BattleManager から呼ぶ。
+	 *
+	 * @param turn          現在のターン数
+	 * @param distance      現在の距離（0〜4）
+	 * @param player        プレイヤーデータ
+	 * @param enemy         敵データ
+	 * @param playerConds   プレイヤーの戦闘状態リスト
+	 * @param enemyConds    敵の戦闘状態リスト
+	 */
+	public void updateBattlePanel(int turn, int distance,
+			Player player, EnemyData enemy,
+			List<BattleState.ActiveCombatCondition> playerConds,
+			List<BattleState.ActiveCombatCondition> enemyConds) {
+		if (battlePanelController == null) return;
+		battlePanelController.updateHeader(turn, distance);
+		battlePanelController.updatePlayerStatus(player, playerConds);
+		battlePanelController.updateEnemyStatus(enemy, enemyConds);
+		battlePanelController.updateDistanceMap(distance);
+	}
+
+	/**
+	 * 戦闘パネルのログエリアに要約メッセージを1行追加する。
+	 * BattleManager の命中・ミス・ダメージ時などに呼ぶ。
+	 *
+	 * @param message 表示する要約テキスト
+	 */
+	public void appendBattleLog(String message) {
+		if (battlePanelController == null) return;
+		battlePanelController.appendLog(message);
 	}
 
 	@Override
