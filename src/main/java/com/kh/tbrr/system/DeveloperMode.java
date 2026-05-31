@@ -4,6 +4,7 @@ import com.kh.tbrr.data.models.Player;
 import com.kh.tbrr.data.models.Item;
 import com.kh.tbrr.data.ItemRegistry;
 import com.kh.tbrr.ui.GameUI;
+import com.kh.tbrr.core.GameState;
 
 /**
  * 開発者モード
@@ -15,6 +16,7 @@ public class DeveloperMode {
 	private GameUI ui; // ConsoleUI から GameUI に変更
 	private boolean enabled;
 	private Player currentPlayer;
+	private GameState gameState;
 
 	public DeveloperMode() {
 		this.enabled = false;
@@ -35,6 +37,10 @@ public class DeveloperMode {
 
 	public Player getCurrentPlayer() {
 		return currentPlayer;
+	}
+
+	public void setGameState(GameState gameState) {
+		this.gameState = gameState;
 	}
 
 	public boolean isEnabled() {
@@ -101,6 +107,30 @@ public class DeveloperMode {
 					debugVisible = false;
 					if (ui != null)
 						ui.print("[DEV] DEBUG 表示 OFF");
+				}
+				return;
+			case "helper on":
+				if (enabled) {
+					if (gameState != null) {
+						gameState.setFlag("system:helper_enabled");
+						if (ui != null)
+							ui.print("[DEV] ヘルパー機能を ON にしました");
+					} else {
+						if (ui != null)
+							ui.printError("[DEV] エラー: ゲーム状態が初期化されていません");
+					}
+				}
+				return;
+			case "helper off":
+				if (enabled) {
+					if (gameState != null) {
+						gameState.removeFlag("system:helper_enabled");
+						if (ui != null)
+							ui.print("[DEV] ヘルパー機能を OFF にしました");
+					} else {
+						if (ui != null)
+							ui.printError("[DEV] エラー: ゲーム状態が初期化されていません");
+					}
 				}
 				return;
 		}

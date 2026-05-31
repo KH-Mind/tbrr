@@ -110,10 +110,10 @@ public class EventProcessor {
 		if (gameState.hasFlag("system:helper_enabled") && !event.isSuppressHelperHint()) {
 			String hint = event.getHelperHint();
 			if (hint != null && !hint.isEmpty()) {
-				ui.print("【ヘルパー】" + TextReplacer.replace(hint, player));
+				ui.print("【ヘルパー】\n" + TextReplacer.replace(hint, player));
 			} else {
 				// フォールバックメッセージ
-				ui.print("【ヘルパー】う～ん？僕にもちょっとわからないや、ごめんね！");
+				ui.print("【ヘルパー】\n「う～ん？僕にもちょっとわからないや、ごめんね！」");
 			}
 		}
 

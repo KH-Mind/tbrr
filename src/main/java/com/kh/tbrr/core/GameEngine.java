@@ -176,6 +176,7 @@ public class GameEngine {
 		gameState.setCurrentPlayer(player); // ★追加
 		gameState.setCurrentScenario(scenarioId);
 		gameState.setMaxFloor(currentScenario.getTotalFloors());
+		developerMode.setGameState(gameState);
 
 		// フロアを0から開始
 		gameState.setCurrentFloor(0);
@@ -205,6 +206,7 @@ public class GameEngine {
 		this.gameState = new GameState();
 		gameState.setCurrentPlayer(player); // ★追加: GameStateにプレイヤーをセット
 		gameState.setCurrentScenario(scenarioId);
+		developerMode.setGameState(gameState);
 
 		// フロア設定数をフロア数とする
 		int totalFloors = currentScenario.getStageConfigs().size();
@@ -227,6 +229,7 @@ public class GameEngine {
 	public void resumeGame(GameState state) {
 		this.gameState = state;
 		this.player = state.getCurrentPlayer();
+		developerMode.setGameState(state);
 
 		String scenarioId = state.getCurrentScenario();
 		this.currentScenario = dataManager.loadScenario(scenarioId);

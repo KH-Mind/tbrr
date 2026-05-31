@@ -868,13 +868,15 @@ public class JavaFXUI implements GameUI {
 			if (result != null && !result.isEmpty()) {
 				String lowerInput = result.trim().toLowerCase();
 
-				// 開発者コマンドの判定（admin, dev, admin on/off, debug on/off, player.*）
+				// 開発者コマンドの判定（admin, dev, admin on/off, debug on/off, helper on/off, player.*）
 				if (lowerInput.equals("admin") ||
 						lowerInput.equals("dev") ||
 						lowerInput.equals("admin on") ||
 						lowerInput.equals("admin off") ||
 						lowerInput.equals("debug on") ||
 						lowerInput.equals("debug off") ||
+						lowerInput.equals("helper on") ||
+						lowerInput.equals("helper off") ||
 						lowerInput.startsWith("player.")) {
 
 					if (developerMode != null) {
@@ -938,7 +940,9 @@ public class JavaFXUI implements GameUI {
 							lowerInput.equals("admin on") ||
 							lowerInput.equals("admin off") ||
 							lowerInput.equals("debug on") ||
-							lowerInput.equals("debug off")) {
+							lowerInput.equals("debug off") ||
+							lowerInput.equals("helper on") ||
+							lowerInput.equals("helper off")) {
 
 						if (currentPlayer != null) {
 							developerMode.handleDevCommand(input, currentPlayer);
