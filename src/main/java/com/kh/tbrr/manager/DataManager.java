@@ -40,6 +40,8 @@ public class DataManager {
 			"unique", // ユニークな死亡エンド
 			"monster", // モンスター関連の死亡エンド
 			"traps", // 罠関連の死亡エンド
+			"hazard", // 環境ダメージ・危険イベント関連
+			"encounter", // 遭遇・NPC関連
 			"remnant"
 	};
 
