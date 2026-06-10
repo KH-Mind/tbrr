@@ -268,6 +268,8 @@ public class CharacterCreationScreen {
         descriptionArea.setWrapText(true);
         // descriptionArea.setPrefHeight(150); // 削除: 可変にするため
         descriptionArea.setStyle("-fx-control-inner-background: #e6e6e6; "
+                + "-fx-background-color: #b3b3b3, #e6e6e6; "
+                + "-fx-background-insets: 0, 1; "
                 + "-fx-text-fill: #333333; "
                 + "-fx-font-size: 18px;");
         VBox.setVgrow(descriptionArea, Priority.ALWAYS); // 追加: 残りのスペースを埋める
@@ -540,8 +542,6 @@ public class CharacterCreationScreen {
                 if (selectedJob != null) {
                     descriptionArea.setText(getJobDescription(selectedJob));
                 }
-            } else {
-                descriptionArea.setText(DEFAULT_DESCRIPTION);
             }
         });
 
@@ -725,8 +725,6 @@ public class CharacterCreationScreen {
         node.focusedProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal) {
                 descriptionArea.setText(description);
-            } else {
-                descriptionArea.setText(DEFAULT_DESCRIPTION);
             }
         });
     }

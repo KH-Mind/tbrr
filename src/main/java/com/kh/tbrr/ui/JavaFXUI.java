@@ -1760,7 +1760,8 @@ public class JavaFXUI implements GameUI {
 	 * キャレット移動による意図しないスクロールを防止します。
 	 */
 	private void disableTextClickSelection(TextArea textArea) {
-		textArea.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, event -> {
+		// マウス操作（クリック、ドラッグ等）を完全に無効化する共通フィルター
+		javafx.event.EventHandler<javafx.scene.input.MouseEvent> filter = event -> {
 			javafx.scene.Node target = (javafx.scene.Node) event.getTarget();
 			boolean isScrollBar = false;
 			while (target != null) {
@@ -1771,12 +1772,22 @@ public class JavaFXUI implements GameUI {
 				target = target.getParent();
 			}
 			if (!isScrollBar) {
-				// スクロールバー以外のクリックイベントを消費
+				// スクロールバー以外のマウス操作イベントを完全に握りつぶす
 				event.consume();
-				if (inputField != null) {
-					inputField.requestFocus();
+				// 押し込んだ瞬間だけ、入力フィールドにフォーカスを戻す
+				if (event.getEventType() == javafx.scene.input.MouseEvent.MOUSE_PRESSED) {
+					if (inputField != null) {
+						inputField.requestFocus();
+					}
 				}
 			}
-		});
+		};
+
+		// 以前は PRESSED だけを無効化していたため、ダブルクリック時の DRAGGED や CLICKED がすり抜けてバグを起こしていました。
+		// 関連する全てのマウスイベントを遮断することで、完全に封殺します。
+		textArea.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, filter);
+		textArea.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_RELEASED, filter);
+		textArea.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_CLICKED, filter);
+		textArea.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_DRAGGED, filter);
 	}
 }
