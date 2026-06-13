@@ -1,35 +1,50 @@
 package com.kh.tbrr.data.models;
 
-import java.time.LocalDateTime;
-
+/**
+ * 墓地レコード（死亡記録）モデル
+ * ユーザーデータとして userdata/memory/graveyard/ にJSONで保存される。
+ * 保存項目は4項目：キャラクター名・職・到達フロア・死亡イベント
+ */
 public class GraveRecord {
-    private String id;
-    private String name;
-    private boolean fated;
-    private String deathCause;
+    /** キャラクター名（日本語名） */
+    private String characterName;
+    /** 職業名 */
+    private String characterJob;
+    /** 死亡時の到達フロア数 */
     private int floor;
-    private LocalDateTime timestamp;
-    private boolean revived;
+    /** 死亡したイベントのキー（deathCause） */
+    private String deathEvent;
 
-    public GraveRecord(String id, String name, boolean fated, String deathCause, int floor, LocalDateTime timestamp) {
-        this.id = id;
-        this.name = name;
-        this.fated = fated;
-        this.deathCause = deathCause;
+    /**
+     * コンストラクタ
+     *
+     * @param characterName キャラクター名
+     * @param characterJob  職業名
+     * @param floor         死亡時の到達フロア数
+     * @param deathEvent    死亡イベントキー（deathCause）
+     */
+    public GraveRecord(String characterName, String characterJob, int floor, String deathEvent) {
+        this.characterName = characterName;
+        this.characterJob = characterJob;
         this.floor = floor;
-        this.timestamp = timestamp;
-        this.revived = false;
+        this.deathEvent = deathEvent;
     }
 
-    // Getter
-    public String getId() { return id; }
-    public String getName() { return name; }
-    public boolean isFated() { return fated; }
-    public String getDeathCause() { return deathCause; }
-    public int getFloor() { return floor; }
-    public LocalDateTime getTimestamp() { return timestamp; }
-    public boolean isRevived() { return revived; }
+    // ========== Getter ==========
 
-    // Setter
-    public void setRevived(boolean revived) { this.revived = revived; }
+    public String getCharacterName() {
+        return characterName;
+    }
+
+    public String getCharacterJob() {
+        return characterJob;
+    }
+
+    public int getFloor() {
+        return floor;
+    }
+
+    public String getDeathEvent() {
+        return deathEvent;
+    }
 }

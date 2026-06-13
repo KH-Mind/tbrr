@@ -1,6 +1,5 @@
 package com.kh.tbrr.core;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -12,7 +11,6 @@ import com.kh.tbrr.data.models.GameEvent;
 import com.kh.tbrr.data.models.GameMap;
 import com.kh.tbrr.data.models.GraveRecord;
 import com.kh.tbrr.data.models.Player;
-import com.kh.tbrr.system.CharacterLoader;
 
 /**
  * ゲーム状態管理クラス
@@ -101,12 +99,10 @@ public class GameState {
 
 	public void markCharacterAsLost(Player player) {
 		GraveRecord record = new GraveRecord(
-				player.getId(),
 				player.getName(),
-				player.isFatedOne(),
-				lastDeathCause,
+				player.getJob(),
 				currentFloor,
-				LocalDateTime.now());
+				lastDeathCause != null ? lastDeathCause : "generic");
 		graveyard.put(player.getId(), record);
 	}
 
@@ -119,24 +115,14 @@ public class GameState {
 	}
 
 	public boolean reviveCharacter(String charId) {
-		GraveRecord record = graveyard.get(charId);
-		if (record == null || record.isRevived())
-			return false;
-		if (!record.isFated())
-			return false;
-
-		Player revived = CharacterLoader.loadFromFile(charId);
-		if (revived == null)
-			return false;
-
-		record.setRevived(true);
-		setCurrentPlayer(revived); // プレイヤーを再登録
-		return true;
+		// 旧蘇生システムは現在非対応。将来のimplement_carryover_and_level_systemタスクで実装予定。
+		return false;
 	}
 
 	public List<GraveRecord> getGraveyardRecords() {
 		return new ArrayList<>(graveyard.values());
 	}
+
 
 	// 現在のプレイヤー
 

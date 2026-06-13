@@ -88,7 +88,7 @@ public class MainMenuScreen {
 		Button selectCharButton = createMenuButton("キャラクターの選択");
 		Button createCharButton = createMenuButton("キャラクターの作成");
 		Button manualButton = createMenuButton("マニュアル");
-		Button achievementsButton = createMenuButton("実績");
+		Button achievementsButton = createMenuButton("実績・冒険の記録");
 		Button settingsButton = createMenuButton("設定");
 		Button exitButton = createMenuButton("ゲームを終了する");
 
@@ -191,14 +191,11 @@ public class MainMenuScreen {
 	}
 
 	/**
-	 * 実績
+	 * 実績・冒険の記録
 	 */
 	private void onAchievements() {
-		Alert alert = new Alert(Alert.AlertType.INFORMATION);
-		alert.setTitle("実績");
-		alert.setHeaderText("実績");
-		alert.setContentText("実績機能は未実装です。\n今後のアップデートで追加予定です。");
-		alert.showAndWait();
+		RecordsScreen recordsScreen = new RecordsScreen(stage);
+		recordsScreen.show(() -> show());
 	}
 
 	/**

@@ -8,6 +8,7 @@ import com.kh.tbrr.manager.GraveyardManager;
 
 /**
  * 墓地などの補助メニューを表示するUIクラス
+ * ※旧蘇生システムは削除済み。墓地閲覧はGraveyardManagerの静的メソッドで行う。
  */
 public class ExtraMenuUI {
     private GameState gameState;
@@ -19,36 +20,25 @@ public class ExtraMenuUI {
     }
 
     public void showGraveyardMenu() {
-        GraveyardManager manager = new GraveyardManager(gameState);
-        List<GraveRecord> records = manager.getAllRecords();
+        List<GraveRecord> records = GraveyardManager.loadAllRecords();
 
         ui.print("━━━━━━━━━━━━━━━━━━━━━━━━");
         ui.print("       墓地");
         ui.print("━━━━━━━━━━━━━━━━━━━━━━━━");
 
-        for (GraveRecord record : records) {
-            String line = "- " + record.getName()
-                + "（死因：" + record.getDeathCause()
-                + " / フロア：" + record.getFloor() + "）";
-
-            if (record.isRevived()) {
-                line += " [蘇生済]";
-            } else if (record.isFated()) {
-                line += " ★蘇生可能";
+        if (records.isEmpty()) {
+            ui.print("まだ誰も倒れていない。");
+        } else {
+            for (GraveRecord record : records) {
+                String line = "- " + record.getCharacterName()
+                    + "（" + record.getCharacterJob() + "）"
+                    + " / フロア：" + record.getFloor()
+                    + " / 死因：" + record.getDeathEvent();
+                ui.print(line);
             }
-
-            ui.print(line);
         }
 
         ui.print("━━━━━━━━━━━━━━━━━━━━━━━━");
-        ui.print("蘇生したいキャラIDを入力（キャンセルは空欄）:");
-        String input = ui.getInput();
-
-        if (!input.isEmpty()) {
-            boolean success = manager.revive(input);
-            ui.print(success ? "蘇生に成功しました！" : "蘇生できませんでした。");
-        }
-
         ui.waitForEnter();
     }
 }

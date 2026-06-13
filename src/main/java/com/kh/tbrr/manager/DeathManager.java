@@ -164,10 +164,17 @@ public class DeathManager {
 			ui.print("しかし、運命はまだ" + player.getName() + "を見放していない。");
 			ui.print("");
 		} else {
-			ui.print(player.getName() + "は永遠に失われた。");
-			ui.print("このキャラクターは二度と使用できません。");
+			ui.print(player.getName() + "は墓地に埋められた。");
 			ui.print("");
 			gameState.markCharacterAsLost(player); // キャラ削除処理（仮）
+
+			// 墓地にファイルとして永続保存する
+			com.kh.tbrr.data.models.GraveRecord graveRecord = new com.kh.tbrr.data.models.GraveRecord(
+					player.getName(),
+					player.getJob(),
+					gameState.getCurrentFloor(),
+					deathCause != null ? deathCause : "generic");
+			GraveyardManager.saveRecord(graveRecord);
 		}
 
 		gameState.setGameOver(true);
@@ -178,18 +185,14 @@ public class DeathManager {
 
 	/**
 	 * 死亡後の統計表示
+	 * ※内容は後で工事する
 	 */
 	private void showDeathStatistics(GameState gameState) {
 		ui.print("━━━━━━━━━━━━━━━━━━━━━━━━");
 		ui.print("  冒険の記録");
 		ui.print("━━━━━━━━━━━━━━━━━━━━━━━━");
 		ui.print("到達フロア: " + gameState.getCurrentFloor());
-		ui.print("討伐数: " + gameState.getCounter("monsters_defeated"));
-		ui.print("発見アイテム数: " + gameState.getCounter("items_found"));
-		ui.print("");
-		ui.print("解禁済み死亡エンド: " + gameState.getUnlockedDeathCount() + " 種類");
 		ui.print("━━━━━━━━━━━━━━━━━━━━━━━━");
 		ui.print("");
-
 	}
 }
