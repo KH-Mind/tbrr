@@ -32,7 +32,7 @@ public class MainMenu {
 	}
 
 	private void showGraveyardMenu() {
-		ExtraMenuUI extraMenu = new ExtraMenuUI(gameEngine.getGameState(), ui);
+		ExtraMenuUI extraMenu = new ExtraMenuUI(ui);
 		extraMenu.showGraveyardMenu();
 	}
 

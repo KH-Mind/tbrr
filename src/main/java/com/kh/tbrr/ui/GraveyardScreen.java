@@ -139,7 +139,7 @@ public class GraveyardScreen {
 
         table.getColumns().addAll(nameCol, jobCol, floorCol, deathCol);
         table.setItems(FXCollections.observableArrayList(records));
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
         // テーブルのスタイル調整
         table.setStyle(
