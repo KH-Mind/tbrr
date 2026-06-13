@@ -207,6 +207,9 @@ public class GameEvent {
 		private List<String> itemsLost; // 失うアイテムリスト
 		private List<String> skillsGained; // 習得するスキルリスト
 		private List<String> skillsLost; // 失うスキルリスト
+		private List<String> traitsGained; // 習得する特徴リスト
+		private List<String> traitsLost; // 失う特徴リスト
+		private List<String> traitsLostAll; // 指定した特徴をすべて失うリスト
 		private List<String> flagsToAdd; // 追加するフラグ
 		private List<String> flagsToRemove; // 削除するフラグ
 		private Object hpChange; // HP変化
@@ -220,6 +223,9 @@ public class GameEvent {
 			this.itemsLost = new ArrayList<>();
 			this.skillsGained = new ArrayList<>();
 			this.skillsLost = new ArrayList<>();
+			this.traitsGained = new ArrayList<>();
+			this.traitsLost = new ArrayList<>();
+			this.traitsLostAll = new ArrayList<>();
 			this.flagsToAdd = new ArrayList<>();
 			this.flagsToRemove = new ArrayList<>();
 		}
@@ -311,6 +317,30 @@ public class GameEvent {
 
 		public void setMessage(String message) {
 			this.message = message;
+		}
+
+		public List<String> getTraitsGained() {
+			return traitsGained;
+		}
+
+		public void setTraitsGained(List<String> traitsGained) {
+			this.traitsGained = traitsGained;
+		}
+
+		public List<String> getTraitsLost() {
+			return traitsLost;
+		}
+
+		public void setTraitsLost(List<String> traitsLost) {
+			this.traitsLost = traitsLost;
+		}
+
+		public List<String> getTraitsLostAll() {
+			return traitsLostAll;
+		}
+
+		public void setTraitsLostAll(List<String> traitsLostAll) {
+			this.traitsLostAll = traitsLostAll;
 		}
 	}
 
@@ -447,6 +477,9 @@ public class GameEvent {
 		private String skillLost; // 単一スキル喪失
 		private List<String> skillsGained; // 複数スキル習得
 		private List<String> skillsLost; // 複数スキル喪失
+		private List<String> traitsGained; // 複数特徴習得
+		private List<String> traitsLost; // 複数特徴喪失
+		private List<String> traitsLostAll; // 指定した特徴をすべて失うリスト
 		private int chance;
 		private String condition;
 		private String nextEventId;
@@ -503,6 +536,9 @@ public class GameEvent {
 			this.itemsLost = new ArrayList<>();
 			this.skillsGained = new ArrayList<>();
 			this.skillsLost = new ArrayList<>();
+			this.traitsGained = new ArrayList<>();
+			this.traitsLost = new ArrayList<>();
+			this.traitsLostAll = new ArrayList<>();
 			this.flagsToAdd = new ArrayList<>();
 			this.flagsToRemove = new ArrayList<>();
 		}
@@ -645,6 +681,30 @@ public class GameEvent {
 
 		public void setSkillsLost(List<String> skillsLost) {
 			this.skillsLost = skillsLost;
+		}
+
+		public List<String> getTraitsGained() {
+			return traitsGained;
+		}
+
+		public void setTraitsGained(List<String> traitsGained) {
+			this.traitsGained = traitsGained;
+		}
+
+		public List<String> getTraitsLost() {
+			return traitsLost;
+		}
+
+		public void setTraitsLost(List<String> traitsLost) {
+			this.traitsLost = traitsLost;
+		}
+
+		public List<String> getTraitsLostAll() {
+			return traitsLostAll;
+		}
+
+		public void setTraitsLostAll(List<String> traitsLostAll) {
+			this.traitsLostAll = traitsLostAll;
 		}
 
 		public int getChance() {

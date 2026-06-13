@@ -22,7 +22,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.ChoiceBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
@@ -52,16 +52,16 @@ public class CharacterCreationScreen {
     private TextField nameField;
     private TextField englishNameField;
     private TextField raceNameField;
-    private ChoiceBox<String> raceTypeChoice;
-    private ChoiceBox<String> genderChoice;
+    private ComboBox<String> raceTypeChoice;
+    private ComboBox<String> genderChoice;
     private TextField genderIdentityField;
-    private ChoiceBox<String> jobChoice;
-    private ChoiceBox<String> constellationChoice;
-    private ChoiceBox<String> bonusSkill1Choice; // 追加技能1
-    private ChoiceBox<String> bonusSkill2Choice; // 追加技能2
+    private ComboBox<String> jobChoice;
+    private ComboBox<String> constellationChoice;
+    private ComboBox<String> bonusSkill1Choice; // 追加技能1
+    private ComboBox<String> bonusSkill2Choice; // 追加技能2
     private HBox bonusSkillBox; // 追加技能用のコンテナ
     private TextArea backgroundField; // フォーム内の背景入力エリア（TextArea）
-    private ChoiceBox<String> personalityChoice;
+    private ComboBox<String> personalityChoice;
     private TextField bodyTypeField;
     private TextField clothingField;
     private TextField charmPoint1Field;
@@ -72,7 +72,7 @@ public class CharacterCreationScreen {
 
     // 立ち絵表示
     private ImageView portraitView;
-    private ChoiceBox<String> portraitChoice;
+    private ComboBox<String> portraitChoice;
     private List<String> availablePortraits;
     private List<String> availableCustomPortraits;
     private CheckBox useCustomPortraitCheck;
@@ -268,8 +268,6 @@ public class CharacterCreationScreen {
         descriptionArea.setWrapText(true);
         // descriptionArea.setPrefHeight(150); // 削除: 可変にするため
         descriptionArea.setStyle("-fx-control-inner-background: #e6e6e6; "
-                + "-fx-background-color: #b3b3b3, #e6e6e6; "
-                + "-fx-background-insets: 0, 1; "
                 + "-fx-text-fill: #333333; "
                 + "-fx-font-size: 18px;");
         VBox.setVgrow(descriptionArea, Priority.ALWAYS); // 追加: 残りのスペースを埋める
@@ -327,7 +325,7 @@ public class CharacterCreationScreen {
         setupDescriptionHandler(useCustomPortraitCheck, HELP_PORTRAIT);
 
         // 立ち絵選択
-        portraitChoice = new ChoiceBox<>();
+        portraitChoice = new ComboBox<>();
         portraitChoice.setPrefWidth(292);
         portraitChoice.setMinWidth(292);
         portraitChoice.setMaxWidth(292);
@@ -466,7 +464,7 @@ public class CharacterCreationScreen {
         Button raceRandomBtn = createRandomButton(() -> raceNameField.setText(generateRandomRace()));
 
         Label raceTypeLabel = createStyledLabel("種族タイプ");
-        raceTypeChoice = createStyledChoiceBox();
+        raceTypeChoice = createStyledComboBox();
         raceTypeChoice.getItems().addAll("標準", "前衛", "後衛");
         raceTypeChoice.setValue("標準");
         setupDescriptionHandler(raceTypeChoice, HELP_RACE_TYPE);
@@ -481,7 +479,7 @@ public class CharacterCreationScreen {
 
         // ===== 性別行 =====
         Label genderLabel = createStyledLabel("性別");
-        genderChoice = createStyledChoiceBox();
+        genderChoice = createStyledComboBox();
         genderChoice.getItems().addAll("男性", "女性", "その他");
         genderChoice.setValue("女性");
         setupDescriptionHandler(genderChoice, HELP_GENDER);
@@ -507,7 +505,7 @@ public class CharacterCreationScreen {
 
         // ===== 性格・職業行 =====
         Label personalityLabel = createStyledLabel("性格");
-        personalityChoice = createStyledChoiceBox();
+        personalityChoice = createStyledComboBox();
 
         // PersonalityManagerから性格を読み込み
         Map<Integer, Personality> personalities = personalityManager.getPersonalityChoices();
@@ -522,7 +520,7 @@ public class CharacterCreationScreen {
         setupDescriptionHandler(personalityLabel, HELP_PERSONALITY);
 
         Label jobLabel = createStyledLabel("職業");
-        jobChoice = createStyledChoiceBox();
+        jobChoice = createStyledComboBox();
         jobChoice.getItems().addAll("戦士", "魔法使い", "クレリック", "レンジャー", "盗賊", "商人", "踊り子", "魔闘士", "パラディン", "観光客", "異世界転生者");
         jobChoice.setValue("戦士");
         setupDescriptionHandler(jobChoice, HELP_JOB);
@@ -558,7 +556,7 @@ public class CharacterCreationScreen {
         setupDescriptionHandler(bodyTypeLabel, HELP_BODY_TYPE);
 
         Label constellationLabel = createStyledLabel("星座");
-        constellationChoice = createStyledChoiceBox();
+        constellationChoice = createStyledComboBox();
         constellationChoice.getItems().addAll("親方座", "学者座", "庭師座", "ハサミ座", "見習い座");
         constellationChoice.setValue("親方座");
         setupDescriptionHandler(constellationChoice, HELP_CONSTELLATION);
@@ -566,12 +564,12 @@ public class CharacterCreationScreen {
 
         // ===== 追加技能（ハサミ座用） =====
         // 星座と同じ行の右側（col5から3列分）に配置する
-        bonusSkill1Choice = createStyledChoiceBox();
+        bonusSkill1Choice = createStyledComboBox();
         bonusSkill1Choice.getItems().add("追加技能を選択");
         bonusSkill1Choice.getItems().addAll(ALL_SKILLS);
         bonusSkill1Choice.setValue("追加技能を選択");
 
-        bonusSkill2Choice = createStyledChoiceBox();
+        bonusSkill2Choice = createStyledComboBox();
         bonusSkill2Choice.getItems().add("追加技能を選択");
         bonusSkill2Choice.getItems().addAll(ALL_SKILLS);
         bonusSkill2Choice.setValue("追加技能を選択");
@@ -686,6 +684,7 @@ public class CharacterCreationScreen {
         cruelWorldCheck = new CheckBox("残酷な世界");
         styleCheckBox(cruelWorldCheck);
         setupDescriptionHandler(cruelWorldCheck, HELP_CRUEL_WORLD);
+        cruelWorldCheck.setOnMouseEntered(e -> descriptionArea.setText(HELP_CRUEL_WORLD));
         cruelWorldCheck.setOnAction(e -> {
             if (cruelWorldCheck.isSelected()) {
                 TextInputDialog dialog = new TextInputDialog();
@@ -693,12 +692,17 @@ public class CharacterCreationScreen {
                 dialog.setHeaderText(
                         "この項目は難易度に影響しません。\nreadmeをお読みになり、同意出来るのであれば所定のワードを入力してください。\nセンシティブな要素がオンになります。");
                 dialog.setContentText("入力:");
-                dialog.showAndWait().ifPresent(input -> {
-                    if (!"Cruel World".equals(input)) {
-                        cruelWorldCheck.setSelected(false);
+                
+                var result = dialog.showAndWait();
+                
+                if (result.isPresent() && "Cruel World".equals(result.get())) {
+                    // 正解なのでそのまま
+                } else {
+                    cruelWorldCheck.setSelected(false);
+                    if (result.isPresent()) {
                         showAlert("エラー", "正しく入力されませんでした。");
                     }
-                });
+                }
             }
         });
 
@@ -710,6 +714,7 @@ public class CharacterCreationScreen {
         styleCheckBox(fatedOneCheck);
         fatedOneCheck.setSelected(true);
         setupDescriptionHandler(fatedOneCheck, HELP_FATED_ONE);
+        fatedOneCheck.setOnMouseEntered(e -> descriptionArea.setText(HELP_FATED_ONE));
 
         grid.add(fatedOneCheck, 0, row, 3, 1);
         GridPane.setHalignment(fatedOneCheck, HPos.LEFT);
@@ -750,10 +755,10 @@ public class CharacterCreationScreen {
     }
 
     /**
-     * スタイル付きChoiceBoxを作成
+     * スタイル付きComboBoxを作成
      */
-    private ChoiceBox<String> createStyledChoiceBox() {
-        ChoiceBox<String> choice = new ChoiceBox<>();
+    private ComboBox<String> createStyledComboBox() {
+        ComboBox<String> choice = new ComboBox<>();
         choice.setPrefWidth(INPUT_WIDTH);
         choice.setPrefHeight(INPUT_HEIGHT);
         choice.setStyle("-fx-font-size: " + INPUT_FONT_SIZE + "px; "

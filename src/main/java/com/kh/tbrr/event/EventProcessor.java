@@ -172,13 +172,13 @@ public class EventProcessor {
 			if (hpChange != 0) {
 				player.modifyHp(hpChange);
 				if (hpChange > 0) {
-					String logMessage = "【" + player.getName() + "は" + hpChange + "回復した】";
+					String logMessage = player.getName() + "のHPは" + hpChange + "回復した。";
 					// ui.print(logMessage); // ← コメントアウト：左下メッセージエリアには表示しない
 					printFloorDividerIfNeeded(gameState);
 
 					ui.printImportantLog(logMessage);
 				} else {
-					String logMessage = "【" + player.getName() + "は" + (-hpChange) + "のダメージを受けた】";
+					String logMessage = player.getName() + "は" + (-hpChange) + "のダメージを受けた。";
 					// ui.print(logMessage); // ← コメントアウト：左下メッセージエリアには表示しない
 					printFloorDividerIfNeeded(gameState);
 					ui.printImportantLog(logMessage);
@@ -192,12 +192,12 @@ public class EventProcessor {
 			if (apChange != 0) {
 				player.modifyAp(apChange);
 				if (apChange > 0) {
-					String logMessage = "【APが" + apChange + "回復した】";
+					String logMessage = player.getName() + "のAPは" + apChange + "回復した。";
 					// ui.print(logMessage); // ← コメントアウト：左下メッセージエリアには表示しない
 					printFloorDividerIfNeeded(gameState);
 					ui.printImportantLog(logMessage);
 				} else {
-					String logMessage = "【APを" + (-apChange) + "消費した】";
+					String logMessage = player.getName() + "のAPは" + (-apChange) + "消費した。";
 					// ui.print(logMessage); // ← コメントアウト：左下メッセージエリアには表示しない
 					printFloorDividerIfNeeded(gameState);
 					ui.printImportantLog(logMessage);
@@ -211,12 +211,12 @@ public class EventProcessor {
 			if (moneyChange != 0) {
 				player.modifyMoney(moneyChange);
 				if (moneyChange > 0) {
-					String logMessage = "【銀貨を" + moneyChange + "枚得た】";
+					String logMessage = player.getName() + "は銀貨を" + moneyChange + "枚得た。";
 					// ui.print(logMessage); // ← コメントアウト：左下メッセージエリアには表示しない
 					printFloorDividerIfNeeded(gameState);
 					ui.printImportantLog(logMessage);
 				} else {
-					String logMessage = "【銀貨を" + (-moneyChange) + "枚失った】";
+					String logMessage = player.getName() + "は銀貨を" + (-moneyChange) + "枚失った。";
 					// ui.print(logMessage); // ← コメントアウト：左下メッセージエリアには表示しない
 					printFloorDividerIfNeeded(gameState);
 					ui.printImportantLog(logMessage);
@@ -232,7 +232,7 @@ public class EventProcessor {
 				if (itemName == null) {
 					itemName = itemId;
 				}
-				String logMessage = "【" + itemName + "を手に入れた】";
+				String logMessage = itemName + "を得た。";
 				// ui.print(logMessage); // ← コメントアウト：左下メッセージエリアには表示しない
 				printFloorDividerIfNeeded(gameState);
 				ui.printImportantLog(logMessage); // 重要ログには表示
@@ -247,7 +247,7 @@ public class EventProcessor {
 				if (itemName == null) {
 					itemName = itemId;
 				}
-				String logMessage = "【" + itemName + "を失った】";
+				String logMessage = itemName + "を失った。";
 				// ui.print(logMessage); // ← コメントアウト：左下メッセージエリアには表示しない
 				printFloorDividerIfNeeded(gameState);
 				ui.printImportantLog(logMessage); // 重要ログには表示
@@ -258,7 +258,9 @@ public class EventProcessor {
 		if (effects.getSkillsGained() != null && !effects.getSkillsGained().isEmpty()) {
 			for (String skillName : effects.getSkillsGained()) {
 				player.addSkill(skillName);
-				ui.print("【技能「" + skillName + "」を習得した】");
+				String logMessage = player.getName() + "は【" + skillName + "】技能を得た。";
+				printFloorDividerIfNeeded(gameState);
+				ui.printImportantLog(logMessage);
 			}
 		}
 
@@ -266,7 +268,41 @@ public class EventProcessor {
 		if (effects.getSkillsLost() != null && !effects.getSkillsLost().isEmpty()) {
 			for (String skillName : effects.getSkillsLost()) {
 				player.removeSkill(skillName);
-				String logMessage = "【技能「" + skillName + "」を失った】";
+				String logMessage = player.getName() + "は【" + skillName + "】技能を失った。";
+				printFloorDividerIfNeeded(gameState);
+				ui.printImportantLog(logMessage);
+			}
+		}
+
+		// 特徴習得（複数対応）
+		if (effects.getTraitsGained() != null && !effects.getTraitsGained().isEmpty()) {
+			for (String traitId : effects.getTraitsGained()) {
+				player.addTrait(traitId);
+				com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+				String traitName = td != null ? td.getName() : traitId;
+				ui.print("【" + traitName + "を体得した。】");
+			}
+		}
+
+		// 特徴喪失（複数対応）
+		if (effects.getTraitsLost() != null && !effects.getTraitsLost().isEmpty()) {
+			for (String traitId : effects.getTraitsLost()) {
+				player.removeTrait(traitId);
+				com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+				String traitName = td != null ? td.getName() : traitId;
+				String logMessage = "【" + traitName + "を失った】";
+				printFloorDividerIfNeeded(gameState);
+				ui.printImportantLog(logMessage);
+			}
+		}
+
+		// 特徴全喪失（複数対応）
+		if (effects.getTraitsLostAll() != null && !effects.getTraitsLostAll().isEmpty()) {
+			for (String traitId : effects.getTraitsLostAll()) {
+				player.removeAllTraits(traitId);
+				com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+				String traitName = td != null ? td.getName() : traitId;
+				String logMessage = "【" + traitName + "をすべて失った】";
 				printFloorDividerIfNeeded(gameState);
 				ui.printImportantLog(logMessage);
 			}
@@ -914,7 +950,7 @@ public class EventProcessor {
 				player.modifyHp(hpChange);
 
 				if (hpChange < 0) {
-					String logMessage = "【" + player.getName() + "は" + (-hpChange) + "のダメージを受けた】";
+					String logMessage = player.getName() + "は" + (-hpChange) + "のダメージを受けた。";
 					// ui.print(logMessage); // ← コメントアウト：左下メッセージエリアには表示しない
 					printFloorDividerIfNeeded(gameState);
 					ui.printImportantLog(logMessage);
@@ -928,7 +964,7 @@ public class EventProcessor {
 						return true;
 					}
 				} else {
-					String logMessage = "【" + player.getName() + "は" + hpChange + "回復した】";
+					String logMessage = player.getName() + "のHPは" + hpChange + "回復した。";
 					// ui.print(logMessage); // ← コメントアウト：左下メッセージエリアには表示しない
 					printFloorDividerIfNeeded(gameState);
 					ui.printImportantLog(logMessage);
@@ -943,12 +979,12 @@ public class EventProcessor {
 				player.modifyAp(apChange);
 
 				if (apChange > 0) {
-					String logMessage = "【APが" + apChange + "回復した】";
+					String logMessage = player.getName() + "のAPは" + apChange + "回復した。";
 					// ui.print(logMessage); // ← コメントアウト：左下メッセージエリアには表示しない
 					printFloorDividerIfNeeded(gameState);
 					ui.printImportantLog(logMessage);
 				} else {
-					String logMessage = "【APを" + (-apChange) + "消費した】";
+					String logMessage = player.getName() + "のAPは" + (-apChange) + "消費した。";
 					// ui.print(logMessage); // ← コメントアウト：左下メッセージエリアには表示しない
 					printFloorDividerIfNeeded(gameState);
 					ui.printImportantLog(logMessage);
@@ -963,12 +999,12 @@ public class EventProcessor {
 				player.modifyMoney(moneyChange);
 
 				if (moneyChange > 0) {
-					String logMessage = "【銀貨を" + moneyChange + "枚得た】";
+					String logMessage = player.getName() + "は銀貨を" + moneyChange + "枚得た。";
 					// ui.print(logMessage); // ← コメントアウト：左下メッセージエリアには表示しない
 					printFloorDividerIfNeeded(gameState);
 					ui.printImportantLog(logMessage);
 				} else {
-					String logMessage = "【銀貨を" + (-moneyChange) + "枚失った】";
+					String logMessage = player.getName() + "は銀貨を" + (-moneyChange) + "枚失った。";
 					// ui.print(logMessage); // ← コメントアウト：左下メッセージエリアには表示しない
 					printFloorDividerIfNeeded(gameState);
 					ui.printImportantLog(logMessage);
@@ -1002,11 +1038,11 @@ public class EventProcessor {
 				if (itemName == null) {
 					itemName = itemId;
 				}
-				String logMessage = "【" + itemName + "を手に入れた】";
+				String logMessage = itemName + "を得た。";
 				printFloorDividerIfNeeded(gameState);
 				ui.printImportantLog(logMessage);
 			} else {
-				String logMessage = "【入手できるアイテムがなかった】";
+				String logMessage = "入手できるアイテムがなかった。";
 				printFloorDividerIfNeeded(gameState);
 				ui.printImportantLog(logMessage);
 			}
@@ -1019,7 +1055,7 @@ public class EventProcessor {
 			if (itemName == null) {
 				itemName = result.getItemLost();
 			}
-			String logMessage = "【" + itemName + "を失った】";
+			String logMessage = itemName + "を失った。";
 			// ui.print(logMessage); // ← コメントアウト：左下メッセージエリアには表示しない
 			printFloorDividerIfNeeded(gameState);
 			ui.printImportantLog(logMessage); // 重要ログには表示
@@ -1033,7 +1069,7 @@ public class EventProcessor {
 				if (itemName == null) {
 					itemName = itemId;
 				}
-				String logMessage = "【" + itemName + "を失った】";
+				String logMessage = itemName + "を失った。";
 				// ui.print(logMessage); // ← コメントアウト：左下メッセージエリアには表示しない
 				printFloorDividerIfNeeded(gameState);
 				ui.printImportantLog(logMessage); // 重要ログには表示
@@ -1054,11 +1090,11 @@ public class EventProcessor {
 				if (itemName == null) {
 					itemName = itemId;
 				}
-				String logMessage = "【" + itemName + "を失った】";
+				String logMessage = itemName + "を失った。";
 				printFloorDividerIfNeeded(gameState);
 				ui.printImportantLog(logMessage);
 			} else {
-				String logMessage = "【失うアイテムがなかった】";
+				String logMessage = "失うアイテムがなかった。";
 				printFloorDividerIfNeeded(gameState);
 				ui.printImportantLog(logMessage);
 			}
@@ -1077,11 +1113,11 @@ public class EventProcessor {
 					if (itemName == null) {
 						itemName = itemId;
 					}
-					String logMessage = "【" + itemName + "を失った】";
+					String logMessage = itemName + "を失った。";
 					printFloorDividerIfNeeded(gameState);
 					ui.printImportantLog(logMessage);
 				} else {
-					String logMessage = "【失うアイテムがなかった】";
+					String logMessage = "失うアイテムがなかった。";
 					printFloorDividerIfNeeded(gameState);
 					ui.printImportantLog(logMessage);
 					break; // これ以上失うアイテムがないので中断
@@ -1091,22 +1127,28 @@ public class EventProcessor {
 
 		// 単一スキル習得
 		if (result.getSkillGained() != null && !result.getSkillGained().isEmpty()) {
-			player.addSkill(result.getSkillGained());
-			ui.print("【技能「" + result.getSkillGained() + "」を習得した】");
+			String skillName = result.getSkillGained();
+			player.addSkill(skillName);
+			String logMessage = player.getName() + "は【" + skillName + "】技能を得た。";
+			printFloorDividerIfNeeded(gameState);
+			ui.printImportantLog(logMessage);
 		}
 
 		// 複数スキル習得
 		if (result.getSkillsGained() != null && !result.getSkillsGained().isEmpty()) {
 			for (String skillName : result.getSkillsGained()) {
 				player.addSkill(skillName);
-				ui.print("【技能「" + skillName + "」を習得した】");
+				String logMessage = player.getName() + "は【" + skillName + "】技能を得た。";
+				printFloorDividerIfNeeded(gameState);
+				ui.printImportantLog(logMessage);
 			}
 		}
 
 		// 単一スキルロスト
 		if (result.getSkillLost() != null && !result.getSkillLost().isEmpty()) {
-			player.removeSkill(result.getSkillLost());
-			String logMessage = "【技能「" + result.getSkillLost() + "」を失った】";
+			String skillName = result.getSkillLost();
+			player.removeSkill(skillName);
+			String logMessage = player.getName() + "は【" + skillName + "】技能を失った。";
 			printFloorDividerIfNeeded(gameState);
 			ui.printImportantLog(logMessage);
 		}
@@ -1115,7 +1157,41 @@ public class EventProcessor {
 		if (result.getSkillsLost() != null && !result.getSkillsLost().isEmpty()) {
 			for (String skillName : result.getSkillsLost()) {
 				player.removeSkill(skillName);
-				String logMessage = "【技能「" + skillName + "」を失った】";
+				String logMessage = player.getName() + "は【" + skillName + "】技能を失った。";
+				printFloorDividerIfNeeded(gameState);
+				ui.printImportantLog(logMessage);
+			}
+		}
+
+		// 特徴習得（複数対応）
+		if (result.getTraitsGained() != null && !result.getTraitsGained().isEmpty()) {
+			for (String traitId : result.getTraitsGained()) {
+				player.addTrait(traitId);
+				com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+				String traitName = td != null ? td.getName() : traitId;
+				ui.print("【" + traitName + "を体得した。】");
+			}
+		}
+
+		// 特徴喪失（複数対応）
+		if (result.getTraitsLost() != null && !result.getTraitsLost().isEmpty()) {
+			for (String traitId : result.getTraitsLost()) {
+				player.removeTrait(traitId);
+				com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+				String traitName = td != null ? td.getName() : traitId;
+				String logMessage = "【" + traitName + "を失った】";
+				printFloorDividerIfNeeded(gameState);
+				ui.printImportantLog(logMessage);
+			}
+		}
+
+		// 特徴全喪失（複数対応）
+		if (result.getTraitsLostAll() != null && !result.getTraitsLostAll().isEmpty()) {
+			for (String traitId : result.getTraitsLostAll()) {
+				player.removeAllTraits(traitId);
+				com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+				String traitName = td != null ? td.getName() : traitId;
+				String logMessage = "【" + traitName + "をすべて失った】";
 				printFloorDividerIfNeeded(gameState);
 				ui.printImportantLog(logMessage);
 			}
@@ -1388,8 +1464,8 @@ public class EventProcessor {
 		} else {
 			// 通常アイテム → インベントリに直接追加
 			player.addItem(itemId);
-			String logMessage = "【" + item.getName() + " を手に入れた】";
-			ui.print(logMessage);
+			String logMessage = item.getName() + "を得た。";
+			// ui.print(logMessage); // メインテキストへの直接出力は不要
 			printFloorDividerIfNeeded(gameState);
 			ui.printImportantLog(logMessage);
 		}
@@ -1552,9 +1628,9 @@ public class EventProcessor {
 			if (hpChange != 0) {
 				player.modifyHp(hpChange);
 				if (hpChange > 0) {
-					ui.print("【" + player.getName() + "は" + hpChange + "回復した】");
+					ui.printImportantLog(player.getName() + "のHPは" + hpChange + "回復した。");
 				} else {
-					ui.print("【" + player.getName() + "は" + (-hpChange) + "のダメージを受けた】");
+					ui.printImportantLog(player.getName() + "は" + (-hpChange) + "のダメージを受けた。");
 				}
 			}
 		}
@@ -1565,9 +1641,9 @@ public class EventProcessor {
 			if (moneyChange != 0) {
 				player.modifyMoney(moneyChange);
 				if (moneyChange > 0) {
-					ui.printImportantLog("【銀貨を" + moneyChange + "枚得た】");
+					ui.printImportantLog(player.getName() + "は銀貨を" + moneyChange + "枚得た。");
 				} else {
-					ui.printImportantLog("【銀貨を" + (-moneyChange) + "枚失った】");
+					ui.printImportantLog(player.getName() + "は銀貨を" + (-moneyChange) + "枚失った。");
 				}
 			}
 		}

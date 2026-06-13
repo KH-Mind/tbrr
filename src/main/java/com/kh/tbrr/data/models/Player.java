@@ -205,7 +205,8 @@ public class Player {
      * isPenetrating=false（通常攻撃）の場合: まずSPでダメージを受け、0を下回った超過分がHPに通る。<br>
      * isPenetrating=true（将来の貫通攻撃）の場合: SPをバイパスしてダメージをそのままHPに適用する。
      * </p>
-     * @param damage       受けるダメージ量（正の整数）
+     * 
+     * @param damage        受けるダメージ量（正の整数）
      * @param isPenetrating trueの場合はSPを無視してHPに直接ダメージ
      * @return 実際にHPに通ったダメージ量（ログ表示用）
      */
@@ -399,6 +400,14 @@ public class Player {
         traits.add(traitName);
     }
 
+    public void removeTrait(String traitName) {
+        traits.remove(traitName);
+    }
+
+    public void removeAllTraits(String traitName) {
+        traits.removeIf(t -> t.equals(traitName));
+    }
+
     public void addCharmPoint(String charmPoint) {
         if (charmPoints.size() < 3) {
             charmPoints.add(charmPoint);
@@ -543,7 +552,8 @@ public class Player {
                 Item acc = ItemRegistry.getItemById(accId);
                 if (acc != null && acc.getGrantedTraits() != null) {
                     for (String traitId : acc.getGrantedTraits()) {
-                        if (!effective.contains(traitId)) effective.add(traitId);
+                        if (!effective.contains(traitId))
+                            effective.add(traitId);
                     }
                 }
             }
@@ -686,7 +696,20 @@ public class Player {
 
         // スキル表示（baseSkills + アイテム由来）
         List<String> effectiveSkills = getEffectiveSkills();
-        sb.append("スキル: ").append(effectiveSkills.isEmpty() ? "なし" : String.join(", ", effectiveSkills)).append("\n");
+        sb.append("技能: ").append(effectiveSkills.isEmpty() ? "なし" : String.join(", ", effectiveSkills)).append("\n");
+
+        // 特徴表示
+        if (traits.isEmpty()) {
+            sb.append("特徴: なし\n");
+        } else {
+            sb.append("特徴: ");
+            java.util.List<String> traitNames = new java.util.ArrayList<>();
+            for (String traitId : traits) {
+                com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+                traitNames.add(td != null ? td.getName() : traitId);
+            }
+            sb.append(String.join(", ", traitNames)).append("\n");
+        }
 
         // 所持品表示（名前変換付き）
         if (inventory.isEmpty()) {
