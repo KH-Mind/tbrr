@@ -43,11 +43,11 @@ public class DeathManager {
 	 * 死亡処理のメイン
 	 */
 	public void processDeath(String deathCause, Player player, GameState gameState) {
-	    System.out.println("[DEBUG] deathCause = " + deathCause);
-	    
-	    //ここではまだGAME OVERを表示しない
-	    
-	    List<String> endings = null;
+		System.out.println("[DEBUG] deathCause = " + deathCause);
+
+		// ここではまだGAME OVERを表示しない
+
+		List<String> endings = null;
 
 		// ① deathCause が未設定ならエラー表示して中断
 		if (deathCause == null || deathCause.isEmpty()) {
@@ -110,15 +110,14 @@ public class DeathManager {
 		}
 
 		// ⑤ 最終表示処理
-				
+
 		ui.waitForEnter(); // ここでEnter待ち
 		ui.print("");
 		ui.print("━━━━━━━━━━━━━━━━━━━━━━━━");
 		ui.print("        GAME OVER");
 		ui.print("━━━━━━━━━━━━━━━━━━━━━━━━");
 		ui.print("");
-		
-		
+
 		if (endings != null && !endings.isEmpty()) {
 			String selected = endings.get(random.nextInt(endings.size()));
 			selected = TextReplacer.replace(selected, player); // プレースホルダを保持したまま置換
@@ -147,7 +146,7 @@ public class DeathManager {
 			ui.print("");
 		}
 
-		// 死亡後の「やられちまったぜ」的な表記　Elonaの　しくしく　とか　今夜は眠れないな　の表示のやつのリスペクト
+		// 死亡後の「やられちまったぜ」的な表記 Elonaの しくしく とか 今夜は眠れないな の表示のやつのリスペクト
 		ui.print("");
 		List<String> deathMessages = Arrays.asList(
 				"やられちまったぜ",
@@ -156,13 +155,18 @@ public class DeathManager {
 		String selected = deathMessages.get(random.nextInt(deathMessages.size()));
 		selected = TextReplacer.replace(selected, player);
 		ui.print(selected);
-		// ui.print("");
+		ui.print("");
 		ui.waitForEnter();
 
 		// 運命に導かれし者の判定
 		if (player.isFatedOne()) {
-			ui.print("しかし、運命はまだ" + player.getName() + "を見放していない。");
-			ui.print("");
+
+			// 引継ぎ選択画面を開く（選択が完了するまでここでブロック）
+			// CarryoverScreen内でアビリティ/特徴の選択、リセット、JSON上書き、grade+1が行われる
+			ui.requestCarryoverSelection(player, () -> {
+				// 選択完了後のコールバック（現在は特に何もしない）
+			});
+
 		} else {
 			ui.print(player.getName() + "は墓地に埋められた。");
 			ui.print("");

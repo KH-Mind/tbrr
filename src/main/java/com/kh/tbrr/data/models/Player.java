@@ -74,10 +74,20 @@ public class Player {
 
     // lists
     private List<String> skills;
-    private List<String> abilities; // アクティブスキル（技・魔法）
+
+    // アビリティ（技・魔法）の3分類
+    private List<String> baseAbilities;      // キャラ作成時から持つアビリティ（職業・初期ボーナス）
+    private List<String> inheritedAbilities; // 過去の引継ぎで恒久化したアビリティ
+    private List<String> abilities;          // その周で得たアビリティ（一時取得）
+
     // passivesフィールドはtraitsに統合済み
     private List<String> stances; // 習得しているスタンス用リスト
-    private List<String> traits; // 特徴/Trait（恒常パッシブ効果）
+
+    // 特徴/Traitの3分類
+    private List<String> baseTraits;      // キャラ作成時から持つ特徴（職業由来等）
+    private List<String> inheritedTraits; // 過去の引継ぎで恒久化した特徴
+    private List<String> traits;          // その周で得た特徴（一時取得）
+
     private List<String> inventory;
 
     // equipments
@@ -94,6 +104,10 @@ public class Player {
     // flags
     private boolean cruelWorldEnabled = false;
     private boolean isFatedOne;
+
+    // グレード: 死亡した回数（引継ぎ回数）。最大20。
+    // ※このゲームのグレードは一般的なRPGの「レベル」とは異なり、死んだ回数を表す。
+    private int grade = 0;
 
     public enum RaceType {
         STANDARD("標準", 100, 20), FRONTLINE("前衛", 125, 15), BACKLINE("後衛", 75, 25);
@@ -140,8 +154,12 @@ public class Player {
     public Player() {
         this.baseSkills = new ArrayList<>();
         this.skills = new ArrayList<>();
+        this.baseAbilities = new ArrayList<>();
+        this.inheritedAbilities = new ArrayList<>();
         this.abilities = new ArrayList<>();
         this.stances = new ArrayList<>();
+        this.baseTraits = new ArrayList<>();
+        this.inheritedTraits = new ArrayList<>();
         this.traits = new ArrayList<>();
         this.inventory = new ArrayList<>();
         this.charmPoints = new ArrayList<>();
@@ -156,6 +174,7 @@ public class Player {
         this.maxMoney = 100;
         this.gender = Gender.FEMALE; // デフォルト値
         this.genderIdentity = "女性"; // デフォルト値
+        this.grade = 0;
     }
 
     // ========== SP管理 ==========
@@ -453,88 +472,22 @@ public class Player {
     }
 
     /**
-     * 状態異常を変更（増減）
-     */
-    public void modifyStatusEffect(String effectId, int amount) {
-        int currentValue = getStatusEffectValue(effectId);
-        setStatusEffect(effectId, currentValue + amount);
-    }
-
-    /**
-     * 状態異常を変更（自動初期化付き）
-     * 状態異常が未設定の場合、defaultValueで初期化してから変更する
-     * defaultValueが定義されていない場合は通常のmodifyStatusEffectと同じ動作
-     */
-    public void modifyStatusEffectWithInit(String effectId, int amount) {
-        // 既に設定されている場合は通常の処理
-        if (hasStatusEffect(effectId)) {
-            modifyStatusEffect(effectId, amount);
-            return;
-        }
-
-        // 未設定の場合、StatusEffectRegistryから定義を取得
-        com.kh.tbrr.data.models.StatusEffect effect = com.kh.tbrr.data.StatusEffectRegistry
-                .getStatusEffectById(effectId);
-
-        if (effect != null && effect.getDefaultValue() != null) {
-            // defaultValueが定義されている場合: 初期値 + 変更量で設定
-            int initialValue = effect.getDefaultValue() + amount;
-            int clampedValue = Math.max(effect.getMinValue(),
-                    Math.min(initialValue, effect.getMaxValue()));
-
-            // allowZeroがtrueの場合は最小値でも設定、falseの場合は最小値より大きい場合のみ設定
-            boolean shouldSet = effect.isAllowZero()
-                    ? clampedValue >= effect.getMinValue()
-                    : clampedValue > effect.getMinValue();
-
-            if (shouldSet) {
-                statusEffects.put(effectId, clampedValue);
-            }
-        } else {
-            // defaultValueが未定義の場合: 通常の処理（0から開始）
-            modifyStatusEffect(effectId, amount);
-        }
-    }
-
-    /**
-     * 状態異常を削除
-     */
-    public void removeStatusEffect(String effectId) {
-        statusEffects.remove(effectId);
-    }
-
-    /**
-     * 全ての状態異常を取得
-     */
-    public java.util.Map<String, Integer> getStatusEffects() {
-        return new java.util.HashMap<>(statusEffects);
-    }
-
-    public List<String> getEffectiveSkills() {
-        List<String> effective = new ArrayList<>(baseSkills); // 職業・背景スキル
-
-        for (String itemId : inventory) {
-            Item item = ItemRegistry.getItemById(itemId);
-            if (item != null && item.getGrantedSkills() != null) {
-                for (String skill : item.getGrantedSkills()) {
-                    if (!effective.contains(skill)) {
-                        effective.add(skill);
-                    }
-                }
-            }
-        }
-
-        return effective;
-    }
-
-    /**
      * 有効な特徴（Trait）リストを取得する。
-     * 永続的な Trait（player.traits）に吐え、
-     * 現在装備中のアイテム（メイン武器・アクセサリ）が持つ grantedTraits を動的に合算する。
+     * base(職業由来) + inherited(引継ぎ済み) + traits(その周) の3段階を合算し、
+     * さらに現在装備中のアイテムが持つ grantedTraits を動的に合算する。
      * アイテムの装備を外せば効果も消える。
      */
     public List<String> getEffectiveTraits() {
-        List<String> effective = new ArrayList<>(traits); // 永続 Trait
+        // nullチェック（Gsonで読み込み時にフィールドがない場合nullになる場合の対処）
+        if (baseTraits == null) baseTraits = new ArrayList<>();
+        if (inheritedTraits == null) inheritedTraits = new ArrayList<>();
+        if (traits == null) traits = new ArrayList<>();
+
+        // 3段階を順番に結合: 初期→引継ぎ済み→その周
+        List<String> effective = new ArrayList<>();
+        effective.addAll(baseTraits);
+        effective.addAll(inheritedTraits);
+        effective.addAll(traits);
 
         // メイン武器の grantedTraits
         if (equippedMainWeapon != null) {
@@ -581,10 +534,109 @@ public class Player {
     }
 
     /**
-     * 基本習得アビリティと、有効な特徴(Trait)によって自動付与されるアビリティを統合して返す。
+     * 状態異常を削除
+     */
+    public void removeStatusEffect(String effectId) {
+        statusEffects.remove(effectId);
+    }
+
+    /**
+     * 全ての状態異常を一括クリアする。
+     * 引継ぎ処理後の初期化などで使用する。
+     */
+    public void clearAllStatusEffects() {
+        if (statusEffects != null) {
+            statusEffects.clear();
+        }
+    }
+
+    /**
+     * 全ての状態異常を取得
+     */
+    public java.util.Map<String, Integer> getStatusEffects() {
+        if (statusEffects == null) statusEffects = new java.util.HashMap<>();
+        return new java.util.HashMap<>(statusEffects);
+    }
+
+    public List<String> getEffectiveSkills() {
+        List<String> effective = new ArrayList<>(baseSkills); // 職業・背景スキル
+
+        for (String itemId : inventory) {
+            Item item = ItemRegistry.getItemById(itemId);
+            if (item != null && item.getGrantedSkills() != null) {
+                for (String skill : item.getGrantedSkills()) {
+                    if (!effective.contains(skill)) {
+                        effective.add(skill);
+                    }
+                }
+            }
+        }
+
+        return effective;
+    }
+
+    /**
+     * 状態異常を変更（増減）
+     */
+    public void modifyStatusEffect(String effectId, int amount) {
+        int currentValue = getStatusEffectValue(effectId);
+        setStatusEffect(effectId, currentValue + amount);
+    }
+
+    /**
+     * 状態異常を変更（自動初期化付き）
+     * 状態異常が未設定の場合、defaultValueで初期化してから変更する
+     * defaultValueが定義されていない場合は通常のmodifyStatusEffectと同じ動作
+     */
+    public void modifyStatusEffectWithInit(String effectId, int amount) {
+        // 既に設定されている場合は通常の処理
+        if (hasStatusEffect(effectId)) {
+            modifyStatusEffect(effectId, amount);
+            return;
+        }
+
+        // 未設定の場合、StatusEffectRegistryから定義を取得
+        com.kh.tbrr.data.models.StatusEffect effect = com.kh.tbrr.data.StatusEffectRegistry
+                .getStatusEffectById(effectId);
+
+        if (effect != null && effect.getDefaultValue() != null) {
+            // defaultValueが定義されている場合: 初期値 + 変更量で設定
+            int initialValue = effect.getDefaultValue() + amount;
+            int clampedValue = Math.max(effect.getMinValue(),
+                    Math.min(initialValue, effect.getMaxValue()));
+
+            // allowZeroがtrueの場合は最小値でも設定、falseの場合は最小値より大きい場合のみ設定
+            boolean shouldSet = effect.isAllowZero()
+                    ? clampedValue >= effect.getMinValue()
+                    : clampedValue > effect.getMinValue();
+
+            if (shouldSet) {
+                statusEffects.put(effectId, clampedValue);
+            }
+        } else {
+            // defaultValueが未定義の場合: 通常の処理（0から開始）
+            modifyStatusEffect(effectId, amount);
+        }
+    }
+
+    /**
+     * 全アビリティリストを取得する。
+     * base(職業由来) + inherited(引継ぎ済み) + abilities(その周) の3段階を合算し、
+     * さらに有効な特徴(Trait)によって自動付与されるアビリティも含む。
      */
     public List<String> getEffectiveAbilities() {
-        List<String> effAbilities = new ArrayList<>(abilities);
+        // nullチェック（Gsonで読み込み時にフィールドがない場合nullになる場合の対処）
+        if (baseAbilities == null) baseAbilities = new ArrayList<>();
+        if (inheritedAbilities == null) inheritedAbilities = new ArrayList<>();
+        if (abilities == null) abilities = new ArrayList<>();
+
+        // 3段階を順番に結合: 初期→引継ぎ済み→その周
+        List<String> effAbilities = new ArrayList<>();
+        effAbilities.addAll(baseAbilities);
+        effAbilities.addAll(inheritedAbilities);
+        effAbilities.addAll(abilities);
+
+        // 有効な特徴から自動付与アビリティを追加
         List<String> effTraits = getEffectiveTraits();
         for (String traitId : effTraits) {
             TraitData td = TraitRegistry.getTraitById(traitId);
@@ -672,7 +724,8 @@ public class Player {
         sb.append("職業: ").append(job != null ? job : "未設定").append("\n");
         sb.append("背景: ").append(background != null ? background : "未設定").append("\n");
         sb.append("星座: ").append(constellation != null ? constellation : "未設定").append("\n");
-        sb.append("性格: ").append(personality != null ? personality.getName() : "未設定").append("\n\n");
+        sb.append("性格: ").append(personality != null ? personality.getName() : "未設定").append("\n");
+        sb.append("グレード: ").append(grade).append(" / 20\n\n");
 
         sb.append("体型: ").append(bodyType != null ? bodyType : "未設定").append("\n");
         sb.append("服装: ").append(clothing != null ? clothing : "未設定").append("\n");
@@ -698,13 +751,18 @@ public class Player {
         List<String> effectiveSkills = getEffectiveSkills();
         sb.append("技能: ").append(effectiveSkills.isEmpty() ? "なし" : String.join(", ", effectiveSkills)).append("\n");
 
-        // 特徴表示
-        if (traits.isEmpty()) {
+        // 特徴表示（3分類: 初期 → 引継ぎ済み → その周）
+        java.util.List<String> allTraitIds = new java.util.ArrayList<>();
+        if (baseTraits != null) allTraitIds.addAll(baseTraits);
+        if (inheritedTraits != null) allTraitIds.addAll(inheritedTraits);
+        if (traits != null) allTraitIds.addAll(traits);
+
+        if (allTraitIds.isEmpty()) {
             sb.append("特徴: なし\n");
         } else {
             sb.append("特徴: ");
             java.util.List<String> traitNames = new java.util.ArrayList<>();
-            for (String traitId : traits) {
+            for (String traitId : allTraitIds) {
                 com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
                 traitNames.add(td != null ? td.getName() : traitId);
             }
@@ -976,12 +1034,11 @@ public class Player {
      */
     public int getMaxReserveSlots() {
         long bigBagCount = 0;
-        if (traits != null) {
-            for (String traitId : traits) {
-                com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
-                if (td != null && "BIG_BAG".equals(td.getSystemicEffect())) {
-                    bigBagCount++;
-                }
+        // 3分類全てを対象にする（getEffectiveTraitsで合算済み）
+        for (String traitId : getEffectiveTraits()) {
+            com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+            if (td != null && "BIG_BAG".equals(td.getSystemicEffect())) {
+                bigBagCount++;
             }
         }
         return (int) Math.min(3, 1 + bigBagCount);
@@ -1097,5 +1154,63 @@ public class Player {
                 this.portraitId = portraitFileName.substring(0, dotIndex);
             }
         }
+    }
+
+    // ========== グレード ==========
+
+    public int getGrade() {
+        return grade;
+    }
+
+    public void setGrade(int grade) {
+        this.grade = Math.max(0, Math.min(20, grade));
+    }
+
+    /**
+     * グレードを1増加する。最大20まで。
+     * FatedOneの引継ぎ処理時に呼び出す。
+     */
+    public void incrementGrade() {
+        this.grade = Math.min(20, this.grade + 1);
+    }
+
+    // ========== アビリティ 3分類 getter/setter ==========
+
+    public List<String> getBaseAbilities() {
+        if (baseAbilities == null) baseAbilities = new ArrayList<>();
+        return baseAbilities;
+    }
+
+    public void setBaseAbilities(List<String> baseAbilities) {
+        this.baseAbilities = baseAbilities != null ? baseAbilities : new ArrayList<>();
+    }
+
+    public List<String> getInheritedAbilities() {
+        if (inheritedAbilities == null) inheritedAbilities = new ArrayList<>();
+        return inheritedAbilities;
+    }
+
+    public void setInheritedAbilities(List<String> inheritedAbilities) {
+        this.inheritedAbilities = inheritedAbilities != null ? inheritedAbilities : new ArrayList<>();
+    }
+
+    // ========== 特徴 3分類 getter/setter ==========
+
+    public List<String> getBaseTraits() {
+        if (baseTraits == null) baseTraits = new ArrayList<>();
+        return baseTraits;
+    }
+
+    public void setBaseTraits(List<String> baseTraits) {
+        this.baseTraits = baseTraits != null ? baseTraits : new ArrayList<>();
+    }
+
+    public List<String> getInheritedTraits() {
+        if (inheritedTraits == null) inheritedTraits = new ArrayList<>();
+        return inheritedTraits;
+    }
+
+    public void setInheritedTraits(List<String> inheritedTraits) {
+        this.inheritedTraits = inheritedTraits != null ? inheritedTraits : new ArrayList<>();
     }
 }

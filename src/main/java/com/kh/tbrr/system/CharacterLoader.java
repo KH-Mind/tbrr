@@ -46,6 +46,32 @@ public class CharacterLoader {
 		}
 	}
 
+	/**
+	 * 既存のキャラクターJSONを上書き保存する。
+	 * ファイル名は「englishName.json」で固定。重複チェックは行わない。
+	 * 引継ぎシステムがキャラシを更新する際に使用する。
+	 *
+	 * @param player 保存するPlayerデータ
+	 * @return 成功すればtrue
+	 */
+	public boolean overwriteCharacter(Player player) {
+		String englishName = player.getEnglishName();
+		if (englishName == null || englishName.trim().isEmpty()) {
+			System.err.println("上書き保存失敗: englishNameが未設定です。");
+			return false;
+		}
+		String filename = sanitizeFilename(englishName.trim()) + ".json";
+		Path out = SAVE_DIR.resolve(filename);
+		try (FileWriter writer = new FileWriter(out.toFile())) {
+			gson.toJson(player, writer);
+			System.out.println("キャラシを上書き保存しました: " + out);
+			return true;
+		} catch (IOException e) {
+			System.err.println("上書き保存失敗: " + e.getMessage());
+			return false;
+		}
+	}
+
 	public Player loadCharacter(String filename) {
 		Path in = SAVE_DIR.resolve(filename);
 		if (!Files.exists(in)) {

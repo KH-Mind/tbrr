@@ -1104,6 +1104,9 @@ public class CharacterCreationScreen {
         player.setCruelWorldEnabled(cruelWorldCheck.isSelected());
         player.setFatedOne(fatedOneCheck.isSelected());
 
+        // グレード初期値を明示的にセット（grade = 死んだ回数。作成時は0）
+        player.setGrade(0);
+
         // 立ち絵情報の保存
         String selectedPortrait = portraitChoice.getValue();
         if (selectedPortrait != null && !selectedPortrait.equals("立ち絵を選択")) {
@@ -1160,9 +1163,9 @@ public class CharacterCreationScreen {
                     player.addBaseSkill(s.getAsString());
                 }
 
-                // 2. traits
+                // 2. traits → baseTraitsに設定（職業由来の特徴は恒久的なbase分類）
                 for (com.google.gson.JsonElement t : jobObj.getAsJsonArray("traits")) {
-                    player.addTrait(t.getAsString());
+                    player.getBaseTraits().add(t.getAsString());
                 }
 
                 // 3. フレーバーアイテム（所持のみ）

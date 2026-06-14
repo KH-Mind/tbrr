@@ -147,7 +147,7 @@ public class JavaFXUI implements GameUI {
 			if (scrollPane != null) {
 				scrollPane.setStyle("-fx-vbar-policy: always;");
 			}
-			
+
 			// ★追加: テキストエリア選択時に先頭へスクロールしてしまうバグ対策
 			// テキストエリア部分でのマウスクリックを完全にブロックし、スクロールバー操作のみ許可する
 			disableTextClickSelection(messageArea);
@@ -580,7 +580,7 @@ public class JavaFXUI implements GameUI {
 		moveComboBox = new ComboBox<>();
 		moveComboBox.getItems().addAll("前進", "停止", "後退");
 		moveComboBox.setValue("停止");
-		
+
 		actionComboBox = new ComboBox<>();
 		actionComboBox.getItems().addAll("攻撃", "全力移動", "防御", "逃げる");
 		actionComboBox.setValue("攻撃");
@@ -594,7 +594,7 @@ public class JavaFXUI implements GameUI {
 		specialComboBox.getItems().add("なし");
 		specialComboBox.setValue("なし");
 		specialComboBox.setOnAction(e -> {
-			if(!"なし".equals(specialComboBox.getValue())) {
+			if (!"なし".equals(specialComboBox.getValue())) {
 				actionComboBox.setValue("攻撃");
 				actionComboBox.setDisable(true);
 			} else {
@@ -605,25 +605,23 @@ public class JavaFXUI implements GameUI {
 		executeTurnButton = new Button("ターンの決定");
 		executeTurnButton.setFont(Font.font("MS Gothic", 14));
 		executeTurnButton.setOnAction(e -> {
-			if(battleCommandLatch != null) {
+			if (battleCommandLatch != null) {
 				BattleCommand cmd = new BattleCommand(
-					moveComboBox.getValue(),
-					actionComboBox.getValue(),
-					stanceComboBox.getValue(),
-					specialComboBox.getValue()
-				);
+						moveComboBox.getValue(),
+						actionComboBox.getValue(),
+						stanceComboBox.getValue(),
+						specialComboBox.getValue());
 				battleCommandResult.set(cmd);
 				battleCommandLatch.countDown();
 			}
 		});
 
 		controlRow.getChildren().addAll(
-			new Label("ムーブ:"), moveComboBox,
-			new Label("アクション:"), actionComboBox,
-			new Label("スタンス:"), stanceComboBox,
-			new Label("技:"), specialComboBox,
-			executeTurnButton
-		);
+				new Label("ムーブ:"), moveComboBox,
+				new Label("アクション:"), actionComboBox,
+				new Label("スタンス:"), stanceComboBox,
+				new Label("技:"), specialComboBox,
+				executeTurnButton);
 
 		// ラベルの文字色を白に設定
 		for (javafx.scene.Node node : controlRow.getChildren()) {
@@ -635,19 +633,19 @@ public class JavaFXUI implements GameUI {
 		container.getChildren().add(controlRow);
 		return container;
 	}
-	
+
 	/**
 	 * 戦闘モードのUI切り替え（選択肢エリアとコマンドエリアの切り替え）
 	 */
 	public void setBattleMode(boolean isBattle) {
 		Platform.runLater(() -> {
-			if(inputBox != null && battleCommandBox != null) {
+			if (inputBox != null && battleCommandBox != null) {
 				inputBox.setVisible(!isBattle);
 				inputBox.setManaged(!isBattle);
 				battleCommandBox.setVisible(isBattle);
 				battleCommandBox.setManaged(isBattle);
-				
-				if(isBattle) {
+
+				if (isBattle) {
 					// 技コンボボックスの中身をプレイヤーの所持アビリティから再生成する
 					specialComboBox.getItems().clear();
 					specialComboBox.getItems().add("なし");
@@ -673,14 +671,14 @@ public class JavaFXUI implements GameUI {
 			}
 		});
 	}
-	
+
 	/**
 	 * プレイヤーのバトルコマンド入力を待機して取得する
 	 */
 	public BattleCommand getBattleCommand() {
 		battleCommandLatch = new CountDownLatch(1);
 		battleCommandResult.set(null);
-		
+
 		try {
 			battleCommandLatch.await();
 		} catch (InterruptedException e) {
@@ -1375,7 +1373,7 @@ public class JavaFXUI implements GameUI {
 	public void updateEnemyImage(String fileName) {
 		if (fileName == null || fileName.isEmpty()) {
 			Platform.runLater(() -> {
-				if(enemyImageView != null) {
+				if (enemyImageView != null) {
 					enemyImageView.setImage(null);
 					enemyImageView.setVisible(false);
 				}
@@ -1484,26 +1482,25 @@ public class JavaFXUI implements GameUI {
 				alert.showAndWait();
 				return;
 			}
-			
+
 			EquipmentPanel panel = new EquipmentPanel(
-				currentPlayer,
-				() -> {
-					// 閉じる処理: 戦闘中なら戦闘パネルを復元、非戦闘中は背景画像に戻す
-					subWindowBox.getChildren().clear();
-					if (battlePanelController != null) {
-						// 戦闘中：戦闘情報パネルを復元する
-						subWindowBox.getChildren().add(battlePanelController.getPanel());
-					} else {
-						// 非戦闘中：背景画像（元のイラスト）に戻す
-						subWindowBox.getChildren().add(subWindowImageView);
-					}
-				},
-				() -> {
-					// 装備変更時の処理: UIのステータス情報などを更新する
-					printPlayerStatus(currentPlayer);
-				}
-			);
-			
+					currentPlayer,
+					() -> {
+						// 閉じる処理: 戦闘中なら戦闘パネルを復元、非戦闘中は背景画像に戻す
+						subWindowBox.getChildren().clear();
+						if (battlePanelController != null) {
+							// 戦闘中：戦闘情報パネルを復元する
+							subWindowBox.getChildren().add(battlePanelController.getPanel());
+						} else {
+							// 非戦闘中：背景画像（元のイラスト）に戻す
+							subWindowBox.getChildren().add(subWindowImageView);
+						}
+					},
+					() -> {
+						// 装備変更時の処理: UIのステータス情報などを更新する
+						printPlayerStatus(currentPlayer);
+					});
+
 			subWindowBox.getChildren().clear();
 			subWindowBox.getChildren().add(panel);
 		});
@@ -1524,16 +1521,15 @@ public class JavaFXUI implements GameUI {
 
 			Platform.runLater(() -> {
 				DropEquipmentPanel panel = new DropEquipmentPanel(
-					player,
-					item,
-					() -> {
-						// 「決定して閉じる」押下時：サブウィンドウを元に戻してラッチ解放
-						subWindowBox.getChildren().clear();
-						subWindowBox.getChildren().add(subWindowImageView);
-						printPlayerStatus(player);
-						latch.countDown();
-					}
-				);
+						player,
+						item,
+						() -> {
+							// 「決定して閉じる」押下時：サブウィンドウを元に戻してラッチ解放
+							subWindowBox.getChildren().clear();
+							subWindowBox.getChildren().add(subWindowImageView);
+							printPlayerStatus(player);
+							latch.countDown();
+						});
 				panelHolder[0] = panel;
 				subWindowBox.getChildren().clear();
 				subWindowBox.getChildren().add(panel);
@@ -1602,18 +1598,19 @@ public class JavaFXUI implements GameUI {
 	 * 戦闘パネルの全情報を一括更新する。
 	 * ターン開始時（コマンド入力前）に BattleManager から呼ぶ。
 	 *
-	 * @param turn          現在のターン数
-	 * @param distance      現在の距離（0〜4）
-	 * @param player        プレイヤーデータ
-	 * @param enemy         敵データ
-	 * @param playerConds   プレイヤーの戦闘状態リスト
-	 * @param enemyConds    敵の戦闘状態リスト
+	 * @param turn        現在のターン数
+	 * @param distance    現在の距離（0〜4）
+	 * @param player      プレイヤーデータ
+	 * @param enemy       敵データ
+	 * @param playerConds プレイヤーの戦闘状態リスト
+	 * @param enemyConds  敵の戦闘状態リスト
 	 */
 	public void updateBattlePanel(int turn, int distance,
 			Player player, EnemyData enemy,
 			List<BattleState.ActiveCombatCondition> playerConds,
 			List<BattleState.ActiveCombatCondition> enemyConds) {
-		if (battlePanelController == null) return;
+		if (battlePanelController == null)
+			return;
 		battlePanelController.updateHeader(turn, distance);
 		battlePanelController.updatePlayerStatus(player, playerConds);
 		battlePanelController.updateEnemyStatus(enemy, enemyConds);
@@ -1627,7 +1624,8 @@ public class JavaFXUI implements GameUI {
 	 * @param message 表示する要約テキスト
 	 */
 	public void appendBattleLog(String message) {
-		if (battlePanelController == null) return;
+		if (battlePanelController == null)
+			return;
 		battlePanelController.appendLog(message);
 	}
 
@@ -1697,7 +1695,8 @@ public class JavaFXUI implements GameUI {
 
 	/** updateFleeAvailability の実体（FXスレッド上で呼ぶこと） */
 	private void applyFleeAvailability(boolean canFlee) {
-		if (actionComboBox == null) return;
+		if (actionComboBox == null)
+			return;
 		// 「逃げる」が選択中のまま不可になった場合は「攻撃」に戻す
 		if (!canFlee && "逃げる".equals(actionComboBox.getValue())) {
 			actionComboBox.setValue("攻撃");
@@ -1789,5 +1788,28 @@ public class JavaFXUI implements GameUI {
 		textArea.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_RELEASED, filter);
 		textArea.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_CLICKED, filter);
 		textArea.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_DRAGGED, filter);
+	}
+
+	/**
+	 * 引継ぎ選択画面を表示する（JavaFX版の実装）。
+	 * ゲームスレッドから呼び出され、CarryoverScreen を起動して
+	 * プレイヤーの選択が完了するまでブロックする。
+	 *
+	 * @param player     対象プレイヤー
+	 * @param onComplete 完了コールバック
+	 */
+	@Override
+	public void requestCarryoverSelection(Player player, Runnable onComplete) {
+		CarryoverScreen carryoverScreen = new CarryoverScreen(stage);
+		carryoverScreen.requestCarryover(player, onComplete);
+
+		// 引継ぎ完了後: ゲーム画面（gameScene）に戻す
+		// これにより、後続の ui.print() や setGameOver() がゲーム画面上で正常に機能する
+		Platform.runLater(() -> {
+			if (gameScene != null) {
+				stage.setScene(gameScene);
+				stage.setTitle("T.B.R.R.");
+			}
+		});
 	}
 }

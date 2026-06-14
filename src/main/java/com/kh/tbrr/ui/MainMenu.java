@@ -11,8 +11,8 @@ import com.kh.tbrr.system.CharacterLoader;
 import com.kh.tbrr.system.DeveloperMode;
 
 /**
- * メインメニュー
- * 
+ * コンソール版メインメニュー
+ * 現状コンソール版では遊べるゲーム内容ではないため資料程度。
  */
 // コンソール用キャラクリの使用は現在想定されていないが、緊急用に掘り出すかもしれないので残しておく。
 public class MainMenu {

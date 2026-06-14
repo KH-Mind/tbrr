@@ -179,4 +179,18 @@ public interface GameUI {
 	default void updateFleeAvailability(boolean canFlee) {
 		// デフォルト実装は何もしない
 	}
+
+	/**
+	 * 引継ぎ選択画面を表示する。
+	 * FatedOneが死亡したとき、この周回で得たアビリティ・特徴から1つを選ばせる。
+	 * コンソールUIではスキップ（引継ぎなしでゲームオーバー）。
+	 * JavaFXUIはCarryoverScreenを呼び出して選択を完了まで待機する。
+	 *
+	 * @param player     対象プレイヤー（選択結果が書き込まれる）
+	 * @param onComplete 選択完了後のコールバック
+	 */
+	default void requestCarryoverSelection(Player player, Runnable onComplete) {
+		// デフォルト実装: コンソールUIはスキップ（引継ぎなし扱い）
+		if (onComplete != null) onComplete.run();
+	}
 }
