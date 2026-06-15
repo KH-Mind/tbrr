@@ -137,7 +137,7 @@ public class CarryoverScreen {
         flavorArea.setEditable(false);
         flavorArea.setWrapText(true);
         flavorArea.setFocusTraversable(false);
-        flavorArea.setPrefHeight(180);
+        flavorArea.setPrefHeight(220);
         flavorArea.setMaxWidth(900);
         flavorArea.setStyle(
                 "-fx-control-inner-background: #2b2b2b; " +
@@ -145,7 +145,9 @@ public class CarryoverScreen {
                         "-fx-text-fill: #dddddd; " +
                         "-fx-font-size: 15px; " +
                         "-fx-border-color: #555555; " +
-                        "-fx-border-width: 1px;");
+                        "-fx-border-width: 1px; " +
+                        "-fx-focus-color: transparent; " +
+                        "-fx-faint-focus-color: transparent;");
 
         // 選択肢ラベル
         Label selectionLabel = new Label("以下から1つを選び、次の旅に持ち帰れ");
@@ -160,7 +162,7 @@ public class CarryoverScreen {
         radioBox.setPadding(new Insets(10, 20, 10, 20));
         radioBox.setMaxWidth(860);
         radioBox.setStyle(
-                "-fx-background-color: #1a1a1a; " +
+                "-fx-background-color: #2b2b2b; " +
                         "-fx-border-color: #555555; " +
                         "-fx-border-width: 1px;");
 
@@ -190,7 +192,7 @@ public class CarryoverScreen {
 
         ScrollPane scrollPane = new ScrollPane(radioBox);
         scrollPane.setFitToWidth(true);
-        scrollPane.setPrefHeight(240);
+        scrollPane.setPrefHeight(360);
         scrollPane.setMaxWidth(900);
         scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
 
@@ -254,7 +256,9 @@ public class CarryoverScreen {
                         "-fx-text-fill: #dddddd; " +
                         "-fx-font-size: 16px; " +
                         "-fx-border-color: #555555; " +
-                        "-fx-border-width: 1px;");
+                        "-fx-border-width: 1px; " +
+                        "-fx-focus-color: transparent; " +
+                        "-fx-faint-focus-color: transparent;");
 
         Button continueBtn = createButton("旅を続ける");
         continueBtn.setOnAction(e -> onConfirm.run()); // ラッチを解放

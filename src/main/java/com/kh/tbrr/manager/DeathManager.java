@@ -58,24 +58,25 @@ public class DeathManager {
 			return;
 		}
 
-		// ② deathCause が指定されていれば優先
-		String deathKey = "death_by_" + deathCause;
+		// ② deathCause が指定されていれば優先（既に "death_by_" が付いているか判定）
+		String deathKey = deathCause.startsWith("death_by_") ? deathCause : "death_by_" + deathCause;
+		String actualDeathKey = deathKey; // 実際に読み込みに成功したキーを保持する
 
 		// ここでファイル存在チェックを追加
-		if (!dataManager.deathJsonExists(deathKey)) {
+		if (dataManager.deathJsonExists(deathKey)) {
+			// センシティブチェックを含めた死亡エンド取得処理
+			endings = new ArrayList<>(dataManager.getDeathEndings(deathKey)); // 通常の死亡文を取得
+
+			if (player.isCruelWorldEnabled()) {
+				// センシティブ設定がONなら、追加でセンシティブな死亡文も取得
+				List<String> sensitive = dataManager.getSensitiveDeathEndings(deathKey);
+				if (sensitive != null)
+					endings.addAll(sensitive);
+			}
+		} else {
 			ui.print("【警告】指定された死因 \"" + deathCause + "\" に対応する死亡イベントファイルが存在しません。");
-			ui.print("汎用死亡エンドにフォールバックする可能性があります。");
+			ui.print("タグ、または汎用死亡エンドにフォールバックします。");
 			ui.print("");
-		}
-
-		// センシティブチェックを含めた死亡エンド取得処理
-		endings = new ArrayList<>(dataManager.getDeathEndings(deathKey)); // 通常の死亡文を取得
-
-		if (player.isCruelWorldEnabled()) {
-			// センシティブ設定がONなら、追加でセンシティブな死亡文も取得
-			List<String> sensitive = dataManager.getSensitiveDeathEndings(deathKey);
-			if (sensitive != null)
-				endings.addAll(sensitive);
 		}
 
 		// ③ deathCause が無効 or 読み込めなかった場合 → イベントタグから探す
@@ -84,15 +85,18 @@ public class DeathManager {
 			if (tags != null) {
 				for (String tag : tags) {
 					if (tag != null && !tag.equalsIgnoreCase("none")) {
-						String tagKey = tag.toLowerCase();
-						endings = new ArrayList<>(dataManager.getDeathEndings(tagKey));
-						if (player.isCruelWorldEnabled()) {
-							List<String> sensitive = dataManager.getSensitiveDeathEndings(tagKey);
-							if (sensitive != null)
-								endings.addAll(sensitive);
-						}
-						if (!endings.isEmpty()) {
-							break; // 最初に見つかったタグで採用
+						String tagKey = tag.toLowerCase().startsWith("death_by_") ? tag.toLowerCase() : "death_by_" + tag.toLowerCase();
+						if (dataManager.deathJsonExists(tagKey)) {
+							endings = new ArrayList<>(dataManager.getDeathEndings(tagKey));
+							actualDeathKey = tagKey;
+							if (player.isCruelWorldEnabled()) {
+								List<String> sensitive = dataManager.getSensitiveDeathEndings(tagKey);
+								if (sensitive != null)
+									endings.addAll(sensitive);
+							}
+							if (!endings.isEmpty()) {
+								break; // 最初に見つかったタグで採用
+							}
 						}
 					}
 				}
@@ -101,9 +105,10 @@ public class DeathManager {
 
 		// ④ それでも見つからなければ汎用死亡エンドへ
 		if (endings == null || endings.isEmpty()) {
-			endings = new ArrayList<>(dataManager.getDeathEndings("generic"));
+			actualDeathKey = "death_by_generic";
+			endings = new ArrayList<>(dataManager.getDeathEndings(actualDeathKey));
 			if (player.isCruelWorldEnabled()) {
-				List<String> sensitive = dataManager.getSensitiveDeathEndings("generic");
+				List<String> sensitive = dataManager.getSensitiveDeathEndings(actualDeathKey);
 				if (sensitive != null)
 					endings.addAll(sensitive);
 			}
@@ -125,11 +130,11 @@ public class DeathManager {
 			// ui.print("");
 
 			// followups 表示処理（センシティブ対応済み）
-			List<String> followups = dataManager.getDeathFollowups(deathKey);
+			List<String> followups = dataManager.getDeathFollowups(actualDeathKey);
 			if (followups == null)
 				followups = new ArrayList<>();
 			if (player.isCruelWorldEnabled()) {
-				List<String> sensitiveFollowups = dataManager.getSensitiveDeathFollowups(deathKey);
+				List<String> sensitiveFollowups = dataManager.getSensitiveDeathFollowups(actualDeathKey);
 				if (sensitiveFollowups != null)
 					followups.addAll(sensitiveFollowups);
 			}

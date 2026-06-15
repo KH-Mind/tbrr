@@ -1801,15 +1801,30 @@ public class JavaFXUI implements GameUI {
 	@Override
 	public void requestCarryoverSelection(Player player, Runnable onComplete) {
 		CarryoverScreen carryoverScreen = new CarryoverScreen(stage);
-		carryoverScreen.requestCarryover(player, onComplete);
+		
+		// 1. 引継ぎ画面を開き、プレイヤーが選択して確定するまで待機（内部でlatch.awaitしている）
+		carryoverScreen.requestCarryover(player, null);
 
-		// 引継ぎ完了後: ゲーム画面（gameScene）に戻す
-		// これにより、後続の ui.print() や setGameOver() がゲーム画面上で正常に機能する
+		// 2. 選択が終わったら、元のゲーム画面（gameScene）に戻す
+		java.util.concurrent.CountDownLatch sceneLatch = new java.util.concurrent.CountDownLatch(1);
 		Platform.runLater(() -> {
 			if (gameScene != null) {
 				stage.setScene(gameScene);
 				stage.setTitle("T.B.R.R.");
 			}
+			sceneLatch.countDown();
 		});
+
+		// 3. 画面の復帰が完了するまでゲームスレッドを待機させる
+		try {
+			sceneLatch.await();
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
+
+		// 4. 画面が完全にゲーム画面に戻った状態で、コールバック（waitForEnter等）を実行する
+		if (onComplete != null) {
+			onComplete.run();
+		}
 	}
 }
