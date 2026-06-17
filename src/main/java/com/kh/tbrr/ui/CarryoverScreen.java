@@ -58,10 +58,10 @@ public class CarryoverScreen {
     // 仮フレーバーメッセージ（後でロア担当が差し替え）
     private static final String FLAVOR_TEXT = "　足元に薄く水が張ったような、果てしなく続く真っ白な空間。\n\n" +
             "「おかえりなさい。……また、随分と傷ついてしまったのですね」\n\n" +
-            "　声の主は、裸足で水面に立つ褐色肌の無垢な少女だった。\n" +
+            "　声の主は、裸足で水面に立つ無垢な少女だった。\n" +
             "　その傍らには、彼女を守るように黒い大型の獣が鎮座し、男のような低い声で唸った。\n\n" +
             "『ちっ……また無様な死に方をして戻ってきたか。アンタも懲りないねぇ。\n" +
-            "　まぁいい、嬢ちゃんの気まぐれだ。俺がアンタの魂（データ）を書き換えてやる』\n\n" +
+            "　まぁいい、嬢ちゃんの気まぐれだ。俺がアンタの魂を書き換えてやる』\n\n" +
             "　あなたはもう一度、歩き始める機会を与えられた。";
 
     private static final String CLOSING_TEXT = "「……それでもあなたは、またあの有限の世界へ戻るのですね」\n\n" +
@@ -116,7 +116,7 @@ public class CarryoverScreen {
      */
     private void show(Player player, Runnable onConfirm) {
         // 背景画像
-        Image backgroundImage = imageManager.loadBackground("mainmenu.png");
+        Image backgroundImage = imageManager.loadBackground("carryover_scene.png");
         ImageView backgroundView = new ImageView(backgroundImage);
         backgroundView.setFitWidth(1600);
         backgroundView.setFitHeight(900);
@@ -235,7 +235,7 @@ public class CarryoverScreen {
      * 締めくくりメッセージを表示し、ボタン押下後にラッチを解放する。
      */
     private void showClosingMessage(Runnable onConfirm) {
-        Image backgroundImage = imageManager.loadBackground("mainmenu.png");
+        Image backgroundImage = imageManager.loadBackground("carryover_scene.png");
         ImageView backgroundView = new ImageView(backgroundImage);
         backgroundView.setFitWidth(1600);
         backgroundView.setFitHeight(900);

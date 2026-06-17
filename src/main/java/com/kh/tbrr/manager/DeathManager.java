@@ -48,35 +48,33 @@ public class DeathManager {
 		// ここではまだGAME OVERを表示しない
 
 		List<String> endings = null;
+		String actualDeathKey = null; // 実際に読み込みに成功したキーを保持する
 
-		// ① deathCause が未設定ならエラー表示して中断
+		// ① deathCause が未設定の場合
 		if (deathCause == null || deathCause.isEmpty()) {
-			ui.print("【エラー】死亡イベントに死因が設定されていません。");
-			ui.print("deathCause が null または空文字です。");
-			ui.print("汎用死亡エンドを使いたい場合は deathCause を \"generic\" に設定してください。");
+			ui.print("【警告】死亡イベントに死因が設定されていません。タグ検索、または汎用エンドへフォールバックします。");
 			ui.print("");
-			return;
-		}
-
-		// ② deathCause が指定されていれば優先（既に "death_by_" が付いているか判定）
-		String deathKey = deathCause.startsWith("death_by_") ? deathCause : "death_by_" + deathCause;
-		String actualDeathKey = deathKey; // 実際に読み込みに成功したキーを保持する
-
-		// ここでファイル存在チェックを追加
-		if (dataManager.deathJsonExists(deathKey)) {
-			// センシティブチェックを含めた死亡エンド取得処理
-			endings = new ArrayList<>(dataManager.getDeathEndings(deathKey)); // 通常の死亡文を取得
-
-			if (player.isCruelWorldEnabled()) {
-				// センシティブ設定がONなら、追加でセンシティブな死亡文も取得
-				List<String> sensitive = dataManager.getSensitiveDeathEndings(deathKey);
-				if (sensitive != null)
-					endings.addAll(sensitive);
-			}
 		} else {
-			ui.print("【警告】指定された死因 \"" + deathCause + "\" に対応する死亡イベントファイルが存在しません。");
-			ui.print("タグ、または汎用死亡エンドにフォールバックします。");
-			ui.print("");
+			// ② deathCause が指定されていれば優先（既に "death_by_" が付いているか判定）
+			String deathKey = deathCause.startsWith("death_by_") ? deathCause : "death_by_" + deathCause;
+			actualDeathKey = deathKey;
+
+			// ここでファイル存在チェックを追加
+			if (dataManager.deathJsonExists(deathKey)) {
+				// センシティブチェックを含めた死亡エンド取得処理
+				endings = new ArrayList<>(dataManager.getDeathEndings(deathKey)); // 通常の死亡文を取得
+
+				if (player.isCruelWorldEnabled()) {
+					// センシティブ設定がONなら、追加でセンシティブな死亡文も取得
+					List<String> sensitive = dataManager.getSensitiveDeathEndings(deathKey);
+					if (sensitive != null)
+						endings.addAll(sensitive);
+				}
+			} else {
+				ui.print("【警告】指定された死因 \"" + deathCause + "\" に対応するファイルが存在しません。");
+				ui.print("タグ、または汎用死亡エンドにフォールバックします。");
+				ui.print("");
+			}
 		}
 
 		// ③ deathCause が無効 or 読み込めなかった場合 → イベントタグから探す
@@ -85,7 +83,8 @@ public class DeathManager {
 			if (tags != null) {
 				for (String tag : tags) {
 					if (tag != null && !tag.equalsIgnoreCase("none")) {
-						String tagKey = tag.toLowerCase().startsWith("death_by_") ? tag.toLowerCase() : "death_by_" + tag.toLowerCase();
+						String tagKey = tag.toLowerCase().startsWith("death_by_") ? tag.toLowerCase()
+								: "death_by_" + tag.toLowerCase();
 						if (dataManager.deathJsonExists(tagKey)) {
 							endings = new ArrayList<>(dataManager.getDeathEndings(tagKey));
 							actualDeathKey = tagKey;
