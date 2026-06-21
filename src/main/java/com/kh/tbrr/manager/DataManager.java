@@ -249,7 +249,8 @@ public class DataManager {
 			"system", "common", "unique", "landscapes", "traps", "hazard", "npc",
 			"encounter", "friendly", "slime", "test", "untested", "creature",
 			"celestial_alignment", "memorial_chamber",
-			"old_manor", "encounters", "special", "boss" // 重複や漏れを統合
+			"old_manor", "special", "boss", // 重複や漏れを統合
+			"encounter_outlaws", "encounter_wildlife", "encounter_monsters", "encounter_madness", "encounter_neutrals"
 	};
 
 	public GameEvent loadEvent(String eventId) {
