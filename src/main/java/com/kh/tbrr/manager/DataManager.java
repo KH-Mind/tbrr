@@ -250,7 +250,8 @@ public class DataManager {
 			"encounter", "friendly", "slime", "test", "untested", "creature",
 			"celestial_alignment", "memorial_chamber",
 			"old_manor", "special", "boss", // 重複や漏れを統合
-			"encounter_outlaws", "encounter_wildlife", "encounter_monsters", "encounter_madness", "encounter_neutrals"
+			"encounter_hostile", "encounter_outlaws", "encounter_wildlife", "encounter_monsters", "encounter_nature",
+			"encounter_neutrals"
 	};
 
 	public GameEvent loadEvent(String eventId) {
