@@ -1384,7 +1384,8 @@ public class EventProcessor {
 				// 逃走成功: fleeEventId があれば連鎖、なければそのまま終了
 				if (result.getFleeEventId() != null && !result.getFleeEventId().isEmpty()) {
 					boolean wasInRecursive = gameState.isInRecursiveEvent();
-					if (!wasInRecursive) gameState.setInRecursiveEvent(true);
+					if (!wasInRecursive)
+						gameState.setInRecursiveEvent(true);
 					GameEvent fleeEvent = dataManager.loadEvent(result.getFleeEventId());
 					if (fleeEvent != null) {
 						processEvent(fleeEvent, player, gameState);
@@ -1396,7 +1397,8 @@ public class EventProcessor {
 				// 勝利: nextEventId があれば連鎖（戦後イベント等）
 				if (result.getNextEventId() != null && !result.getNextEventId().isEmpty()) {
 					boolean wasInRecursive = gameState.isInRecursiveEvent();
-					if (!wasInRecursive) gameState.setInRecursiveEvent(true);
+					if (!wasInRecursive)
+						gameState.setInRecursiveEvent(true);
 					GameEvent nextAfterBattle = dataManager.loadEvent(result.getNextEventId());
 					if (nextAfterBattle != null) {
 						processEvent(nextAfterBattle, player, gameState);
@@ -1410,11 +1412,12 @@ public class EventProcessor {
 		// ★追加: 確率付きアイテムドロップ処理（A案: 独立抽選）
 		if (result.getItemDrops() != null && !result.getItemDrops().isEmpty()) {
 			for (com.kh.tbrr.data.models.GameEvent.ItemDrop drop : result.getItemDrops()) {
-				if (drop.getItemId() == null || drop.getItemId().isEmpty()) continue;
+				if (drop.getItemId() == null || drop.getItemId().isEmpty())
+					continue;
 				int roll = random.nextInt(100) + 1; // 1〜100
 				if (developerMode != null && developerMode.isDebugVisible()) {
 					System.err.println("[DEBUG] ドロップ抽選: " + drop.getItemId()
-						+ " chance=" + drop.getChance() + "% roll=" + roll);
+							+ " chance=" + drop.getChance() + "% roll=" + roll);
 				}
 				if (roll <= drop.getChance()) {
 					handleItemDrop(drop.getItemId(), player, gameState);
@@ -1465,16 +1468,16 @@ public class EventProcessor {
 	private void handleItemGain(String itemId, Player player, GameState gameState) {
 		boolean alreadyHas = player.getInventory().contains(itemId);
 		com.kh.tbrr.data.models.Item itemData = ItemRegistry.getItemById(itemId);
-		
+
 		if (alreadyHas && itemData != null) {
 			String category = itemData.getEquipmentCategory();
 			String rarity = itemData.getRarity();
 			boolean isEquipment = category != null && !category.isEmpty();
-			
+
 			if (!isEquipment && ("common".equalsIgnoreCase(rarity) || "magic".equalsIgnoreCase(rarity))) {
 				int coinAmount = "magic".equalsIgnoreCase(rarity) ? 30 : 10;
 				player.setMoney(Math.min(player.getEffectiveMaxMoney(), player.getMoney() + coinAmount));
-				
+
 				String itemName = itemData.getName() != null ? itemData.getName() : itemId;
 				String logMessage = itemName + "は既に持っていたため、銀貨" + coinAmount + "枚に換金された。";
 				printFloorDividerIfNeeded(gameState);
@@ -1482,10 +1485,11 @@ public class EventProcessor {
 				return;
 			}
 		}
-		
+
 		// 通常取得
 		player.addItem(itemId);
-		String itemName = itemData != null && itemData.getName() != null ? itemData.getName() : ItemRegistry.getNameById(itemId);
+		String itemName = itemData != null && itemData.getName() != null ? itemData.getName()
+				: ItemRegistry.getNameById(itemId);
 		if (itemName == null) {
 			itemName = itemId;
 		}
@@ -1503,7 +1507,7 @@ public class EventProcessor {
 	 * @param player    プレイヤー
 	 * @param gameState ゲーム状態
 	 */
-	
+
 	private void executeInteraction(String type, Map<String, Object> params, Player player, GameState gameState) {
 		InteractionHandler handler = InteractionRegistry.get(type);
 		if (handler == null) {
