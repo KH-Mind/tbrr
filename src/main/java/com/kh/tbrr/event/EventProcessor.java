@@ -227,15 +227,7 @@ public class EventProcessor {
 		// アイテム入手（複数対応）
 		if (effects.getItemsGained() != null && !effects.getItemsGained().isEmpty()) {
 			for (String itemId : effects.getItemsGained()) {
-				player.addItem(itemId);
-				String itemName = ItemRegistry.getNameById(itemId);
-				if (itemName == null) {
-					itemName = itemId;
-				}
-				String logMessage = itemName + "を得た。";
-				// ui.print(logMessage); // ← コメントアウト：左下メッセージエリアには表示しない
-				printFloorDividerIfNeeded(gameState);
-				ui.printImportantLog(logMessage); // 重要ログには表示
+				handleItemGain(itemId, player, gameState);
 			}
 		}
 
@@ -1463,12 +1455,44 @@ public class EventProcessor {
 			}
 		} else {
 			// 通常アイテム → インベントリに直接追加
-			player.addItem(itemId);
-			String logMessage = item.getName() + "を得た。";
-			// ui.print(logMessage); // メインテキストへの直接出力は不要
-			printFloorDividerIfNeeded(gameState);
-			ui.printImportantLog(logMessage);
+			handleItemGain(itemId, player, gameState);
 		}
+	}
+
+	/**
+	 * アイテムの取得処理を行う（重複時の換金処理を含む）
+	 */
+	private void handleItemGain(String itemId, Player player, GameState gameState) {
+		boolean alreadyHas = player.getInventory().contains(itemId);
+		com.kh.tbrr.data.models.Item itemData = ItemRegistry.getItemById(itemId);
+		
+		if (alreadyHas && itemData != null) {
+			String category = itemData.getEquipmentCategory();
+			String rarity = itemData.getRarity();
+			boolean isEquipment = category != null && !category.isEmpty();
+			
+			if (!isEquipment && ("common".equalsIgnoreCase(rarity) || "magic".equalsIgnoreCase(rarity))) {
+				int coinAmount = "magic".equalsIgnoreCase(rarity) ? 30 : 10;
+				player.setMoney(Math.min(player.getEffectiveMaxMoney(), player.getMoney() + coinAmount));
+				
+				String itemName = itemData.getName() != null ? itemData.getName() : itemId;
+				String logMessage = itemName + "は既に持っていたため、銀貨" + coinAmount + "枚に換金された。";
+				printFloorDividerIfNeeded(gameState);
+				ui.printImportantLog(logMessage);
+				return;
+			}
+		}
+		
+		// 通常取得
+		player.addItem(itemId);
+		String itemName = itemData != null && itemData.getName() != null ? itemData.getName() : ItemRegistry.getNameById(itemId);
+		if (itemName == null) {
+			itemName = itemId;
+		}
+		String logMessage = itemName + "を得た。";
+		// ui.print(logMessage); // メインテキストへの直接出力は不要
+		printFloorDividerIfNeeded(gameState);
+		ui.printImportantLog(logMessage);
 	}
 
 	/**
