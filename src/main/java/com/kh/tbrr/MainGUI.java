@@ -13,6 +13,12 @@ public class MainGUI extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+        // ウィンドウの「×」ボタンを押したときに完全にプロセスを終了する
+        primaryStage.setOnCloseRequest(e -> {
+            javafx.application.Platform.exit();
+            System.exit(0);
+        });
+
         // メインメニューを直接表示
         MainMenuScreen mainMenu = new MainMenuScreen(primaryStage);
         mainMenu.show();
