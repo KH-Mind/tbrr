@@ -178,6 +178,8 @@ public class DataManager {
 			String rarity = null;
 			if (filename.contains("common")) {
 				rarity = "common";
+			} else if (filename.contains("basic")) {
+				rarity = "basic";
 			} else if (filename.contains("magic")) {
 				rarity = "magic";
 			} else if (filename.contains("unique")) {

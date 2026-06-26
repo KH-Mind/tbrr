@@ -69,7 +69,7 @@ public class GameEngine {
 		for (Item item : dataManager.loadAllItemsFromFile("unique_items.json")) {
 			com.kh.tbrr.data.ItemRegistry.register(item);
 		}
-		for (Item item : dataManager.loadAllItemsFromFile("common_weapons.json")) {
+		for (Item item : dataManager.loadAllItemsFromFile("basic_weapons.json")) {
 			com.kh.tbrr.data.ItemRegistry.register(item);
 		}
 		for (Item item : dataManager.loadAllItemsFromFile("rare_weapons.json")) {
