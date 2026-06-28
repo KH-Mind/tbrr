@@ -76,17 +76,17 @@ public class Player {
     private List<String> skills;
 
     // アビリティ（技・魔法）の3分類
-    private List<String> baseAbilities;      // キャラ作成時から持つアビリティ（職業・初期ボーナス）
+    private List<String> baseAbilities; // キャラ作成時から持つアビリティ（職業・初期ボーナス）
     private List<String> inheritedAbilities; // 過去の引継ぎで恒久化したアビリティ
-    private List<String> abilities;          // その周で得たアビリティ（一時取得）
+    private List<String> abilities; // その周で得たアビリティ（一時取得）
 
     // passivesフィールドはtraitsに統合済み
     private List<String> stances; // 習得しているスタンス用リスト
 
     // 特徴/Traitの3分類
-    private List<String> baseTraits;      // キャラ作成時から持つ特徴（職業由来等）
+    private List<String> baseTraits; // キャラ作成時から持つ特徴（職業由来等）
     private List<String> inheritedTraits; // 過去の引継ぎで恒久化した特徴
-    private List<String> traits;          // その周で得た特徴（一時取得）
+    private List<String> traits; // その周で得た特徴（一時取得）
 
     private List<String> inventory;
 
@@ -479,9 +479,12 @@ public class Player {
      */
     public List<String> getEffectiveTraits() {
         // nullチェック（Gsonで読み込み時にフィールドがない場合nullになる場合の対処）
-        if (baseTraits == null) baseTraits = new ArrayList<>();
-        if (inheritedTraits == null) inheritedTraits = new ArrayList<>();
-        if (traits == null) traits = new ArrayList<>();
+        if (baseTraits == null)
+            baseTraits = new ArrayList<>();
+        if (inheritedTraits == null)
+            inheritedTraits = new ArrayList<>();
+        if (traits == null)
+            traits = new ArrayList<>();
 
         // 3段階を順番に結合: 初期→引継ぎ済み→その周
         List<String> effective = new ArrayList<>();
@@ -554,7 +557,8 @@ public class Player {
      * 全ての状態異常を取得
      */
     public java.util.Map<String, Integer> getStatusEffects() {
-        if (statusEffects == null) statusEffects = new java.util.HashMap<>();
+        if (statusEffects == null)
+            statusEffects = new java.util.HashMap<>();
         return new java.util.HashMap<>(statusEffects);
     }
 
@@ -626,9 +630,12 @@ public class Player {
      */
     public List<String> getEffectiveAbilities() {
         // nullチェック（Gsonで読み込み時にフィールドがない場合nullになる場合の対処）
-        if (baseAbilities == null) baseAbilities = new ArrayList<>();
-        if (inheritedAbilities == null) inheritedAbilities = new ArrayList<>();
-        if (abilities == null) abilities = new ArrayList<>();
+        if (baseAbilities == null)
+            baseAbilities = new ArrayList<>();
+        if (inheritedAbilities == null)
+            inheritedAbilities = new ArrayList<>();
+        if (abilities == null)
+            abilities = new ArrayList<>();
 
         // 3段階を順番に結合: 初期→引継ぎ済み→その周
         List<String> effAbilities = new ArrayList<>();
@@ -753,9 +760,12 @@ public class Player {
 
         // 特徴表示（3分類: 初期 → 引継ぎ済み → その周）
         java.util.List<String> allTraitIds = new java.util.ArrayList<>();
-        if (baseTraits != null) allTraitIds.addAll(baseTraits);
-        if (inheritedTraits != null) allTraitIds.addAll(inheritedTraits);
-        if (traits != null) allTraitIds.addAll(traits);
+        if (baseTraits != null)
+            allTraitIds.addAll(baseTraits);
+        if (inheritedTraits != null)
+            allTraitIds.addAll(inheritedTraits);
+        if (traits != null)
+            allTraitIds.addAll(traits);
 
         if (allTraitIds.isEmpty()) {
             sb.append("特徴: なし\n");
@@ -1177,7 +1187,8 @@ public class Player {
     // ========== アビリティ 3分類 getter/setter ==========
 
     public List<String> getBaseAbilities() {
-        if (baseAbilities == null) baseAbilities = new ArrayList<>();
+        if (baseAbilities == null)
+            baseAbilities = new ArrayList<>();
         return baseAbilities;
     }
 
@@ -1186,7 +1197,8 @@ public class Player {
     }
 
     public List<String> getInheritedAbilities() {
-        if (inheritedAbilities == null) inheritedAbilities = new ArrayList<>();
+        if (inheritedAbilities == null)
+            inheritedAbilities = new ArrayList<>();
         return inheritedAbilities;
     }
 
@@ -1197,7 +1209,8 @@ public class Player {
     // ========== 特徴 3分類 getter/setter ==========
 
     public List<String> getBaseTraits() {
-        if (baseTraits == null) baseTraits = new ArrayList<>();
+        if (baseTraits == null)
+            baseTraits = new ArrayList<>();
         return baseTraits;
     }
 
@@ -1206,7 +1219,8 @@ public class Player {
     }
 
     public List<String> getInheritedTraits() {
-        if (inheritedTraits == null) inheritedTraits = new ArrayList<>();
+        if (inheritedTraits == null)
+            inheritedTraits = new ArrayList<>();
         return inheritedTraits;
     }
 

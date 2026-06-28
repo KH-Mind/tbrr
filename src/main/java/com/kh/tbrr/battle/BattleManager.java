@@ -298,7 +298,7 @@ public class BattleManager {
                     }
                 }
             }
-            
+
             if (level > 1) {
                 int maxLevel = 1;
                 for (String key : baseAbility.getUpgrades().keySet()) {
@@ -311,7 +311,7 @@ public class BattleManager {
                         // 数値としてパースできないキーは無視
                     }
                 }
-                
+
                 if (maxLevel > 1) {
                     String upgradedId = baseAbility.getUpgrades().get(String.valueOf(maxLevel));
                     if (upgradedId != null) {
@@ -488,11 +488,13 @@ public class BattleManager {
 
             // 命中判定（アビリティの指定がない場合は機敏でフォールバック）
             String atkStatName = ability.getCheck().getAttackerStat();
-            if (atkStatName == null || atkStatName.isEmpty()) atkStatName = "finesse";
+            if (atkStatName == null || atkStatName.isEmpty())
+                atkStatName = "finesse";
             int atkStatVal = getCombatStat(player, atkStatName);
-            
+
             String defStatName = ability.getCheck().getDefenderStat();
-            if (defStatName == null || defStatName.isEmpty()) defStatName = "finesse";
+            if (defStatName == null || defStatName.isEmpty())
+                defStatName = "finesse";
             int defStatVal = enemy.getStatByName(defStatName);
 
             Integer overrideChance = ability.getCheck().getBaseChance();
@@ -517,18 +519,19 @@ public class BattleManager {
                 if (ability.getTags() != null) {
                     tagsForMastery.addAll(ability.getTags());
                 }
-                
+
                 if (Boolean.TRUE.equals(ability.getInheritWeapon()) && weapon != null && weapon.getTags() != null) {
                     tagsForMastery.addAll(weapon.getTags());
                 }
-                
+
                 int masteryLevel = calculateMasteryLevel(tagsForMastery);
                 int masteryDiceSum = calculateMasteryDice(masteryLevel);
                 int masteryFixedBonus = calculateMasteryFixedBonus(masteryLevel);
 
                 // ステータス加算計算
                 String scalingStatName = ability.getCheck().getScalingStat();
-                if (scalingStatName == null || scalingStatName.isEmpty()) scalingStatName = "might";
+                if (scalingStatName == null || scalingStatName.isEmpty())
+                    scalingStatName = "might";
                 int rawStatVal = getCombatStat(player, scalingStatName);
                 double scaling = (ability.getCheck().getStatScaling() != null)
                         ? ability.getCheck().getStatScaling()
@@ -561,7 +564,7 @@ public class BattleManager {
                 // サブウィンドウのログに要約を追記
                 if (ui instanceof JavaFXUI) {
                     String logSummary = "命中！" + enemy.getName() + "に" + totalDamage + "ダメージ"
-                            + (isCritical ? "　[クリティカル]": "")
+                            + (isCritical ? "　[クリティカル]" : "")
                             + (spAbsorbed > 0 ? "　SP" + spAbsorbed + "吸収" : "");
                     ((JavaFXUI) ui).appendBattleLog(logSummary);
                 }
@@ -673,7 +676,8 @@ public class BattleManager {
             int offMasteryDice = calculateMasteryDice(offMastery);
             int offMasteryFixed = calculateMasteryFixedBonus(offMastery);
             String scalingStatName = ability.getCheck().getScalingStat();
-            if (scalingStatName == null || scalingStatName.isEmpty()) scalingStatName = "might";
+            if (scalingStatName == null || scalingStatName.isEmpty())
+                scalingStatName = "might";
             int rawStat = getCombatStat(player, scalingStatName);
             int offScaling = (int) (rawStat * 0.5);
             int offBase = offRoll + offMasteryDice + offMasteryFixed + offScaling;
@@ -704,12 +708,12 @@ public class BattleManager {
             for (TraitData trait : getActivePlayerTraits()) {
                 if (trait != null && "MASTERY".equals(trait.getType())) {
                     boolean match = false;
-                    
+
                     // targetTags（OR条件）のチェック
                     if (trait.getTargetTags() != null && !trait.getTargetTags().isEmpty()) {
                         match = tags.stream().anyMatch(tag -> trait.getTargetTags().contains(tag));
                     }
-                    
+
                     // requiredTags（AND条件）のチェック
                     if (trait.getRequiredTags() != null && !trait.getRequiredTags().isEmpty()) {
                         boolean allMatch = trait.getRequiredTags().stream().allMatch(tag -> tags.contains(tag));
@@ -719,7 +723,7 @@ public class BattleManager {
                             match = allMatch; // requiredTagsのみ設定されている場合
                         }
                     }
-                    
+
                     if (match) {
                         masteryLevel += trait.getLevel();
                     }
@@ -960,7 +964,8 @@ public class BattleManager {
         return rule.getActions().get(0); // フォールバック
     }
 
-    private void executeEnemyAttack(EnemyData enemy, AbilityData ability, CombatBaseRules baseRules, String nameOverride) {
+    private void executeEnemyAttack(EnemyData enemy, AbilityData ability, CombatBaseRules baseRules,
+            String nameOverride) {
         String abilityName = (nameOverride != null && !nameOverride.isEmpty()) ? nameOverride : ability.getName();
 
         // idle(非戦闘)タグを持つ行動なら、様子を見る等のテキストを出して終了
@@ -979,11 +984,13 @@ public class BattleManager {
 
         // 命中判定
         String atkStatName = ability.getCheck().getAttackerStat();
-        if (atkStatName == null || atkStatName.isEmpty()) atkStatName = "finesse";
+        if (atkStatName == null || atkStatName.isEmpty())
+            atkStatName = "finesse";
         int atkStatVal = enemy.getStatByName(atkStatName);
 
         String defStatName = ability.getCheck().getDefenderStat();
-        if (defStatName == null || defStatName.isEmpty()) defStatName = "finesse";
+        if (defStatName == null || defStatName.isEmpty())
+            defStatName = "finesse";
         int defStatVal = getCombatStat(player, defStatName);
 
         Integer overrideChance = ability.getCheck().getBaseChance();
@@ -998,7 +1005,8 @@ public class BattleManager {
             int diceRoll = DiceRoller.roll(dice);
 
             String scalingStatName = ability.getCheck().getScalingStat();
-            if (scalingStatName == null || scalingStatName.isEmpty()) scalingStatName = "might";
+            if (scalingStatName == null || scalingStatName.isEmpty())
+                scalingStatName = "might";
             int rawStatVal = enemy.getStatByName(scalingStatName);
             double scaling = (ability.getCheck().getStatScaling() != null) ? ability.getCheck().getStatScaling() : 0.5;
             int scalingStatVal = (int) (rawStatVal * scaling);
@@ -1040,7 +1048,7 @@ public class BattleManager {
             // サブウィンドウのログに要約を追記
             if (ui instanceof JavaFXUI) {
                 String logSummary = enemy.getName() + "の攻撃！" + totalDamage + "ダメージ"
-                        + (isCritical ? "　[クリティカル]": "")
+                        + (isCritical ? "　[クリティカル]" : "")
                         + (spAbsorbed > 0 ? "　SP" + spAbsorbed + "吸収" : "");
                 ((JavaFXUI) ui).appendBattleLog(logSummary);
             }
@@ -1066,11 +1074,13 @@ public class BattleManager {
         }
 
         String atkStatName = ability.getCheck().getAttackerStat();
-        if (atkStatName == null || atkStatName.isEmpty()) atkStatName = "finesse";
+        if (atkStatName == null || atkStatName.isEmpty())
+            atkStatName = "finesse";
         int atkStatVal = getCombatStat(player, atkStatName);
-        
+
         String defStatName = ability.getCheck().getDefenderStat();
-        if (defStatName == null || defStatName.isEmpty()) defStatName = "finesse";
+        if (defStatName == null || defStatName.isEmpty())
+            defStatName = "finesse";
         int defStatVal = enemy.getStatByName(defStatName);
 
         HitResult result = checkHit(atkStatVal, defStatVal, ability.getCheck().getBaseChance(),
@@ -1086,9 +1096,11 @@ public class BattleManager {
                 }
             }
             int diceRoll = DiceRoller.roll(dice);
-            
-            boolean usesWeaponDice = (ability.getCheck().getDamageDice() == null || ability.getCheck().getDamageDice().isEmpty() || "WEAPON".equalsIgnoreCase(ability.getCheck().getDamageDice()));
-            
+
+            boolean usesWeaponDice = (ability.getCheck().getDamageDice() == null
+                    || ability.getCheck().getDamageDice().isEmpty()
+                    || "WEAPON".equalsIgnoreCase(ability.getCheck().getDamageDice()));
+
             // アビリティのタグと武器のタグを合算
             java.util.List<String> tagsForMastery = new java.util.ArrayList<>();
             if (ability.getTags() != null) {
@@ -1098,12 +1110,13 @@ public class BattleManager {
                 tagsForMastery.addAll(weapon.getTags());
             }
             int masteryLevel = calculateMasteryLevel(tagsForMastery);
-            
+
             int masteryDiceSum = calculateMasteryDice(masteryLevel);
             int masteryFixedBonus = calculateMasteryFixedBonus(masteryLevel);
 
             String scalingStatName = ability.getCheck().getScalingStat();
-            if (scalingStatName == null || scalingStatName.isEmpty()) scalingStatName = "might";
+            if (scalingStatName == null || scalingStatName.isEmpty())
+                scalingStatName = "might";
             int rawStatVal = getCombatStat(player, scalingStatName);
             double scaling = (ability.getCheck().getStatScaling() != null) ? ability.getCheck().getStatScaling() : 0.5;
             int scalingStatVal = (int) (rawStatVal * scaling);
