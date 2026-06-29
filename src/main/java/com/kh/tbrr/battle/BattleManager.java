@@ -4,7 +4,10 @@ import com.kh.tbrr.data.models.Item;
 import com.kh.tbrr.data.models.CombatConditionData;
 import com.kh.tbrr.data.ItemRegistry;
 import com.kh.tbrr.data.CombatConditionRegistry;
+import com.kh.tbrr.ui.GameUI;
 import com.kh.tbrr.ui.JavaFXUI;
+import com.kh.tbrr.manager.DataManager;
+import com.kh.tbrr.core.GameState;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -31,12 +34,20 @@ public class BattleManager {
     private GameUI ui;
     private Player player;
     private BattleState state;
+    private transient GameState stateForSave;
+
+    private DataManager dataManager;
     private Random random;
 
-    public BattleManager(GameUI ui, Player player) {
+    public BattleManager(GameUI ui, Player player, DataManager dataManager) {
         this.ui = ui;
         this.player = player;
+        this.dataManager = dataManager;
         this.random = new Random();
+    }
+
+    public BattleState getState() {
+        return state;
     }
 
     public String getDeathCause() {
@@ -49,20 +60,6 @@ public class BattleManager {
 
     public BattleResult getLastResult() {
         return lastResult;
-    }
-
-    private EnemyData loadEnemyData(String enemyId) {
-        try {
-            String path = "/data/enemies/" + enemyId + ".json";
-            InputStream is = getClass().getResourceAsStream(path);
-            if (is != null) {
-                Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
-                return new Gson().fromJson(reader, EnemyData.class);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
     }
 
     /**
@@ -122,7 +119,7 @@ public class BattleManager {
         }
         ui.updateAvailableStances(stanceNames);
 
-        EnemyData enemy = loadEnemyData(enemyId);
+        EnemyData enemy = dataManager.loadEnemyData(enemyId);
         if (enemy == null) {
             ui.print("【エラー】敵データの読み込みに失敗しました: " + enemyId);
             return lastResult;
@@ -236,7 +233,6 @@ public class BattleManager {
                         // 敵のターン
                         processEnemyTurn(enemy);
                         if (player.getHp() <= 0) {
-                            ui.print("【敗北】 プレイヤーのHPが0になった……");
                             lastResult = BattleResult.DEFEAT;
                             battleEnded = true;
                             continue;
@@ -245,7 +241,6 @@ public class BattleManager {
                         // 敵先行
                         processEnemyTurn(enemy);
                         if (player.getHp() <= 0) {
-                            ui.print("【敗北】 プレイヤーのHPが0になった……");
                             lastResult = BattleResult.DEFEAT;
                             battleEnded = true;
                             continue;
@@ -279,6 +274,12 @@ public class BattleManager {
             jfxUi.hideBattlePanel(); // 戦闘パネルを閉じて背景画像に戻す
             ui.showImage("enemy", ""); // 敵画像を消去（非表示にする）
             player.setCurrentSp(0); // 戦闘終了時にSPをリセット
+            
+            // ★敗北時のワンクッション追加
+            if (lastResult == BattleResult.DEFEAT) {
+            	ui.print("【敗北】 " + player.getName() + " は力尽きた……");
+            	ui.waitForEnter();
+            }
         }
         return lastResult;
     }

@@ -1371,13 +1371,17 @@ public class EventProcessor {
 
 		// ★追加: TRPG風バトルシステムの呼び出し
 		if (result.getBattle() != null && !result.getBattle().isEmpty()) {
-			com.kh.tbrr.battle.BattleManager battleManager = new com.kh.tbrr.battle.BattleManager(ui, player);
+			com.kh.tbrr.battle.BattleManager battleManager = new com.kh.tbrr.battle.BattleManager(ui, player, dataManager);
 			com.kh.tbrr.battle.BattleManager.BattleResult battleResult = battleManager.startBattle(result.getBattle());
 
 			if (battleResult == com.kh.tbrr.battle.BattleManager.BattleResult.DEFEAT) {
 				// 敗北: 死亡処理
 				if (deathManager != null) {
-					deathManager.processDeath(battleManager.getDeathCause(), player, gameState);
+					String cause = result.getBattleDeathCause();
+					if (cause == null || cause.isEmpty()) {
+						cause = battleManager.getDeathCause();
+					}
+					deathManager.processDeath(cause, player, gameState);
 				}
 				died = true;
 			} else if (battleResult == com.kh.tbrr.battle.BattleManager.BattleResult.FLED) {

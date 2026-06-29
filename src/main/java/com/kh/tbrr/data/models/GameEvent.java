@@ -522,6 +522,7 @@ public class GameEvent {
 		
 		// バトルシステム呼び出し用
 		private String battle;
+		private String battleDeathCause; // イベント側で死因を上書きするためのフィールド
 
 		// 逃走成功時の遷移先イベントID（省略時はそのまま戦闘終了）
 		private String fleeEventId;
@@ -870,6 +871,14 @@ public class GameEvent {
 
 		public void setBattle(String battle) {
 			this.battle = battle;
+		}
+
+		public String getBattleDeathCause() {
+			return battleDeathCause;
+		}
+
+		public void setBattleDeathCause(String battleDeathCause) {
+			this.battleDeathCause = battleDeathCause;
 		}
 
 		public String getFleeEventId() {

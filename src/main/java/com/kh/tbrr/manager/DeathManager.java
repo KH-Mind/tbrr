@@ -115,8 +115,6 @@ public class DeathManager {
 
 		// ⑤ 最終表示処理
 
-		ui.waitForEnter(); // ここでEnter待ち
-		ui.print("");
 		ui.print("━━━━━━━━━━━━━━━━━━━━━━━━");
 		ui.print("        GAME OVER");
 		ui.print("━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -165,6 +163,10 @@ public class DeathManager {
 		// 運命に導かれし者の判定
 		if (player.isFatedOne()) {
 
+			ui.print("（引継ぎ処理へ移行します…）");
+			ui.print("");
+			ui.waitForEnter();
+
 			// 引継ぎ選択画面を開く（選択が完了するまでここでブロック）
 			// CarryoverScreen内でアビリティ/特徴の選択、リセット、JSON上書き、grade+1が行われる
 			ui.requestCarryoverSelection(player, () -> {
@@ -189,6 +191,9 @@ public class DeathManager {
 		gameState.recordDeath(deathCause != null ? deathCause : "generic");
 
 		showDeathStatistics(gameState);
+
+		ui.print("（タイトル画面へ戻ります）");
+		ui.waitForEnter();
 	}
 
 	/**

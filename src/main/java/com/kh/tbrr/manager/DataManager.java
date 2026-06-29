@@ -45,6 +45,16 @@ public class DataManager {
 			"remnant"
 	};
 
+	// 敵データのサブフォルダ
+	private static final String[] ENEMY_FOLDERS = {
+			"_wip", // 作業中
+			"humanoids", // 人間型
+			"wildlife", // 野生生物
+			"monsters", // モンスター
+			"horrors", // ホラー系
+			"uniques" // 専用・ボス
+	};
+
 	// キャッシュ
 
 	private Map<String, Item> itemCache;
@@ -679,6 +689,32 @@ public class DataManager {
 		}
 
 		System.err.println("[DataManager] loadDeathJson 読み込み失敗: " + deathKey);
+		return null;
+	}
+
+	/**
+	 * 敵JSONオブジェクトを読み込む
+	 */
+	public com.kh.tbrr.battle.EnemyData loadEnemyData(String enemyId) {
+		for (String folder : ENEMY_FOLDERS) {
+			String path = DATA_ROOT + "enemies/" + folder + "/" + enemyId + ".json";
+			try {
+				String json = loadResourceContent(path);
+				return gson.fromJson(json, com.kh.tbrr.battle.EnemyData.class);
+			} catch (IOException e) {
+				// continue
+			}
+		}
+		// 後方互換
+		String oldPath = DATA_ROOT + "enemies/" + enemyId + ".json";
+		try {
+			String json = loadResourceContent(oldPath);
+			return gson.fromJson(json, com.kh.tbrr.battle.EnemyData.class);
+		} catch (IOException e) {
+			// continue
+		}
+
+		System.err.println("[DataManager] loadEnemyData 読み込み失敗: " + enemyId);
 		return null;
 	}
 
