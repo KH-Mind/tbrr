@@ -163,8 +163,7 @@ public class RandomWordsManager {
 						List<String> words = entry.getValue();
 
 						// デバッグ: カテゴリの内容を表示
-						String status = (words == null || words.isEmpty()) ? "(空)" : "(" + words.size() + "個)";
-						// System.out.println("[DEBUG] カテゴリ: " + category + " " + status);
+
 
 						if (categories.containsKey(category)) {
 							// 既存のカテゴリに追加

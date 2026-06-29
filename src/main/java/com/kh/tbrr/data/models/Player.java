@@ -95,8 +95,7 @@ public class Player {
 
     // accessories and reserve (Phase 3)
     private List<String> equippedAccessories; // max 3, Accessory item IDs
-    private List<String> reserveEquipments; // max limits by maxReserveSlots
-    private int maxReserveSlots = 1; // default is 1
+    private List<String> reserveEquipments;
 
     // status effects (プレイヤー状態、状態異常系の管理用)
     private java.util.Map<String, Integer> statusEffects;
@@ -1054,9 +1053,6 @@ public class Player {
         return (int) Math.min(3, 1 + bigBagCount);
     }
 
-    public void setMaxReserveSlots(int maxReserveSlots) {
-        this.maxReserveSlots = maxReserveSlots; // 後方互換用（現在は動的計算のため参照されない）
-    }
 
     public List<String> getBaseSkills() {
         return baseSkills;

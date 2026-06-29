@@ -7,7 +7,6 @@ import com.kh.tbrr.data.CombatConditionRegistry;
 import com.kh.tbrr.ui.GameUI;
 import com.kh.tbrr.ui.JavaFXUI;
 import com.kh.tbrr.manager.DataManager;
-import com.kh.tbrr.core.GameState;
 
 import java.util.Random;
 

@@ -142,40 +142,6 @@ public class EventManager {
 		}
 	}
 
-	/**
-	 * タグベースでイベントを発生させる
-	 */
-	private void triggerEventByTags(List<String> tags, Player player, GameState gameState) {
-		if (tags == null || tags.isEmpty()) {
-			triggerFallbackEvent(player, gameState);
-			return;
-		}
-
-		// タグに一致するイベントを検索
-		List<GameEvent> matchingEvents = dataManager.getEventsByTags(tags);
-
-		if (!matchingEvents.isEmpty()) {
-			GameEvent event = matchingEvents.get(random.nextInt(matchingEvents.size()));
-			eventProcessor.processEvent(event, player, gameState);
-		} else {
-			// 個別タグで再検索
-			for (String tag : tags) {
-				List<GameEvent> events = dataManager.getEventsByTag(tag);
-				if (!events.isEmpty()) {
-					GameEvent event = events.get(random.nextInt(events.size()));
-					eventProcessor.processEvent(event, player, gameState);
-					return;
-				}
-			}
-
-			// それでも見つからない場合
-			triggerFallbackEvent(player, gameState);
-		}
-	}
-
-	/**
-	 * 特定のイベントを発生させる
-	 */
 	public void triggerEvent(String eventId, Player player, GameState gameState) {
 		GameEvent event = dataManager.loadEvent(eventId);
 

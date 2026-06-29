@@ -210,7 +210,7 @@ public class ScenarioManager {
 			// System.out.println("[DEBUG] map fileNames found: " + mapFileNames);
 		}
 
-		int successCount = 0;
+
 		for (String fileName : mapFileNames) {
 			InputStream is = null;
 
@@ -242,7 +242,7 @@ public class ScenarioManager {
 					}
 					if (map.getId() != null) {
 						maps.put(map.getId(), map);
-						successCount++;
+
 						// System.err.println("[SUCCESS] マップ読み込み成功: " + map.getId() + " (" + fileName +
 						// ")");
 					} else {
@@ -265,8 +265,7 @@ public class ScenarioManager {
 			}
 		}
 
-		// System.err.println("[INFO] マップデータ読み込み完了: " + successCount + "/" +
-		// mapFileNames.size() + " 成功");
+
 	}
 
 	/**
