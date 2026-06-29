@@ -104,7 +104,13 @@ public class EventProcessor {
 				ui.print(replaced);
 			}
 		}
-		ui.print("");
+
+		List<Choice> availableChoices = getAvailableChoices(event, player);
+
+		// 選択肢が存在する場合（メニューが表示される場合）のみ、本文との間に1行空ける
+		if (availableChoices != null && !availableChoices.isEmpty()) {
+			ui.print("");
+		}
 
 		// ★追加: ヘルパーヒントの表示
 		if (gameState.hasFlag("system:helper_enabled") && !event.isSuppressHelperHint()) {
@@ -117,24 +123,19 @@ public class EventProcessor {
 			}
 		}
 
-		List<Choice> availableChoices = getAvailableChoices(event, player);
-		if (availableChoices == null || availableChoices.isEmpty()) {
-			ui.print("【システム】選択可能な行動がありません。イベントをスキップします。");
-			ui.waitForEnter();
-			return null;
+		if (availableChoices != null && !availableChoices.isEmpty()) {
+			displayChoices(availableChoices, player);
+
+			int choiceIndex = ui.getPlayerChoice(availableChoices.size(), player);
+			if (choiceIndex <= 0 || choiceIndex > availableChoices.size()) {
+				ui.print("【システム】選択肢の取得に失敗しました。イベントをスキップします。");
+				ui.waitForEnter();
+				return null;
+			}
+
+			Choice selectedChoice = availableChoices.get(choiceIndex - 1);
+			processChoice(selectedChoice, player, gameState);
 		}
-
-		displayChoices(availableChoices, player);
-
-		int choiceIndex = ui.getPlayerChoice(availableChoices.size(), player);
-		if (choiceIndex <= 0 || choiceIndex > availableChoices.size()) {
-			ui.print("【システム】選択肢の取得に失敗しました。イベントをスキップします。");
-			ui.waitForEnter();
-			return null;
-		}
-
-		Choice selectedChoice = availableChoices.get(choiceIndex - 1);
-		processChoice(selectedChoice, player, gameState);
 
 		if (!gameState.isInRecursiveEvent()) {
 			gameState.incrementEventCount();

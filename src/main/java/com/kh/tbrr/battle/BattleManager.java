@@ -9,16 +9,10 @@ import com.kh.tbrr.ui.JavaFXUI;
 import com.kh.tbrr.manager.DataManager;
 import com.kh.tbrr.core.GameState;
 
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
 import java.util.Random;
 
 import com.kh.tbrr.data.models.Player;
-import com.kh.tbrr.ui.GameUI;
 import com.kh.tbrr.battle.data.*;
-import com.google.gson.Gson;
 
 public class BattleManager {
 
@@ -34,7 +28,6 @@ public class BattleManager {
     private GameUI ui;
     private Player player;
     private BattleState state;
-    private transient GameState stateForSave;
 
     private DataManager dataManager;
     private Random random;
@@ -274,11 +267,11 @@ public class BattleManager {
             jfxUi.hideBattlePanel(); // 戦闘パネルを閉じて背景画像に戻す
             ui.showImage("enemy", ""); // 敵画像を消去（非表示にする）
             player.setCurrentSp(0); // 戦闘終了時にSPをリセット
-            
+
             // ★敗北時のワンクッション追加
             if (lastResult == BattleResult.DEFEAT) {
-            	ui.print("【敗北】 " + player.getName() + " は力尽きた……");
-            	ui.waitForEnter();
+                ui.print("【敗北】 " + player.getName() + " は力尽きた……");
+                ui.waitForEnter();
             }
         }
         return lastResult;
