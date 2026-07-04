@@ -28,10 +28,12 @@ public class EnemyData {
         private String ability;
         private int weight;
         private String nameOverride; // 画面表示用のアビリティ名上書き
-        
+        private java.util.List<String> description; // 自由描写テキスト
+
         public String getAbility() { return ability; }
         public int getWeight() { return weight; }
         public String getNameOverride() { return nameOverride; }
+        public java.util.List<String> getDescription() { return description; }
     }
 
     public static class AIActionRule {

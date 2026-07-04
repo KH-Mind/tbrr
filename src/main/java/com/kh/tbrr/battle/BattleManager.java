@@ -840,7 +840,7 @@ public class BattleManager {
         String pStanceStr = state.getCurrentPlayerStance();
         // TODO: ここで特注の割り込み処理（魔法の無効化など）を記述する予定
 
-        ui.print("＞敵の行動: [" + enemy.getName() + " の行動]");
+        ui.print("＞【" + enemy.getName() + "の行動】");
         CombatBaseRules baseRules = CombatDataLoader.getBaseRules();
 
         // --- 1. ムーブの実行 ---
@@ -912,7 +912,8 @@ public class BattleManager {
                     return;
                 }
                 String nameOverride = (selectedChoice != null) ? selectedChoice.getNameOverride() : null;
-                executeEnemyAttack(enemy, ability, baseRules, nameOverride);
+                java.util.List<String> description = (selectedChoice != null) ? selectedChoice.getDescription() : null;
+                executeEnemyAttack(enemy, ability, baseRules, nameOverride, description);
             }
         } else {
             ui.print("　" + enemy.getName() + " は様子をうかがっている……。（行動できる技がない）");
@@ -958,13 +959,22 @@ public class BattleManager {
     }
 
     private void executeEnemyAttack(EnemyData enemy, AbilityData ability, CombatBaseRules baseRules,
-            String nameOverride) {
+            String nameOverride, java.util.List<String> description) {
         String abilityName = (nameOverride != null && !nameOverride.isEmpty()) ? nameOverride : ability.getName();
 
         // idle(非戦闘)タグを持つ行動なら、様子を見る等のテキストを出して終了
         if (ability.getTags() != null && ability.getTags().contains("idle")) {
             ui.print("　" + enemy.getName() + " は " + abilityName + "。");
             return;
+        }
+
+        ui.print("　" + enemy.getName() + "の攻撃！[" + abilityName + "]");
+
+        if (description != null && !description.isEmpty()) {
+            for (String line : description) {
+                String replacedLine = com.kh.tbrr.utils.TextReplacer.replace(line, player);
+                ui.print("　" + replacedLine);
+            }
         }
 
         int distance = state.getDistance();
@@ -1036,8 +1046,7 @@ public class BattleManager {
             // SPが機能した場合はSP吸収量を表示
             int spAbsorbed = totalDamage - hpDamage;
             String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
-            ui.print("　" + enemy.getName() + " の攻撃！[" + abilityName + "] " + playerName + " に " + totalDamage
-                    + " のダメージ！" + reduceMsg + critMsg + spMsg);
+            ui.print("→ " + playerName + " に " + totalDamage + " のダメージ！" + reduceMsg + critMsg + spMsg);
             // サブウィンドウのログに要約を追記
             if (ui instanceof JavaFXUI) {
                 String logSummary = enemy.getName() + "の攻撃！" + totalDamage + "ダメージ"
@@ -1047,7 +1056,8 @@ public class BattleManager {
             }
             ui.printPlayerStatus(player); // 右パネルのHP/AP表示を更新
         } else {
-            ui.print("　" + enemy.getName() + " の攻撃！[" + abilityName + "] ...しかし、回避した！");
+            String playerName = player.getName() != null ? player.getName() : "冒険者";
+            ui.print("→ ...しかし、" + playerName + " は回避した！");
             // サブウィンドウのログに要約を追記
             if (ui instanceof JavaFXUI) {
                 ((JavaFXUI) ui).appendBattleLog(enemy.getName() + "の攻撃を回避！");
