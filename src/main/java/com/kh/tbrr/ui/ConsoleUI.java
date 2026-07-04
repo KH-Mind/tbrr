@@ -9,6 +9,10 @@ import com.kh.tbrr.data.models.Player;
 import com.kh.tbrr.system.DeveloperMode;
 
 /**
+ * 【注意】このクラスは現在使用されていません。
+ * （コンソール版の古いUI実装です。現在は JavaFXUI が使われています）
+ * 今後の開発・AIによる解析では無視してください。
+ *
  * コンソールUI (開発者モード起動対応版)
  */
 public class ConsoleUI implements GameUI {

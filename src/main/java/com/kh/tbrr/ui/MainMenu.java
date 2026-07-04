@@ -11,6 +11,10 @@ import com.kh.tbrr.system.CharacterLoader;
 import com.kh.tbrr.system.DeveloperMode;
 
 /**
+ * 【注意】このクラスは現在使用されていません。
+ * （コンソール版の古いメインメニューです。現在は MainMenuScreen が使われています）
+ * 今後の開発・AIによる解析では無視してください。
+ *
  * コンソール版メインメニュー
  * 現状コンソール版では遊べるゲーム内容ではないため資料程度。
  */

@@ -282,6 +282,7 @@ public class CharacterCreationScreen {
 
         // StackPaneで背景画像とメインレイアウトを重ねる
         StackPane root = new StackPane();
+        root.setStyle("-fx-background-color: #333132;");
         root.getChildren().addAll(backgroundView, mainLayout);
 
         Scene scene = new Scene(root, 1600, 900);

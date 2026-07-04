@@ -201,7 +201,7 @@ public class JavaFXUI implements GameUI {
 		stackPane.setMaxSize(804, 454);
 		stackPane.setMinSize(804, 454);
 		stackPane.setStyle(
-				"-fx-background-color: #333333; " +
+				"-fx-background-color: #2b2b2b; " +
 						"-fx-border-color: #666666; " +
 						"-fx-border-width: 2px;");
 
@@ -212,7 +212,7 @@ public class JavaFXUI implements GameUI {
 		eventImageView.setPreserveRatio(false);
 		eventImageView.setSmooth(true);
 		eventImageView.setStyle(
-				"-fx-background-color: #222222;");
+				"-fx-background-color: #2b2b2b;");
 
 		// ★追加: 敵画像エリア (背景の上に重ねる)
 		enemyImageView = new ImageView();
@@ -256,7 +256,7 @@ public class JavaFXUI implements GameUI {
 		VBox subWindow = new VBox(0); // 間隔を0に変更
 		subWindow.setPadding(new Insets(0)); // パディングも0に変更
 		subWindow.setStyle(
-				"-fx-background-color: #3a3a3a; " +
+				"-fx-background-color: #2b2b2b; " +
 						"-fx-border-color: #666666; " +
 						"-fx-border-width: 2px;");
 		subWindow.setPrefWidth(454);
@@ -272,7 +272,7 @@ public class JavaFXUI implements GameUI {
 		subWindowImageView.setFitHeight(450); // 正方形いっぱいに表示
 		subWindowImageView.setPreserveRatio(false);
 		subWindowImageView.setSmooth(true);
-		subWindowImageView.setStyle("-fx-background-color: #222222;");
+		subWindowImageView.setStyle("-fx-background-color: #2b2b2b;");
 
 		subWindow.getChildren().add(subWindowImageView); // 画像のみ追加
 		return subWindow;

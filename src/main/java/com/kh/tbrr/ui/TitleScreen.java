@@ -11,6 +11,9 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
 /**
+ * 【注意】このクラスは現在使用されていません。
+ * （実質的に廃止された画面です。AIおよび開発者は無視してください）
+ *
  * タイトル画面（最初の画面）
  * STARTボタンのみを表示する
  */

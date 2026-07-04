@@ -111,6 +111,7 @@ public class MainMenuScreen {
 
 		// StackPaneで背景画像とボタンを重ねる
 		StackPane root = new StackPane();
+		root.setStyle("-fx-background-color: #333132;");
 		root.getChildren().addAll(backgroundView, buttonBox);
 
 		Scene scene = new Scene(root, 1600, 900);
