@@ -263,7 +263,7 @@ public class DataManager {
 			"celestial_alignment", "memorial_chamber",
 			"old_manor", "special", "boss", // 重複や漏れを統合
 			"encounter_hostile", "encounter_outlaws", "encounter_wildlife", "encounter_monsters", "encounter_nature",
-			"encounter_neutrals"
+			"encounter_neutrals", "last_resort"
 	};
 
 	public GameEvent loadEvent(String eventId) {
@@ -395,7 +395,7 @@ public class DataManager {
 				// town
 				{ "slum", "town", "village" },
 				// unique
-				{ "cursed_estate", "memorial_chamber", "test_area" }
+				{ "cursed_estate", "memorial_chamber", "test_area", "isolated_island" }
 		};
 
 		System.out.println("[INFO] マップファイルリストを構築中...");

@@ -195,6 +195,7 @@
                         </goals>
                         <configuration>
                             <target>
+                                <!-- シナリオの並び順を手動で管理するため、自動生成を無効化
                                 <fileset id="scenarios" dir="src/main/resources/data/scenarios"
                                     includes="*.json" />
                                 <pathconvert property="scenario.list" refid="scenarios"
@@ -203,6 +204,7 @@
                                 </pathconvert>
                                 <echo file="src/main/resources/data/scenarios/scenario_list.txt">
                                     ${scenario.list}</echo>
+                                -->
 
                                 <fileset id="events" dir="src/main/resources/data/events"
                                     includes="*.json" />

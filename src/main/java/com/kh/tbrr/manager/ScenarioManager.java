@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Random;
 
@@ -35,8 +36,8 @@ public class ScenarioManager {
 		// }
 		this.dataManager = dataManager;
 		this.developerMode = developerMode;
-		this.scenarios = new HashMap<>();
-		this.maps = new HashMap<>();
+		this.scenarios = new LinkedHashMap<>();
+		this.maps = new LinkedHashMap<>();
 		this.gson = new Gson();
 		this.random = new Random();
 
