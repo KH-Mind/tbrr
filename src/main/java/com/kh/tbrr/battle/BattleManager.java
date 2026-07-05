@@ -481,8 +481,11 @@ public class BattleManager {
 
             // 命中判定（アビリティの指定がない場合は機敏でフォールバック）
             String atkStatName = ability.getCheck().getAttackerStat();
-            if (atkStatName == null || atkStatName.isEmpty())
+            if (weapon != null && "ranged".equals(weapon.getRangeType())) {
+                atkStatName = "finesse"; // 弓などは命中を機敏に強制
+            } else if (atkStatName == null || atkStatName.isEmpty()) {
                 atkStatName = "finesse";
+            }
             int atkStatVal = getCombatStat(player, atkStatName);
 
             String defStatName = ability.getCheck().getDefenderStat();
@@ -523,12 +526,16 @@ public class BattleManager {
 
                 // ステータス加算計算
                 String scalingStatName = ability.getCheck().getScalingStat();
-                if (scalingStatName == null || scalingStatName.isEmpty())
-                    scalingStatName = "might";
-                int rawStatVal = getCombatStat(player, scalingStatName);
                 double scaling = (ability.getCheck().getStatScaling() != null)
                         ? ability.getCheck().getStatScaling()
                         : 0.5;
+                if (weapon != null && "ranged".equals(weapon.getRangeType())) {
+                    scalingStatName = "finesse"; // 弓などはダメージスケールを機敏に強制
+                    scaling = 1.0;
+                } else if (scalingStatName == null || scalingStatName.isEmpty()) {
+                    scalingStatName = "might";
+                }
+                int rawStatVal = getCombatStat(player, scalingStatName);
                 int scalingStatVal = (int) (rawStatVal * scaling);
                 int baseDamage = diceRoll + masteryDiceSum + masteryFixedBonus + scalingStatVal;
 
