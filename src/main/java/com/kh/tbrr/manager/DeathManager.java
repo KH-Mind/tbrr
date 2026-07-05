@@ -45,155 +45,168 @@ public class DeathManager {
 	public void processDeath(String deathCause, Player player, GameState gameState) {
 		System.out.println("[DEBUG] deathCause = " + deathCause);
 
-		// ここではまだGAME OVERを表示しない
+		// ★ 死亡イベント開始: 中断セーブを禁止する
+		// この try/finally 全体が死亡イベント＋引継ぎ処理の範囲となる
+		ui.setSuspendSaveEnabled(false);
 
-		List<String> endings = null;
-		String actualDeathKey = null; // 実際に読み込みに成功したキーを保持する
+		try {
+			// ここではまだGAME OVERを表示しない
 
-		// ① deathCause が未設定の場合
-		if (deathCause == null || deathCause.isEmpty()) {
-			ui.print("【警告】死亡イベントに死因が設定されていません。タグ検索、または汎用エンドへフォールバックします。");
-			ui.print("");
-		} else {
-			// ② deathCause が指定されていれば優先（既に "death_by_" が付いているか判定）
-			String deathKey = deathCause.startsWith("death_by_") ? deathCause : "death_by_" + deathCause;
-			actualDeathKey = deathKey;
+			List<String> endings = null;
+			String actualDeathKey = null; // 実際に読み込みに成功したキーを保持する
 
-			// ここでファイル存在チェックを追加
-			if (dataManager.deathJsonExists(deathKey)) {
-				// センシティブチェックを含めた死亡エンド取得処理
-				endings = new ArrayList<>(dataManager.getDeathEndings(deathKey)); // 通常の死亡文を取得
-
-				if (player.isCruelWorldEnabled()) {
-					// センシティブ設定がONなら、追加でセンシティブな死亡文も取得
-					List<String> sensitive = dataManager.getSensitiveDeathEndings(deathKey);
-					if (sensitive != null)
-						endings.addAll(sensitive);
-				}
-			} else {
-				ui.print("【警告】指定された死因 \"" + deathCause + "\" に対応するファイルが存在しません。");
-				ui.print("タグ、または汎用死亡エンドにフォールバックします。");
+			// ① deathCause が未設定の場合
+			if (deathCause == null || deathCause.isEmpty()) {
+				ui.print("【警告】死亡イベントに死因が設定されていません。タグ検索、または汎用エンドへフォールバックします。");
 				ui.print("");
-			}
-		}
+			} else {
+				// ② deathCause が指定されていれば優先（既に "death_by_" が付いているか判定）
+				String deathKey = deathCause.startsWith("death_by_") ? deathCause : "death_by_" + deathCause;
+				actualDeathKey = deathKey;
 
-		// ③ deathCause が無効 or 読み込めなかった場合 → イベントタグから探す
-		if ((endings == null || endings.isEmpty()) && gameState != null && gameState.getCurrentEvent() != null) {
-			List<String> tags = gameState.getCurrentEvent().getTags();
-			if (tags != null) {
-				for (String tag : tags) {
-					if (tag != null && !tag.equalsIgnoreCase("none")) {
-						String tagKey = tag.toLowerCase().startsWith("death_by_") ? tag.toLowerCase()
-								: "death_by_" + tag.toLowerCase();
-						if (dataManager.deathJsonExists(tagKey)) {
-							endings = new ArrayList<>(dataManager.getDeathEndings(tagKey));
-							actualDeathKey = tagKey;
-							if (player.isCruelWorldEnabled()) {
-								List<String> sensitive = dataManager.getSensitiveDeathEndings(tagKey);
-								if (sensitive != null)
-									endings.addAll(sensitive);
-							}
-							if (!endings.isEmpty()) {
-								break; // 最初に見つかったタグで採用
+				// ここでファイル存在チェックを追加
+				if (dataManager.deathJsonExists(deathKey)) {
+					// センシティブチェックを含めた死亡エンド取得処理
+					endings = new ArrayList<>(dataManager.getDeathEndings(deathKey)); // 通常の死亡文を取得
+
+					if (player.isCruelWorldEnabled()) {
+						// センシティブ設定がONなら、追加でセンシティブな死亡文も取得
+						List<String> sensitive = dataManager.getSensitiveDeathEndings(deathKey);
+						if (sensitive != null)
+							endings.addAll(sensitive);
+					}
+				} else {
+					ui.print("【警告】指定された死因 \"" + deathCause + "\" に対応するファイルが存在しません。");
+					ui.print("タグ、または汎用死亡エンドにフォールバックします。");
+					ui.print("");
+				}
+			}
+
+			// ③ deathCause が無効 or 読み込めなかった場合 → イベントタグから探す
+			if ((endings == null || endings.isEmpty()) && gameState != null && gameState.getCurrentEvent() != null) {
+				List<String> tags = gameState.getCurrentEvent().getTags();
+				if (tags != null) {
+					for (String tag : tags) {
+						if (tag != null && !tag.equalsIgnoreCase("none")) {
+							String tagKey = tag.toLowerCase().startsWith("death_by_") ? tag.toLowerCase()
+									: "death_by_" + tag.toLowerCase();
+							if (dataManager.deathJsonExists(tagKey)) {
+								endings = new ArrayList<>(dataManager.getDeathEndings(tagKey));
+								actualDeathKey = tagKey;
+								if (player.isCruelWorldEnabled()) {
+									List<String> sensitive = dataManager.getSensitiveDeathEndings(tagKey);
+									if (sensitive != null)
+										endings.addAll(sensitive);
+								}
+								if (!endings.isEmpty()) {
+									break; // 最初に見つかったタグで採用
+								}
 							}
 						}
 					}
 				}
 			}
-		}
 
-		// ④ それでも見つからなければ汎用死亡エンドへ
-		if (endings == null || endings.isEmpty()) {
-			actualDeathKey = "death_by_generic";
-			endings = new ArrayList<>(dataManager.getDeathEndings(actualDeathKey));
-			if (player.isCruelWorldEnabled()) {
-				List<String> sensitive = dataManager.getSensitiveDeathEndings(actualDeathKey);
-				if (sensitive != null)
-					endings.addAll(sensitive);
-			}
-		}
-
-		// ⑤ 最終表示処理
-
-		ui.print("━━━━━━━━━━━━━━━━━━━━━━━━");
-		ui.print("        GAME OVER");
-		ui.print("━━━━━━━━━━━━━━━━━━━━━━━━");
-		ui.print("");
-
-		if (endings != null && !endings.isEmpty()) {
-			String selected = endings.get(random.nextInt(endings.size()));
-			selected = TextReplacer.replace(selected, player); // プレースホルダを保持したまま置換
-			ui.print(selected);
-			// ui.print("");
-
-			// followups 表示処理（センシティブ対応済み）
-			List<String> followups = dataManager.getDeathFollowups(actualDeathKey);
-			if (followups == null)
-				followups = new ArrayList<>();
-			if (player.isCruelWorldEnabled()) {
-				List<String> sensitiveFollowups = dataManager.getSensitiveDeathFollowups(actualDeathKey);
-				if (sensitiveFollowups != null)
-					followups.addAll(sensitiveFollowups);
+			// ④ それでも見つからなければ汎用死亡エンドへ
+			if (endings == null || endings.isEmpty()) {
+				actualDeathKey = "death_by_generic";
+				endings = new ArrayList<>(dataManager.getDeathEndings(actualDeathKey));
+				if (player.isCruelWorldEnabled()) {
+					List<String> sensitive = dataManager.getSensitiveDeathEndings(actualDeathKey);
+					if (sensitive != null)
+						endings.addAll(sensitive);
+				}
 			}
 
-			if (!followups.isEmpty()) {
-				String extra = followups.get(random.nextInt(followups.size()));
-				extra = TextReplacer.replace(extra, player); // プレースホルダを保持したまま置換
-				ui.print(extra);
-				// ui.print(""); ←改行は任意で調整
-			}
-		} else {
-			ui.print("【死亡エンドですらないエンド】");
-			ui.print(player.getName() + "これが出た場合は汎用死亡エンドすら読めてないのでバグです。");
+			// ⑤ 最終表示処理
+
+			ui.print("━━━━━━━━━━━━━━━━━━━━━━━━");
+			ui.print("        GAME OVER");
+			ui.print("━━━━━━━━━━━━━━━━━━━━━━━━");
 			ui.print("");
-		}
 
-		// 死亡後の「やられちまったぜ」的な表記 Elonaの しくしく とか 今夜は眠れないな の表示のやつのリスペクト
-		ui.print("");
-		List<String> deathMessages = Arrays.asList(
-				"やられちまったぜ",
-				"{ゲームオーバー色々１}",
-				"{ゲームオーバー色々２}");
-		String selected = deathMessages.get(random.nextInt(deathMessages.size()));
-		selected = TextReplacer.replace(selected, player);
-		ui.print(selected);
-		ui.print("");
-		ui.waitForEnter();
+			if (endings != null && !endings.isEmpty()) {
+				String selected = endings.get(random.nextInt(endings.size()));
+				selected = TextReplacer.replace(selected, player); // プレースホルダを保持したまま置換
+				ui.print(selected);
+				// ui.print("");
 
-		// 運命に導かれし者の判定
-		if (player.isFatedOne()) {
+				// followups 表示処理（センシティブ対応済み）
+				List<String> followups = dataManager.getDeathFollowups(actualDeathKey);
+				if (followups == null)
+					followups = new ArrayList<>();
+				if (player.isCruelWorldEnabled()) {
+					List<String> sensitiveFollowups = dataManager.getSensitiveDeathFollowups(actualDeathKey);
+					if (sensitiveFollowups != null)
+						followups.addAll(sensitiveFollowups);
+				}
 
-			ui.print("（引継ぎ処理へ移行します…）");
+				if (!followups.isEmpty()) {
+					String extra = followups.get(random.nextInt(followups.size()));
+					extra = TextReplacer.replace(extra, player); // プレースホルダを保持したまま置換
+					ui.print(extra);
+					// ui.print(""); ←改行は任意で調整
+				}
+			} else {
+				ui.print("【死亡エンドですらないエンド】");
+				ui.print(player.getName() + "これが出た場合は汎用死亡エンドすら読めてないのでバグです。");
+				ui.print("");
+			}
+
+			// 死亡後の「やられちまったぜ」的な表記 Elonaの しくしく とか 今夜は眠れないな の表示のやつのリスペクト
+			ui.print("");
+			List<String> deathMessages = Arrays.asList(
+					"やられちまったぜ",
+					"{ゲームオーバー色々１}",
+					"{ゲームオーバー色々２}");
+			String selected = deathMessages.get(random.nextInt(deathMessages.size()));
+			selected = TextReplacer.replace(selected, player);
+			ui.print(selected);
 			ui.print("");
 			ui.waitForEnter();
 
-			// 引継ぎ選択画面を開く（選択が完了するまでここでブロック）
-			// CarryoverScreen内でアビリティ/特徴の選択、リセット、JSON上書き、grade+1が行われる
-			ui.requestCarryoverSelection(player, () -> {
-				// 選択完了後のコールバック（現在は特に何もしない）
-			});
+			// 運命に導かれし者の判定
+			if (player.isFatedOne()) {
 
-		} else {
-			ui.print(player.getName() + "は墓地に埋められた。");
-			ui.print("");
-			gameState.markCharacterAsLost(player); // キャラ削除処理（仮）
+				ui.print("（引継ぎ処理へ移行します…）");
+				ui.print("");
+				ui.waitForEnter();
 
-			// 墓地にファイルとして永続保存する
-			com.kh.tbrr.data.models.GraveRecord graveRecord = new com.kh.tbrr.data.models.GraveRecord(
-					player.getName(),
-					player.getJob(),
-					gameState.getCurrentFloor(),
-					deathCause != null ? deathCause : "generic");
-			GraveyardManager.saveRecord(graveRecord);
+				// 引継ぎ選択画面を開く（選択が完了するまでここでブロック）
+				// CarryoverScreen内でアビリティ/特徴の選択、リセット、JSON上書き、grade+1が行われる
+				// ★ setSuspendSaveEnabled(false) は有効なまま引継ぎ中も禁止が続く
+				ui.requestCarryoverSelection(player, () -> {
+					// 選択完了後のコールバック（現在は特に何もしない）
+				});
+
+			} else {
+				ui.print(player.getName() + "は墓地に埋められた。");
+				ui.print("");
+				gameState.markCharacterAsLost(player); // キャラ削除処理（仮）
+
+				// 墓地にファイルとして永続保存する
+				com.kh.tbrr.data.models.GraveRecord graveRecord = new com.kh.tbrr.data.models.GraveRecord(
+						player.getName(),
+						player.getJob(),
+						gameState.getCurrentFloor(),
+						deathCause != null ? deathCause : "generic");
+				GraveyardManager.saveRecord(graveRecord);
+			}
+
+			gameState.setGameOver(true);
+			gameState.recordDeath(deathCause != null ? deathCause : "generic");
+
+			showDeathStatistics(gameState);
+
+			ui.print("（タイトル画面へ戻ります）");
+			ui.waitForEnter();
+
+		} finally {
+			// ★ 死亡イベント終了: 中断セーブを再度許可する
+			// （ゲームオーバー後はタイトルへ戻るため実質的には不要だが、
+			// 念のため例外発生時もフラグが false のまま残らないよう解除する）
+			ui.setSuspendSaveEnabled(true);
 		}
-
-		gameState.setGameOver(true);
-		gameState.recordDeath(deathCause != null ? deathCause : "generic");
-
-		showDeathStatistics(gameState);
-
-		ui.print("（タイトル画面へ戻ります）");
-		ui.waitForEnter();
 	}
 
 	/**

@@ -193,4 +193,15 @@ public interface GameUI {
 		// デフォルト実装: コンソールUIはスキップ（引継ぎなし扱い）
 		if (onComplete != null) onComplete.run();
 	}
+
+	/**
+	 * 中断セーブの有効/無効を切り替える。
+	 * 死亡イベント中・引継ぎ中は false を渡してセーブを禁止する。
+	 * ゲーム本編に戻ったら true で解除する。
+	 *
+	 * @param enabled true で中断セーブ許可、false で禁止
+	 */
+	default void setSuspendSaveEnabled(boolean enabled) {
+		// デフォルト実装は何もしない（ConsoleUI向け）
+	}
 }

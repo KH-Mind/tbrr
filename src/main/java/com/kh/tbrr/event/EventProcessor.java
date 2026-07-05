@@ -1372,45 +1372,53 @@ public class EventProcessor {
 
 		// ★追加: TRPG風バトルシステムの呼び出し
 		if (result.getBattle() != null && !result.getBattle().isEmpty()) {
-			com.kh.tbrr.battle.BattleManager battleManager = new com.kh.tbrr.battle.BattleManager(ui, player, dataManager);
-			com.kh.tbrr.battle.BattleManager.BattleResult battleResult = battleManager.startBattle(result.getBattle());
+			// ★ 戦闘開始: 中断セーブを禁止する
+			ui.setSuspendSaveEnabled(false);
+			try {
+				com.kh.tbrr.battle.BattleManager battleManager = new com.kh.tbrr.battle.BattleManager(ui, player, dataManager);
+				com.kh.tbrr.battle.BattleManager.BattleResult battleResult = battleManager.startBattle(result.getBattle());
 
-			if (battleResult == com.kh.tbrr.battle.BattleManager.BattleResult.DEFEAT) {
-				// 敗北: 死亡処理
-				if (deathManager != null) {
-					String cause = result.getBattleDeathCause();
-					if (cause == null || cause.isEmpty()) {
-						cause = battleManager.getDeathCause();
+				if (battleResult == com.kh.tbrr.battle.BattleManager.BattleResult.DEFEAT) {
+					// 敗北: 死亡処理
+					if (deathManager != null) {
+						String cause = result.getBattleDeathCause();
+						if (cause == null || cause.isEmpty()) {
+							cause = battleManager.getDeathCause();
+						}
+						deathManager.processDeath(cause, player, gameState);
 					}
-					deathManager.processDeath(cause, player, gameState);
-				}
-				died = true;
-			} else if (battleResult == com.kh.tbrr.battle.BattleManager.BattleResult.FLED) {
-				// 逃走成功: fleeEventId があれば連鎖、なければそのまま終了
-				if (result.getFleeEventId() != null && !result.getFleeEventId().isEmpty()) {
-					boolean wasInRecursive = gameState.isInRecursiveEvent();
-					if (!wasInRecursive)
-						gameState.setInRecursiveEvent(true);
-					GameEvent fleeEvent = dataManager.loadEvent(result.getFleeEventId());
-					if (fleeEvent != null) {
-						processEvent(fleeEvent, player, gameState);
+					died = true;
+				} else if (battleResult == com.kh.tbrr.battle.BattleManager.BattleResult.FLED) {
+					// 逃走成功: fleeEventId があれば連鎖、なければそのまま終了
+					if (result.getFleeEventId() != null && !result.getFleeEventId().isEmpty()) {
+						boolean wasInRecursive = gameState.isInRecursiveEvent();
+						if (!wasInRecursive)
+							gameState.setInRecursiveEvent(true);
+						GameEvent fleeEvent = dataManager.loadEvent(result.getFleeEventId());
+						if (fleeEvent != null) {
+							processEvent(fleeEvent, player, gameState);
+						}
+						gameState.setInRecursiveEvent(wasInRecursive);
 					}
-					gameState.setInRecursiveEvent(wasInRecursive);
-				}
-				return died;
-			} else {
-				// 勝利: nextEventId があれば連鎖（戦後イベント等）
-				if (result.getNextEventId() != null && !result.getNextEventId().isEmpty()) {
-					boolean wasInRecursive = gameState.isInRecursiveEvent();
-					if (!wasInRecursive)
-						gameState.setInRecursiveEvent(true);
-					GameEvent nextAfterBattle = dataManager.loadEvent(result.getNextEventId());
-					if (nextAfterBattle != null) {
-						processEvent(nextAfterBattle, player, gameState);
-					}
-					gameState.setInRecursiveEvent(wasInRecursive);
 					return died;
+				} else {
+					// 勝利: nextEventId があれば連鎖（戦後イベント等）
+					if (result.getNextEventId() != null && !result.getNextEventId().isEmpty()) {
+						boolean wasInRecursive = gameState.isInRecursiveEvent();
+						if (!wasInRecursive)
+							gameState.setInRecursiveEvent(true);
+						GameEvent nextAfterBattle = dataManager.loadEvent(result.getNextEventId());
+						if (nextAfterBattle != null) {
+							processEvent(nextAfterBattle, player, gameState);
+						}
+						gameState.setInRecursiveEvent(wasInRecursive);
+						return died;
+					}
 				}
+			} finally {
+				// ★ 戦闘終了: 中断セーブを再度許可する
+				// （敗北時は processDeath() 内でも解除されるが、二重に true にしても問題はない）
+				ui.setSuspendSaveEnabled(true);
 			}
 		}
 

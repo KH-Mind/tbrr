@@ -1409,6 +1409,8 @@ public class JavaFXUI implements GameUI {
 	private Runnable returnToMainMenuCallback;
 	// 中断処理用コールバック
 	private Runnable onSuspendGameCallback;
+	// 死亡イベント中・引継ぎ中は false にして中断セーブを禁止する
+	private boolean suspendSaveEnabled = true;
 
 	public void setReturnToMainMenuCallback(Runnable callback) {
 		this.returnToMainMenuCallback = callback;
@@ -1418,14 +1420,20 @@ public class JavaFXUI implements GameUI {
 		this.onSuspendGameCallback = callback;
 	}
 
+	@Override
+	public void setSuspendSaveEnabled(boolean enabled) {
+		this.suspendSaveEnabled = enabled;
+	}
+
 	/**
 	 * コンフィグダイアログを表示
 	 */
 	private void showConfigDialog() {
 		Platform.runLater(() -> {
 			ConfigDialog dialog = new ConfigDialog(stage, returnToMainMenuCallback);
-			// 中断コールバックを設定（プレイヤーが存在する場合のみ＝ゲーム開始後のみ）
-			if (currentPlayer != null) {
+			// 中断コールバックを設定
+			// プレイヤーが存在する（ゲーム開始後）かつ、死亡イベント中でない場合のみ有効
+			if (currentPlayer != null && suspendSaveEnabled) {
 				dialog.setOnSuspendGame(onSuspendGameCallback);
 			} else {
 				dialog.setOnSuspendGame(null);
