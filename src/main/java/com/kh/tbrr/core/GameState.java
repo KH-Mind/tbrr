@@ -49,6 +49,10 @@ public class GameState {
 	// 重要ログ用：最後にログを出力したフロア番号
 	private int lastLoggedFloor = -1;
 
+	// 脅威度スケーリング: 何フロアごとに脅威度が1上昇するか（0=フロアによる自動上昇なし）
+	// シナリオ開始時にGameEngineがScenario.getThreatLevelInterval()の値をセットする
+	private int threatLevelInterval = 20;
+
 	// ↑↑↑ 後で整理しような ↑↑↑
 
 	// ========== イベント山札管理 ==========
@@ -233,6 +237,16 @@ public class GameState {
 
 	public void setCurrentScenario(String scenarioId) {
 		this.currentScenario = scenarioId;
+	}
+
+	/** 脅威度が1上昇するフロア間隔を取得する（0=フロアによる自動上昇なし）。 */
+	public int getThreatLevelInterval() {
+		return threatLevelInterval;
+	}
+
+	/** 脅威度が1上昇するフロア間隔を設定する。シナリオ開始時にGameEngineが呼び出す。 */
+	public void setThreatLevelInterval(int interval) {
+		this.threatLevelInterval = interval;
 	}
 
 	// ========== 死亡履歴 ==========

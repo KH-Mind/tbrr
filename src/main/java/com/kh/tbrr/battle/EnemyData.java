@@ -19,6 +19,31 @@ public class EnemyData {
     private java.util.List<String> traits; // 敵が所持する特徴（Trait）
     private java.util.List<com.kh.tbrr.battle.BattleState.ActiveCombatCondition> initialCombatConditions;
 
+    // 脅威度スケーリング: 脅威度1ごとに加算されるステータス値（nullの場合はスケーリングなし）
+    public static class EnemyScaling {
+        private int hpPerLevel = 0;
+        private int mightPerLevel = 0;
+        private int insightPerLevel = 0;
+        private int finessePerLevel = 0;
+        private int presencePerLevel = 0;
+        private int sensualityPerLevel = 0;
+
+        public int getHpPerLevel() { return hpPerLevel; }
+        public int getMightPerLevel() { return mightPerLevel; }
+        public int getInsightPerLevel() { return insightPerLevel; }
+        public int getFinessePerLevel() { return finessePerLevel; }
+        public int getPresencePerLevel() { return presencePerLevel; }
+        public int getSensualityPerLevel() { return sensualityPerLevel; }
+    }
+
+    private EnemyScaling scaling; // nullの場合はスケーリングなし（ボス・固有敵等）
+
+    // 敵ランク（作者側の難易度目印。0=未設定。将来の闘技場フィルタ等での活用を想定）
+    private int rank = 0;
+
+    // 固定値ダメージ軽減（金属系の敵等にのみ設定。プレイヤーの攻撃ダメージからこの値を引く）
+    private int damageReduction = 0; // デフォルト0（JSONに書かなければ機能しない）
+
     // SP（シールドポイント）
     private int initialSp = 0;  // JSONで設定可能（省略時は0）
     private int currentSp = 0;  // 戦闘中の現在SP
@@ -54,11 +79,17 @@ public class EnemyData {
     public int getHp() { return hp; }
     public void setHp(int hp) { this.hp = hp; }
     public int getMaxHp() { return maxHp; }
+    public void setMaxHp(int maxHp) { this.maxHp = maxHp; }
     public int getMight() { return might; }
+    public void setMight(int might) { this.might = might; }
     public int getInsight() { return insight; }
+    public void setInsight(int insight) { this.insight = insight; }
     public int getFinesse() { return finesse; }
+    public void setFinesse(int finesse) { this.finesse = finesse; }
     public int getPresence() { return presence; }
+    public void setPresence(int presence) { this.presence = presence; }
     public int getSensuality() { return sensuality; }
+    public void setSensuality(int sensuality) { this.sensuality = sensuality; }
     public int getMoveSpeed() { return moveSpeed; }
     public int getActionCount() { return actionCount; }
     public String getImagePath() { return imagePath; }
@@ -67,6 +98,14 @@ public class EnemyData {
     public boolean isCanFlee() { return canFlee; }
     public java.util.List<String> getTraits() { return traits; }
     public java.util.List<com.kh.tbrr.battle.BattleState.ActiveCombatCondition> getInitialCombatConditions() { return initialCombatConditions; }
+
+    // ランク・スケーリング・ダメージ軽減
+    public int getRank() { return rank; }
+    public EnemyScaling getScaling() { return scaling; }
+
+    // damageReduction
+    public int getDamageReduction() { return damageReduction; }
+    public void setDamageReduction(int damageReduction) { this.damageReduction = damageReduction; }
 
     // SP関連
     public int getInitialSp() { return initialSp; }

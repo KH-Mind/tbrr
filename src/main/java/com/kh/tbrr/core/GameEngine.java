@@ -176,6 +176,7 @@ public class GameEngine {
 		gameState.setCurrentPlayer(player); // ★追加
 		gameState.setCurrentScenario(scenarioId);
 		gameState.setMaxFloor(currentScenario.getTotalFloors());
+		gameState.setThreatLevelInterval(currentScenario.getThreatLevelInterval()); // 脅威度スケーリング間隔を設定
 		developerMode.setGameState(gameState);
 
 		// フロアを0から開始
@@ -211,6 +212,7 @@ public class GameEngine {
 		// フロア設定数をフロア数とする
 		int totalFloors = currentScenario.getStageConfigs().size();
 		gameState.setMaxFloor(totalFloors);
+		gameState.setThreatLevelInterval(currentScenario.getThreatLevelInterval()); // 脅威度スケーリング間隔を設定
 
 		// フロアを0から開始
 		gameState.setCurrentFloor(0);
@@ -588,6 +590,26 @@ public class GameEngine {
 			Scenario.StageConfig nextStageConfig = currentScenario.getStageConfigByFloor(nextFloor);
 			if (nextStageConfig != null && !nextStageConfig.isInheritMap()) {
 				gameState.setCurrentMap(null);
+			}
+		}
+
+		// --- フロア起因の脅威度を player.statusEffects に反映 ---
+		// threatLevelInterval > 0 の場合のみ自動増加する（0の場合は無効）
+		int interval = gameState.getThreatLevelInterval();
+		if (interval > 0) {
+			// フロア由来の脅威度 = 現在フロア数 ÷ 間隔（切り捨て）
+			int floorThreat = gameState.getCurrentFloor() / interval;
+			// イベント由来の脅威度（イベントで加算された分）を保持するため、
+			// 現在のstatusEffectのうちfloorThreat以上の部分のみを更新する
+			// ※ フロア由来 と イベント由来 を合算した値をそのまま保持する方式を採用
+			// （「フロア由来だけを更新 + イベント由来を足す」より、合算値として1つ管理する）
+			int currentThreat = player.getStatusEffectValue("threat_level");
+			if (floorThreat > currentThreat) {
+				player.setStatusEffect("threat_level", floorThreat);
+				if (developerMode != null && developerMode.isDebugVisible()) {
+					ui.print("[DEBUG] 脅威度が " + currentThreat + " → " + floorThreat
+							+ " に上昇しました（フロア " + gameState.getCurrentFloor() + "）");
+				}
 			}
 		}
 

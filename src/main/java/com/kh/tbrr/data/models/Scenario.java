@@ -17,6 +17,9 @@ public class Scenario {
 	private String description; // 説明文
 	private String difficulty; // 難易度
 
+	// 脅威度スケーリング: 何フロアごとに脅威度が1上昇するか（0=フロアによる自動上昇なし）
+	private int threatLevelInterval = 20;
+
 	// JSONの"areas"を"stageConfigs"にマッピング
 	@SerializedName("areas")
 	private List<StageConfig> stageConfigs; // フロア設定リスト
@@ -300,6 +303,18 @@ public class Scenario {
 
 	public void setDifficulty(String difficulty) {
 		this.difficulty = difficulty;
+	}
+
+	/**
+	 * 脅威度が1上昇するフロア間隔を取得する。
+	 * 0の場合はフロアによる自動上昇なし（イベントのみで制御）。
+	 */
+	public int getThreatLevelInterval() {
+		return threatLevelInterval;
+	}
+
+	public void setThreatLevelInterval(int threatLevelInterval) {
+		this.threatLevelInterval = threatLevelInterval;
 	}
 
 	public int getTotalFloors() {

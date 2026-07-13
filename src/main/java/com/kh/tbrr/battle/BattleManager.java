@@ -7,6 +7,7 @@ import com.kh.tbrr.data.CombatConditionRegistry;
 import com.kh.tbrr.ui.GameUI;
 import com.kh.tbrr.ui.JavaFXUI;
 import com.kh.tbrr.manager.DataManager;
+import com.kh.tbrr.core.GameState;
 
 import java.util.Random;
 
@@ -96,7 +97,7 @@ public class BattleManager {
         return list;
     }
 
-    public BattleResult startBattle(String enemyId) {
+    public BattleResult startBattle(String enemyId, GameState gameState) {
         state = new BattleState();
         CombatConditionRegistry.loadAll(); // 戦闘用状態異常データの読み込み
         CombatDataLoader.loadAllTraits(); // 特徴（Trait）データの読み込み（二重読み込み防止済み）
@@ -116,6 +117,31 @@ public class BattleManager {
             ui.print("【エラー】敵データの読み込みに失敗しました: " + enemyId);
             return lastResult;
         }
+
+        // --- 脅威度スケーリングの適用 ---
+        // scalingブロックがある場合のみ計算する。ない敵（ボス・固有敵等）は固定強度のまま。
+        // threat_level statusEffectには「フロア由来 + イベント由来」の合算値が入っている。
+        if (enemy.getScaling() != null) {
+            int totalThreat = player.getStatusEffectValue("threat_level");
+
+            if (totalThreat > 0) {
+                EnemyData.EnemyScaling sc = enemy.getScaling();
+                int newHp = enemy.getMaxHp() + totalThreat * sc.getHpPerLevel();
+                enemy.setMaxHp(newHp);
+                enemy.setHp(newHp);
+                enemy.setMight(enemy.getMight() + totalThreat * sc.getMightPerLevel());
+                enemy.setInsight(enemy.getInsight() + totalThreat * sc.getInsightPerLevel());
+                enemy.setFinesse(enemy.getFinesse() + totalThreat * sc.getFinessePerLevel());
+                enemy.setPresence(enemy.getPresence() + totalThreat * sc.getPresencePerLevel());
+                enemy.setSensuality(enemy.getSensuality() + totalThreat * sc.getSensualityPerLevel());
+                if (System.getProperty("tbrr.debug") != null) {
+                    System.err.println("[SCALING] " + enemy.getName()
+                        + " totalThreat=" + totalThreat
+                        + " HP=" + newHp + " Might=" + enemy.getMight());
+                }
+            }
+        }
+
         state.setCurrentEnemy(enemy);
         if (enemy.getInitialCombatConditions() != null) {
             for (var cond : enemy.getInitialCombatConditions()) {
@@ -551,16 +577,23 @@ public class BattleManager {
                     totalDamage /= 2; // 防御中はダメージ半減
                 }
 
+                // 敵の固定ダメージ軽減（金属系の敵等に設定されるdamageReduction）
+                int enemyDmgReduction = enemy.getDamageReduction();
+                if (enemyDmgReduction > 0) {
+                    totalDamage = Math.max(0, totalDamage - enemyDmgReduction);
+                }
+
                 // ダメージ処理（SP→HPの順）
                 int hpDamage = enemy.applyBattleDamage(totalDamage, false);
 
                 String diceMsg = "(基礎ダイス:" + diceRoll + (masteryLevel > 0 ? " + 習熟追加" + masteryLevel + "d4" : "")
                         + " + 習熟固定:" + masteryFixedBonus + " + ステ修正:" + scalingStatVal + ")";
                 String critMsg = isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
+                String reductionMsg = enemyDmgReduction > 0 ? "（" + enemyDmgReduction + "ダメージ軽減）" : "";
                 // SPが機能した場合はSP吸収量を表示
                 int spAbsorbed = totalDamage - hpDamage;
                 String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
-                ui.print("　命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！ " + diceMsg + critMsg + spMsg);
+                ui.print("　命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！ " + diceMsg + critMsg + reductionMsg + spMsg);
                 // サブウィンドウのログに要約を追記
                 if (ui instanceof JavaFXUI) {
                     String logSummary = "命中！" + enemy.getName() + "に" + totalDamage + "ダメージ"

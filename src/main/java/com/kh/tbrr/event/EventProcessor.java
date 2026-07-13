@@ -1376,7 +1376,7 @@ public class EventProcessor {
 			ui.setSuspendSaveEnabled(false);
 			try {
 				com.kh.tbrr.battle.BattleManager battleManager = new com.kh.tbrr.battle.BattleManager(ui, player, dataManager);
-				com.kh.tbrr.battle.BattleManager.BattleResult battleResult = battleManager.startBattle(result.getBattle());
+				com.kh.tbrr.battle.BattleManager.BattleResult battleResult = battleManager.startBattle(result.getBattle(), gameState);
 
 				if (battleResult == com.kh.tbrr.battle.BattleManager.BattleResult.DEFEAT) {
 					// 敗北: 死亡処理

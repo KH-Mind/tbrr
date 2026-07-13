@@ -386,6 +386,18 @@ public class DeveloperMode {
 				if (ui != null)
 					ui.printError("[DEBUG] 使用法: player.equipreserve <スロット番号> <アイテムID>");
 			}
+		} else if (cmd.startsWith("enemy.setthreat ")) {
+			// enemy.setthreat <数値> : 脅威度を指定した値に直接セットする（テスト用短縮コマンド）
+			// player.setstatuseffect threat_level <数値> と同等
+			try {
+				int value = Integer.parseInt(cmd.substring("enemy.setthreat ".length()).trim());
+				player.setStatusEffect("threat_level", value);
+				if (debugVisible && ui != null)
+					ui.print("[DEBUG] 脅威度を " + value + " に設定しました（threat_level=" + value + "）");
+			} catch (NumberFormatException e) {
+				if (ui != null)
+					ui.printError("[DEBUG] 使用法: enemy.setthreat <数値>");
+			}
 		}
 	}
 }
