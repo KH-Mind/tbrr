@@ -131,20 +131,19 @@ public class EnemyData {
      * @param isPenetrating trueの場合はSPを無視してHPに直接ダメージ（将来の貫通攻撃実装用）
      * @return 実際にHPに通ったダメージ量（ログ表示用）
      */
-    public int applyBattleDamage(int damage, boolean isPenetrating) {
-        if (isPenetrating || currentSp <= 0) {
-            int newHp = Math.max(0, hp - damage);
-            int actualDamage = hp - newHp;
-            hp = newHp;
-            return actualDamage;
+    public DamageResult applyBattleDamage(int damage, boolean isPenetrating) {
+        int spAbsorbed = 0;
+        if (!isPenetrating && currentSp > 0) {
+            spAbsorbed = Math.min(currentSp, damage);
+            setCurrentSp(currentSp - spAbsorbed);
         }
-        int spAbsorbed = Math.min(currentSp, damage);
-        int overflow = damage - spAbsorbed;
-        setCurrentSp(currentSp - spAbsorbed);
-        if (overflow > 0) {
-            hp = Math.max(0, hp - overflow);
+        int remainingDamage = damage - spAbsorbed;
+        int oldHp = hp;
+        if (remainingDamage > 0) {
+            hp = Math.max(0, hp - remainingDamage);
         }
-        return overflow;
+        int hpDamage = oldHp - hp;
+        return new DamageResult(hpDamage, spAbsorbed);
     }
 
     public String getAiType() { return aiType; }

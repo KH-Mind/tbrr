@@ -3,6 +3,8 @@ package com.kh.tbrr.data.models;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.kh.tbrr.battle.DamageResult;
+import com.kh.tbrr.battle.data.CombatDataLoader;
 import com.kh.tbrr.battle.data.TraitData;
 import com.kh.tbrr.battle.data.TraitRegistry;
 import com.kh.tbrr.data.ItemRegistry;
@@ -228,20 +230,19 @@ public class Player {
      * @param isPenetrating trueの場合はSPを無視してHPに直接ダメージ
      * @return 実際にHPに通ったダメージ量（ログ表示用）
      */
-    public int applyBattleDamage(int damage, boolean isPenetrating) {
-        if (isPenetrating || currentSp <= 0) {
-            // 貫通ダメージ、またはSPが既に0の場合はHPに直接
-            modifyHp(-damage);
-            return damage;
+    public DamageResult applyBattleDamage(int damage, boolean isPenetrating) {
+        int spAbsorbed = 0;
+        if (!isPenetrating && currentSp > 0) {
+            spAbsorbed = Math.min(currentSp, damage);
+            setCurrentSp(currentSp - spAbsorbed);
         }
-        // SPで先にダメージを受ける
-        int spAbsorbed = Math.min(currentSp, damage);
-        int overflow = damage - spAbsorbed;
-        setCurrentSp(currentSp - spAbsorbed);
-        if (overflow > 0) {
-            modifyHp(-overflow);
+        int remainingDamage = damage - spAbsorbed;
+        int oldHp = hp;
+        if (remainingDamage > 0) {
+            modifyHp(-remainingDamage);
         }
-        return overflow; // HPに通ったダメージ量
+        int hpDamage = oldHp - hp;
+        return new DamageResult(hpDamage, spAbsorbed);
     }
 
     // HP/AP/お金 の増減をやるやつ

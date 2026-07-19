@@ -97,6 +97,16 @@ public class BattleManager {
         return list;
     }
 
+    private boolean isPlayerFlying() {
+        return getActivePlayerTraits().stream()
+                .anyMatch(t -> t != null && "SYSTEMIC".equals(t.getType()) && "FLYING".equals(t.getSystemicEffect()));
+    }
+
+    private boolean isEnemyFlying() {
+        return getActiveEnemyTraits().stream()
+                .anyMatch(t -> t != null && "SYSTEMIC".equals(t.getType()) && "FLYING".equals(t.getSystemicEffect()));
+    }
+
     public BattleResult startBattle(String enemyId, GameState gameState) {
         state = new BattleState();
         CombatConditionRegistry.loadAll(); // 戦闘用状態異常データの読み込み
@@ -136,8 +146,8 @@ public class BattleManager {
                 enemy.setSensuality(enemy.getSensuality() + totalThreat * sc.getSensualityPerLevel());
                 if (System.getProperty("tbrr.debug") != null) {
                     System.err.println("[SCALING] " + enemy.getName()
-                        + " totalThreat=" + totalThreat
-                        + " HP=" + newHp + " Might=" + enemy.getMight());
+                            + " totalThreat=" + totalThreat
+                            + " HP=" + newHp + " Might=" + enemy.getMight());
                 }
             }
         }
@@ -182,10 +192,13 @@ public class BattleManager {
                 ui.print("コマンドを選択してください。");
 
                 // サブウィンドウの戦闘情報をターン開始時に一括更新
+                HitChanceDetails pChance = getSimulatedPlayerHitChance();
+                HitChanceDetails eChance = getSimulatedEnemyHitChance();
                 jfxUi.updateBattlePanel(
                         state.getTurnCount(), state.getDistance(),
                         player, enemy,
-                        state.getPlayerConditions(), state.getEnemyConditions());
+                        state.getPlayerConditions(), state.getEnemyConditions(),
+                        pChance, eChance);
                 // ターン间切りログ
                 jfxUi.appendBattleLog("\u2500── ターン " + state.getTurnCount() + " ───");
 
@@ -521,7 +534,7 @@ public class BattleManager {
 
             Integer overrideChance = ability.getCheck().getBaseChance();
             HitResult result = checkHit(atkStatVal, defStatVal, overrideChance, state.isEnemyDefending(),
-                    state.getPlayerConditions(), state.getEnemyConditions());
+                    state.getPlayerConditions(), state.getEnemyConditions(), isPlayerFlying(), isEnemyFlying());
 
             if (result.isHit) {
                 // ダイス計算: 未指定・WEAPONなら武器ダイスを使用
@@ -584,16 +597,18 @@ public class BattleManager {
                 }
 
                 // ダメージ処理（SP→HPの順）
-                int hpDamage = enemy.applyBattleDamage(totalDamage, false);
+                boolean isPenetrating = false;
+                DamageResult dmgResult = enemy.applyBattleDamage(totalDamage, isPenetrating);
+                int hpDamage = dmgResult.actualHpDamage();
+                int spAbsorbed = dmgResult.actualSpDamage();
 
                 String diceMsg = "(基礎ダイス:" + diceRoll + (masteryLevel > 0 ? " + 習熟追加" + masteryLevel + "d4" : "")
                         + " + 習熟固定:" + masteryFixedBonus + " + ステ修正:" + scalingStatVal + ")";
                 String critMsg = isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
                 String reductionMsg = enemyDmgReduction > 0 ? "（" + enemyDmgReduction + "ダメージ軽減）" : "";
-                // SPが機能した場合はSP吸収量を表示
-                int spAbsorbed = totalDamage - hpDamage;
                 String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
-                ui.print("　命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！ " + diceMsg + critMsg + reductionMsg + spMsg);
+                ui.print("　命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！ " + diceMsg + critMsg + reductionMsg
+                        + spMsg);
                 // サブウィンドウのログに要約を追記
                 if (ui instanceof JavaFXUI) {
                     String logSummary = "命中！" + enemy.getName() + "に" + totalDamage + "ダメージ"
@@ -699,7 +714,7 @@ public class BattleManager {
         int baseChanceOverride = baseRules.getAccuracy().getBaseChance()
                 + (penaltyFree ? 0 : dualWield.getOffHandHitPenalty());
         HitResult offResult = checkHit(atkStat, defStat, baseChanceOverride, state.isEnemyDefending(),
-                state.getPlayerConditions(), state.getEnemyConditions());
+                state.getPlayerConditions(), state.getEnemyConditions(), isPlayerFlying(), isEnemyFlying());
 
         if (offResult.isHit) {
             // ダメージ計算（オフハンド武器ダイス使用、マスタリー・ステ補正は計算する）
@@ -893,8 +908,16 @@ public class BattleManager {
         } else if ("coward".equalsIgnoreCase(enemy.getAiType())) {
             // Coward: 可能なら後退して距離を取る
             if (state.getDistance() < 4) {
-                state.setDistance(state.getDistance() + 1);
-                ui.print("　" + enemy.getName() + " はじりじりと後退して距離を取った。（現在距離: " + state.getDistance() + "）");
+                if (state.getDistance() == 0 && getActivePlayerTraits().stream().anyMatch(t -> t != null
+                        && "SYSTEMIC".equals(t.getType()) && "VIGILANCE".equals(t.getSystemicEffect()))) {
+                    String pName = (player.getName() != null && !player.getName().isEmpty()) ? player.getName() : "冒険者";
+                    ui.print("　" + pName + " は " + enemy.getName() + " が離れる隙を見逃さなかった！（警戒心による機会攻撃）");
+                    executePlayerOpportunityAttack(enemy);
+                }
+                if (enemy.getHp() > 0) {
+                    state.setDistance(state.getDistance() + 1);
+                    ui.print("　" + enemy.getName() + " はじりじりと後退して距離を取った。（現在距離: " + state.getDistance() + "）");
+                }
             }
         } else if ("midrange".equalsIgnoreCase(enemy.getAiType())) {
             // Midrange: 距離2を維持しようとする
@@ -902,8 +925,16 @@ public class BattleManager {
                 state.setDistance(state.getDistance() - 1);
                 ui.print("　" + enemy.getName() + " は間合いを詰めてきた。（現在距離: " + state.getDistance() + "）");
             } else if (state.getDistance() < 2) {
-                state.setDistance(state.getDistance() + 1);
-                ui.print("　" + enemy.getName() + " は後退して間合いを取った。（現在距離: " + state.getDistance() + "）");
+                if (state.getDistance() == 0 && getActivePlayerTraits().stream().anyMatch(t -> t != null
+                        && "SYSTEMIC".equals(t.getType()) && "VIGILANCE".equals(t.getSystemicEffect()))) {
+                    String pName = (player.getName() != null && !player.getName().isEmpty()) ? player.getName() : "冒険者";
+                    ui.print("　" + pName + " は " + enemy.getName() + " が離れる隙を見逃さなかった！（警戒心による機会攻撃）");
+                    executePlayerOpportunityAttack(enemy);
+                }
+                if (enemy.getHp() > 0) {
+                    state.setDistance(state.getDistance() + 1);
+                    ui.print("　" + enemy.getName() + " は後退して間合いを取った。（現在距離: " + state.getDistance() + "）");
+                }
             }
         } else if ("stationary".equalsIgnoreCase(enemy.getAiType())) {
             // Stationary: 一切移動しない（固定砲台、壁、城門など）
@@ -1038,7 +1069,7 @@ public class BattleManager {
 
         Integer overrideChance = ability.getCheck().getBaseChance();
         HitResult result = checkHit(atkStatVal, defStatVal, overrideChance, state.isPlayerDefending(),
-                state.getEnemyConditions(), state.getPlayerConditions());
+                state.getEnemyConditions(), state.getPlayerConditions(), isEnemyFlying(), isPlayerFlying());
 
         if (result.isHit) {
             String dice = ability.getCheck().getDamageDice();
@@ -1078,13 +1109,14 @@ public class BattleManager {
             }
 
             // ダメージ処理（SP→HPの順）
-            int hpDamage = player.applyBattleDamage(totalDamage, false);
+            boolean isPenetrating = false;
+            DamageResult dmgResult = player.applyBattleDamage(totalDamage, isPenetrating);
+            int hpDamage = dmgResult.actualHpDamage();
+            int spAbsorbed = dmgResult.actualSpDamage();
 
             String playerName = player.getName() != null ? player.getName() : "冒険者";
             String reduceMsg = reduction > 0 ? "（" + reduction + "ダメージ軽減）" : "";
             String critMsg = isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
-            // SPが機能した場合はSP吸収量を表示
-            int spAbsorbed = totalDamage - hpDamage;
             String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
             ui.print("→ " + playerName + " に " + totalDamage + " のダメージ！" + reduceMsg + critMsg + spMsg);
             // サブウィンドウのログに要約を追記
@@ -1128,7 +1160,7 @@ public class BattleManager {
 
         HitResult result = checkHit(atkStatVal, defStatVal, ability.getCheck().getBaseChance(),
                 state.isEnemyDefending(),
-                state.getPlayerConditions(), state.getEnemyConditions());
+                state.getPlayerConditions(), state.getEnemyConditions(), isPlayerFlying(), isEnemyFlying());
 
         if (result.isHit) {
             String dice = ability.getCheck().getDamageDice();
@@ -1187,7 +1219,8 @@ public class BattleManager {
     private void executeEnemyOpportunityAttack(Player p) {
         CombatBaseRules baseRules = CombatDataLoader.getBaseRules();
         HitResult result = checkHit(state.getCurrentEnemy().getFinesse(), p.getCombatStats().finesse(), null,
-                state.isPlayerDefending(), state.getEnemyConditions(), state.getPlayerConditions());
+                state.isPlayerDefending(), state.getEnemyConditions(), state.getPlayerConditions(), isEnemyFlying(),
+                isPlayerFlying());
 
         if (result.isHit) {
             int diceRoll = DiceRoller.roll("1d4");
@@ -1210,9 +1243,12 @@ public class BattleManager {
                 totalDamage /= 2;
 
             // 敵機会攻撃のダメージ処理（SP→HPの順）
-            int hpDamage = p.applyBattleDamage(totalDamage, false);
+            boolean isPenetrating = false;
+            DamageResult dmgResult = p.applyBattleDamage(totalDamage, isPenetrating);
+            int hpDamage = dmgResult.actualHpDamage();
+            int spAbsorbed = dmgResult.actualSpDamage();
+
             String reduceMsg = reduction > 0 ? "（" + reduction + "ダメージ軽減）" : "";
-            int spAbsorbed = totalDamage - hpDamage;
             String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収）" : "";
             ui.print("　機会攻撃命中！ プレイヤーに " + totalDamage + " のダメージ！" + reduceMsg + spMsg);
             ui.printPlayerStatus(p);
@@ -1221,31 +1257,83 @@ public class BattleManager {
         }
     }
 
-    private HitResult checkHit(int attackerStat, int defenderStat, Integer overrideBaseChance, boolean targetDefending,
+    public static class HitChanceDetails {
+        public int finalChance;
+        public int statMod;
+        public int traitMod;
+        public int condMod;
+
+        public HitChanceDetails(int finalChance, int statMod, int traitMod, int condMod) {
+            this.finalChance = finalChance;
+            this.statMod = statMod;
+            this.traitMod = traitMod;
+            this.condMod = condMod;
+        }
+    }
+
+    public HitChanceDetails getSimulatedPlayerHitChance() {
+        if (state == null || state.getCurrentEnemy() == null)
+            return new HitChanceDetails(0, 0, 0, 0);
+        return calculateHitChanceDetails(player.getCombatStats().finesse(), state.getCurrentEnemy().getFinesse(), null,
+                state.isEnemyDefending(), state.getPlayerConditions(), state.getEnemyConditions(), isPlayerFlying(),
+                isEnemyFlying());
+    }
+
+    public HitChanceDetails getSimulatedEnemyHitChance() {
+        if (state == null || state.getCurrentEnemy() == null)
+            return new HitChanceDetails(0, 0, 0, 0);
+        return calculateHitChanceDetails(state.getCurrentEnemy().getFinesse(), player.getCombatStats().finesse(), null,
+                state.isPlayerDefending(), state.getEnemyConditions(), state.getPlayerConditions(), isEnemyFlying(),
+                isPlayerFlying());
+    }
+
+    private HitChanceDetails calculateHitChanceDetails(int attackerStat, int defenderStat, Integer overrideBaseChance,
+            boolean targetDefending,
             java.util.List<BattleState.ActiveCombatCondition> atkConds,
-            java.util.List<BattleState.ActiveCombatCondition> defConds) {
+            java.util.List<BattleState.ActiveCombatCondition> defConds,
+            boolean attackerHasFlying, boolean defenderHasFlying) {
         CombatBaseRules rules = CombatDataLoader.getBaseRules();
         int base = overrideBaseChance != null ? overrideBaseChance : rules.getAccuracy().getBaseChance();
         int diff = attackerStat - defenderStat;
 
-        int hitChance = base;
+        int statMod = 0;
         for (var mod : rules.getAccuracy().getModifiers()) {
             int min = mod.getDiff().get(0);
             int max = mod.getDiff().get(1);
             if (diff >= min && diff <= max) {
-                hitChance += mod.getBonus();
+                statMod = mod.getBonus();
                 break;
             }
         }
 
+        int condMod = 0;
+        if (targetDefending) {
+            condMod -= 20; // 防御中は命中率自体を引き下げる
+        }
+        condMod += calcConditionAccuracyBonus(atkConds);
+        condMod -= calcConditionAvoidanceBonus(defConds);
+
+        int traitMod = 0;
+        // 飛行判定
+        // 防御側のみが飛行を持っていて、攻撃側が飛行を持っていない場合のみ、回避+20（命中-20）
+        if (defenderHasFlying && !attackerHasFlying) {
+            traitMod -= 20;
+        }
+
+        int hitChance = base + statMod + condMod + traitMod;
         hitChance = Math.max(rules.getAccuracy().getMin(), Math.min(rules.getAccuracy().getMax(), hitChance));
 
-        if (targetDefending) {
-            hitChance -= 20; // 防御中は命中率自体を引き下げる
-        }
-        // CombatConditionの命中・回避補正を適用
-        hitChance += calcConditionAccuracyBonus(atkConds);
-        hitChance -= calcConditionAvoidanceBonus(defConds);
+        return new HitChanceDetails(hitChance, statMod, traitMod, condMod);
+    }
+
+    private HitResult checkHit(int attackerStat, int defenderStat, Integer overrideBaseChance, boolean targetDefending,
+            java.util.List<BattleState.ActiveCombatCondition> atkConds,
+            java.util.List<BattleState.ActiveCombatCondition> defConds,
+            boolean attackerHasFlying, boolean defenderHasFlying) {
+
+        HitChanceDetails details = calculateHitChanceDetails(attackerStat, defenderStat, overrideBaseChance,
+                targetDefending, atkConds, defConds, attackerHasFlying, defenderHasFlying);
+        int hitChance = details.finalChance;
 
         int roll = random.nextInt(100) + 1; // 1 〜 100
 

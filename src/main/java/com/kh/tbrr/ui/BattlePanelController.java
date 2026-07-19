@@ -4,6 +4,7 @@ import com.kh.tbrr.battle.BattleState;
 import com.kh.tbrr.battle.EnemyData;
 import com.kh.tbrr.data.CombatConditionRegistry;
 import com.kh.tbrr.data.models.CombatConditionData;
+import com.kh.tbrr.battle.BattleManager.HitChanceDetails;
 import com.kh.tbrr.data.models.Player;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -67,6 +68,8 @@ public class BattlePanelController {
     private Polygon playerSymbol;
     /** 敵シンボル（○）*/
     private Circle enemySymbol;
+    /** 下部の情報ラベル */
+    private Label distLabel;
 
     // 距離マップ定数
     private static final int MAP_CELL_COUNT = 5;
@@ -239,7 +242,7 @@ public class BattlePanelController {
         HBox cellRow = buildCellRow();
 
         // 距離マップ全体のラベル（下部）
-        Label distLabel = makeLabel("← 至近  0  1  2  3  4  遠方 →", FONT_FAMILY, 10, "#888899");
+        distLabel = makeLabel("ベース命中率計算中...", FONT_FAMILY, 11, "#bbbbcc");
         distLabel.setPadding(new Insets(2, 0, 0, 0));
 
         outer.getChildren().addAll(symbolLayer, cellRow, distLabel);
@@ -401,7 +404,7 @@ public class BattlePanelController {
      * 距離マップを更新する（▽と○の位置を動かす）。
      * @param distance 現在の距離（0〜4）
      */
-    public void updateDistanceMap(int distance) {
+    public void updateDistanceMap(int distance, HitChanceDetails pChance, HitChanceDetails eChance) {
         int safeDistance = Math.max(0, Math.min(4, distance));
 
         Platform.runLater(() -> {
@@ -448,6 +451,15 @@ public class BattlePanelController {
                 sameCell.getChildren().addAll(playerSymbol, enemySymbol);
                 playerSlot.getChildren().clear();
                 playerSlot.getChildren().add(sameCell);
+            }
+
+            // ベース命中率の内訳表示更新
+            if (distLabel != null && pChance != null && eChance != null) {
+                String pText = String.format("【自】通常攻撃 命中率 = %d%% (機敏%+d%%, 特徴%+d%%, 状態%+d%%)",
+                        pChance.finalChance, pChance.statMod, pChance.traitMod, pChance.condMod);
+                String eText = String.format("【敵】通常攻撃 命中率 = %d%% (機敏%+d%%, 特徴%+d%%, 状態%+d%%)",
+                        eChance.finalChance, eChance.statMod, eChance.traitMod, eChance.condMod);
+                distLabel.setText(pText + "\n" + eText);
             }
         });
     }

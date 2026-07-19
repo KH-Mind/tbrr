@@ -1616,13 +1616,15 @@ public class JavaFXUI implements GameUI {
 	public void updateBattlePanel(int turn, int distance,
 			Player player, EnemyData enemy,
 			List<BattleState.ActiveCombatCondition> playerConds,
-			List<BattleState.ActiveCombatCondition> enemyConds) {
+			List<BattleState.ActiveCombatCondition> enemyConds,
+            BattleManager.HitChanceDetails playerHitChance,
+            BattleManager.HitChanceDetails enemyHitChance) {
 		if (battlePanelController == null)
 			return;
 		battlePanelController.updateHeader(turn, distance);
 		battlePanelController.updatePlayerStatus(player, playerConds);
 		battlePanelController.updateEnemyStatus(enemy, enemyConds);
-		battlePanelController.updateDistanceMap(distance);
+		battlePanelController.updateDistanceMap(distance, playerHitChance, enemyHitChance);
 	}
 
 	/**
