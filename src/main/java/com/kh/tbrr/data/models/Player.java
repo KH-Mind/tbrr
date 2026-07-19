@@ -679,15 +679,43 @@ public class Player {
             totalSensuality += skillStats.sensuality();
         }
 
-        // アイテムからステータスを加算
-        for (String itemId : inventory) {
-            Item item = ItemRegistry.getItemById(itemId);
-            if (item != null) {
-                totalMight += item.getCombatStat("might");
-                totalInsight += item.getCombatStat("insight");
-                totalFinesse += item.getCombatStat("finesse");
-                totalPresence += item.getCombatStat("presence");
-                totalSensuality += item.getCombatStat("sensuality");
+        // 鞄の中のアイテム（日用品のパッシブ効果など）からステータスを加算
+        if (inventory != null) {
+            for (String itemId : inventory) {
+                Item item = ItemRegistry.getItemById(itemId);
+                if (item != null) {
+                    totalMight += item.getCombatStat("might");
+                    totalInsight += item.getCombatStat("insight");
+                    totalFinesse += item.getCombatStat("finesse");
+                    totalPresence += item.getCombatStat("presence");
+                    totalSensuality += item.getCombatStat("sensuality");
+                }
+            }
+        }
+
+        // 装備中のメイン武器からステータスを加算
+        if (equippedMainWeapon != null) {
+            Item weapon = ItemRegistry.getItemById(equippedMainWeapon);
+            if (weapon != null) {
+                totalMight += weapon.getCombatStat("might");
+                totalInsight += weapon.getCombatStat("insight");
+                totalFinesse += weapon.getCombatStat("finesse");
+                totalPresence += weapon.getCombatStat("presence");
+                totalSensuality += weapon.getCombatStat("sensuality");
+            }
+        }
+
+        // 装備中の装飾品からステータスを加算
+        if (equippedAccessories != null) {
+            for (String accId : equippedAccessories) {
+                Item acc = ItemRegistry.getItemById(accId);
+                if (acc != null) {
+                    totalMight += acc.getCombatStat("might");
+                    totalInsight += acc.getCombatStat("insight");
+                    totalFinesse += acc.getCombatStat("finesse");
+                    totalPresence += acc.getCombatStat("presence");
+                    totalSensuality += acc.getCombatStat("sensuality");
+                }
             }
         }
 
