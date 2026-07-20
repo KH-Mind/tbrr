@@ -60,10 +60,12 @@ public class AbilityData {
         private String conditionId;
         private int chance; // %
         private int duration;
+        private int intensity; // 強度（dotのダメージ量、hindranceの確率%など。0の場合はJSON定義側のデフォルト値を使用）
 
         public String getConditionId() { return conditionId; }
         public int getChance() { return chance; }
         public int getDuration() { return duration; }
+        public int getIntensity() { return intensity; }
     }
 
     public List<ConditionApplication> getApplyCombatConditions() {

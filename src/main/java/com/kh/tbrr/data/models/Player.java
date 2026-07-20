@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.kh.tbrr.battle.DamageResult;
-import com.kh.tbrr.battle.data.CombatDataLoader;
+
 import com.kh.tbrr.battle.data.TraitData;
 import com.kh.tbrr.battle.data.TraitRegistry;
 import com.kh.tbrr.data.ItemRegistry;
@@ -1081,7 +1081,6 @@ public class Player {
         }
         return (int) Math.min(3, 1 + bigBagCount);
     }
-
 
     public List<String> getBaseSkills() {
         return baseSkills;

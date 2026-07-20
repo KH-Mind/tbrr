@@ -97,16 +97,6 @@ public class BattleManager {
         return list;
     }
 
-    private boolean isPlayerFlying() {
-        return getActivePlayerTraits().stream()
-                .anyMatch(t -> t != null && "SYSTEMIC".equals(t.getType()) && "FLYING".equals(t.getSystemicEffect()));
-    }
-
-    private boolean isEnemyFlying() {
-        return getActiveEnemyTraits().stream()
-                .anyMatch(t -> t != null && "SYSTEMIC".equals(t.getType()) && "FLYING".equals(t.getSystemicEffect()));
-    }
-
     public BattleResult startBattle(String enemyId, GameState gameState) {
         state = new BattleState();
         CombatConditionRegistry.loadAll(); // 戦闘用状態異常データの読み込み
@@ -171,6 +161,16 @@ public class BattleManager {
             jfxUi.setBattleMode(true);
             // サブウィンドウに戦闘情報パネルを表示する
             jfxUi.showBattlePanel();
+
+            jfxUi.setStanceChangeListener(stanceName -> {
+                HitChanceDetails pChance = getSimulatedPlayerHitChance(stanceName);
+                HitChanceDetails eChance = getSimulatedEnemyHitChance();
+                jfxUi.updateBattlePanel(
+                        state.getTurnCount(), state.getDistance(),
+                        player, enemy,
+                        state.getPlayerConditions(), state.getEnemyConditions(),
+                        pChance, eChance);
+            });
 
             // 背景と敵画像の表示
             if (enemy.getBattleBackground() != null && !enemy.getBattleBackground().isEmpty()) {
@@ -293,8 +293,10 @@ public class BattleManager {
                     }
 
                     // --- ターン終了処理（ステータス更新） ---
-                    updateConditions(state.getPlayerConditions());
-                    updateConditions(state.getEnemyConditions());
+                    // プレイヤーの状態 → プレイヤーがDOT対象
+                    updateConditionsForTarget(state.getPlayerConditions(), player, null);
+                    // 敵の状態 → 敵がDOT対象
+                    updateConditionsForTarget(state.getEnemyConditions(), null, state.getCurrentEnemy());
 
                     state.incrementTurn();
                 }
@@ -534,7 +536,8 @@ public class BattleManager {
 
             Integer overrideChance = ability.getCheck().getBaseChance();
             HitResult result = checkHit(atkStatVal, defStatVal, overrideChance, state.isEnemyDefending(),
-                    state.getPlayerConditions(), state.getEnemyConditions(), isPlayerFlying(), isEnemyFlying());
+                    state.getPlayerConditions(), state.getEnemyConditions(), getActivePlayerTraits(),
+                    getActiveEnemyTraits());
 
             if (result.isHit) {
                 // ダイス計算: 未指定・WEAPONなら武器ダイスを使用
@@ -622,18 +625,8 @@ public class BattleManager {
                     for (var app : ability.getApplyCombatConditions()) {
                         int r = random.nextInt(100) + 1; // 1-100
                         if (r <= app.getChance()) {
-                            boolean found = false;
-                            for (var c : state.getEnemyConditions()) {
-                                if (c.getConditionId().equals(app.getConditionId())) {
-                                    c.setDuration(app.getDuration()); // 上書き
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            if (!found) {
-                                state.getEnemyConditions().add(
-                                        new BattleState.ActiveCombatCondition(app.getConditionId(), app.getDuration()));
-                            }
+                            applyCondition(state.getEnemyConditions(), app.getConditionId(),
+                                    app.getIntensity(), app.getDuration());
                             CombatConditionData cData = CombatConditionRegistry
                                     .getConditionById(app.getConditionId());
                             if (cData != null) {
@@ -714,7 +707,8 @@ public class BattleManager {
         int baseChanceOverride = baseRules.getAccuracy().getBaseChance()
                 + (penaltyFree ? 0 : dualWield.getOffHandHitPenalty());
         HitResult offResult = checkHit(atkStat, defStat, baseChanceOverride, state.isEnemyDefending(),
-                state.getPlayerConditions(), state.getEnemyConditions(), isPlayerFlying(), isEnemyFlying());
+                state.getPlayerConditions(), state.getEnemyConditions(), getActivePlayerTraits(),
+                getActiveEnemyTraits());
 
         if (offResult.isHit) {
             // ダメージ計算（オフハンド武器ダイス使用、マスタリー・ステ補正は計算する）
@@ -1069,7 +1063,8 @@ public class BattleManager {
 
         Integer overrideChance = ability.getCheck().getBaseChance();
         HitResult result = checkHit(atkStatVal, defStatVal, overrideChance, state.isPlayerDefending(),
-                state.getEnemyConditions(), state.getPlayerConditions(), isEnemyFlying(), isPlayerFlying());
+                state.getEnemyConditions(), state.getPlayerConditions(), getActiveEnemyTraits(),
+                getActivePlayerTraits());
 
         if (result.isHit) {
             String dice = ability.getCheck().getDamageDice();
@@ -1127,6 +1122,22 @@ public class BattleManager {
                 ((JavaFXUI) ui).appendBattleLog(logSummary);
             }
             ui.printPlayerStatus(player); // 右パネルのHP/AP表示を更新
+
+            // --- 敵アビリティによる CombatCondition 付与 ---
+            if (ability.getApplyCombatConditions() != null) {
+                for (var app : ability.getApplyCombatConditions()) {
+                    int r = random.nextInt(100) + 1;
+                    if (r <= app.getChance()) {
+                        applyCondition(state.getPlayerConditions(), app.getConditionId(),
+                                app.getIntensity(), app.getDuration());
+                        CombatConditionData cData = CombatConditionRegistry
+                                .getConditionById(app.getConditionId());
+                        if (cData != null) {
+                            ui.print("　★ " + playerName + " は [" + cData.getName() + "] になった！");
+                        }
+                    }
+                }
+            }
         } else {
             String playerName = player.getName() != null ? player.getName() : "冒険者";
             ui.print("→ ...しかし、" + playerName + " は回避した！");
@@ -1160,7 +1171,8 @@ public class BattleManager {
 
         HitResult result = checkHit(atkStatVal, defStatVal, ability.getCheck().getBaseChance(),
                 state.isEnemyDefending(),
-                state.getPlayerConditions(), state.getEnemyConditions(), isPlayerFlying(), isEnemyFlying());
+                state.getPlayerConditions(), state.getEnemyConditions(), getActivePlayerTraits(),
+                getActiveEnemyTraits());
 
         if (result.isHit) {
             String dice = ability.getCheck().getDamageDice();
@@ -1206,9 +1218,13 @@ public class BattleManager {
             }
 
             // 機会攻撃ダメージ処理（SP→HPの順）
-            enemy.applyBattleDamage(totalDamage, false);
+            DamageResult dmgResult = enemy.applyBattleDamage(totalDamage, false);
+            int hpDamage = dmgResult.actualHpDamage();
+            int spAbsorbed = dmgResult.actualSpDamage();
+            
             String critMsg = result.isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
-            ui.print("　機会攻撃命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！" + critMsg);
+            String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
+            ui.print("　機会攻撃命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！" + critMsg + spMsg);
 
             processOffHandAttack(enemy, ability, baseRules);
         } else {
@@ -1219,8 +1235,8 @@ public class BattleManager {
     private void executeEnemyOpportunityAttack(Player p) {
         CombatBaseRules baseRules = CombatDataLoader.getBaseRules();
         HitResult result = checkHit(state.getCurrentEnemy().getFinesse(), p.getCombatStats().finesse(), null,
-                state.isPlayerDefending(), state.getEnemyConditions(), state.getPlayerConditions(), isEnemyFlying(),
-                isPlayerFlying());
+                state.isPlayerDefending(), state.getEnemyConditions(), state.getPlayerConditions(),
+                getActiveEnemyTraits(), getActivePlayerTraits());
 
         if (result.isHit) {
             int diceRoll = DiceRoller.roll("1d4");
@@ -1249,7 +1265,7 @@ public class BattleManager {
             int spAbsorbed = dmgResult.actualSpDamage();
 
             String reduceMsg = reduction > 0 ? "（" + reduction + "ダメージ軽減）" : "";
-            String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収）" : "";
+            String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
             ui.print("　機会攻撃命中！ プレイヤーに " + totalDamage + " のダメージ！" + reduceMsg + spMsg);
             ui.printPlayerStatus(p);
         } else {
@@ -1272,26 +1288,59 @@ public class BattleManager {
     }
 
     public HitChanceDetails getSimulatedPlayerHitChance() {
+        return getSimulatedPlayerHitChance(null);
+    }
+
+    public HitChanceDetails getSimulatedPlayerHitChance(String previewStanceName) {
         if (state == null || state.getCurrentEnemy() == null)
             return new HitChanceDetails(0, 0, 0, 0);
-        return calculateHitChanceDetails(player.getCombatStats().finesse(), state.getCurrentEnemy().getFinesse(), null,
-                state.isEnemyDefending(), state.getPlayerConditions(), state.getEnemyConditions(), isPlayerFlying(),
-                isEnemyFlying());
+
+        int previewFinesse = player.getCombatStats().finesse();
+        java.util.List<com.kh.tbrr.battle.data.TraitData> previewTraits = new java.util.ArrayList<>(
+                getActivePlayerTraits());
+
+        if (previewStanceName != null && !previewStanceName.isEmpty() && !previewStanceName.equals("なし")) {
+            com.kh.tbrr.battle.data.StanceData sd = com.kh.tbrr.battle.data.CombatDataLoader
+                    .getStanceByName(previewStanceName);
+            if (sd != null && sd.getGrantedTraitIds() != null) {
+                for (String traitId : sd.getGrantedTraitIds()) {
+                    com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+                    if (td != null) {
+                        if (td.getStatBonuses() != null) {
+                            previewFinesse += td.getStatBonuses().getOrDefault("finesse", 0);
+                        }
+                        previewTraits.add(td);
+                    }
+                }
+            }
+        }
+
+        return calculateHitChanceDetails(previewFinesse, state.getCurrentEnemy().getFinesse(), null,
+                state.isEnemyDefending(), state.getPlayerConditions(), state.getEnemyConditions(), previewTraits,
+                getActiveEnemyTraits());
     }
 
     public HitChanceDetails getSimulatedEnemyHitChance() {
         if (state == null || state.getCurrentEnemy() == null)
             return new HitChanceDetails(0, 0, 0, 0);
         return calculateHitChanceDetails(state.getCurrentEnemy().getFinesse(), player.getCombatStats().finesse(), null,
-                state.isPlayerDefending(), state.getEnemyConditions(), state.getPlayerConditions(), isEnemyFlying(),
-                isPlayerFlying());
+                state.isPlayerDefending(), state.getEnemyConditions(), state.getPlayerConditions(),
+                getActiveEnemyTraits(),
+                getActivePlayerTraits());
     }
 
     private HitChanceDetails calculateHitChanceDetails(int attackerStat, int defenderStat, Integer overrideBaseChance,
             boolean targetDefending,
             java.util.List<BattleState.ActiveCombatCondition> atkConds,
             java.util.List<BattleState.ActiveCombatCondition> defConds,
-            boolean attackerHasFlying, boolean defenderHasFlying) {
+            java.util.List<com.kh.tbrr.battle.data.TraitData> atkTraits,
+            java.util.List<com.kh.tbrr.battle.data.TraitData> defTraits) {
+
+        if (atkTraits == null)
+            atkTraits = java.util.Collections.emptyList();
+        if (defTraits == null)
+            defTraits = java.util.Collections.emptyList();
+
         CombatBaseRules rules = CombatDataLoader.getBaseRules();
         int base = overrideBaseChance != null ? overrideBaseChance : rules.getAccuracy().getBaseChance();
         int diff = attackerStat - defenderStat;
@@ -1308,14 +1357,18 @@ public class BattleManager {
 
         int condMod = 0;
         if (targetDefending) {
-            condMod -= 20; // 防御中は命中率自体を引き下げる
+            condMod -= 20; // 防御アクション中は命中率自体を引き下げる
         }
         condMod += calcConditionAccuracyBonus(atkConds);
         condMod -= calcConditionAvoidanceBonus(defConds);
 
         int traitMod = 0;
         // 飛行判定
-        // 防御側のみが飛行を持っていて、攻撃側が飛行を持っていない場合のみ、回避+20（命中-20）
+        // 被攻撃側のみが飛行を持っていて、攻撃側が飛行を持っていない場合のみ、回避+20（命中-20）
+        boolean attackerHasFlying = atkTraits.stream()
+                .anyMatch(t -> t != null && "SYSTEMIC".equals(t.getType()) && "FLYING".equals(t.getSystemicEffect()));
+        boolean defenderHasFlying = defTraits.stream()
+                .anyMatch(t -> t != null && "SYSTEMIC".equals(t.getType()) && "FLYING".equals(t.getSystemicEffect()));
         if (defenderHasFlying && !attackerHasFlying) {
             traitMod -= 20;
         }
@@ -1329,10 +1382,11 @@ public class BattleManager {
     private HitResult checkHit(int attackerStat, int defenderStat, Integer overrideBaseChance, boolean targetDefending,
             java.util.List<BattleState.ActiveCombatCondition> atkConds,
             java.util.List<BattleState.ActiveCombatCondition> defConds,
-            boolean attackerHasFlying, boolean defenderHasFlying) {
+            java.util.List<com.kh.tbrr.battle.data.TraitData> atkTraits,
+            java.util.List<com.kh.tbrr.battle.data.TraitData> defTraits) {
 
         HitChanceDetails details = calculateHitChanceDetails(attackerStat, defenderStat, overrideBaseChance,
-                targetDefending, atkConds, defConds, attackerHasFlying, defenderHasFlying);
+                targetDefending, atkConds, defConds, atkTraits, defTraits);
         int hitChance = details.finalChance;
 
         int roll = random.nextInt(100) + 1; // 1 〜 100
@@ -1350,13 +1404,54 @@ public class BattleManager {
     }
 
     private void updateConditions(java.util.List<BattleState.ActiveCombatCondition> conditions) {
+        updateConditionsForTarget(conditions, null, null);
+    }
+
+    /**
+     * ターン終了時の状態異常更新。DOTダメージを対象に与えてからターンを減算する。
+     * @param conditions 更新対象の状態リスト
+     * @param targetPlayer DOTダメージを受けるプレイヤー（nullなら敵対象）
+     * @param targetEnemy  DOTダメージを受ける敵（nullならプレイヤー対象）
+     */
+    private void updateConditionsForTarget(
+            java.util.List<BattleState.ActiveCombatCondition> conditions,
+            Player targetPlayer, EnemyData targetEnemy) {
         java.util.Iterator<BattleState.ActiveCombatCondition> it = conditions.iterator();
         while (it.hasNext()) {
             BattleState.ActiveCombatCondition c = it.next();
+            CombatConditionData data = CombatConditionRegistry.getConditionById(c.getConditionId());
+
+            // --- DOTダメージ処理 ---
+            if (data != null && data.getModifiers() != null) {
+                // intensity > 0 ならアビリティ側で指定された強度、なければJSON定義のデフォルト値を使用
+                int dotDmg = 0;
+                if (data.getModifiers().getDotPhysical() > 0 || data.getModifiers().getDotMagical() > 0) {
+                    dotDmg = c.getIntensity() > 0
+                            ? c.getIntensity()
+                            : (data.getModifiers().getDotPhysical() + data.getModifiers().getDotMagical());
+                }
+                if (dotDmg > 0) {
+                    if (targetPlayer != null) {
+                        DamageResult dotResult = targetPlayer.applyBattleDamage(dotDmg, false);
+                        String pName = targetPlayer.getName() != null ? targetPlayer.getName() : "冒険者";
+                        ui.print("　[" + data.getName() + "] " + pName + " が " + dotDmg + " の継続ダメージを受けた！"
+                                + (dotResult.actualSpDamage() > 0 ? "（SP" + dotResult.actualSpDamage() + "吸収）" : ""));
+                    } else if (targetEnemy != null) {
+                        DamageResult dotResult = targetEnemy.applyBattleDamage(dotDmg, false);
+                        ui.print("　[" + data.getName() + "] " + targetEnemy.getName() + " が " + dotDmg + " の継続ダメージを受けた！"
+                                + (dotResult.actualSpDamage() > 0 ? "（SP" + dotResult.actualSpDamage() + "吸収）" : ""));
+                    }
+                }
+            }
+
+            // --- ターン減算と効果切れ処理 ---
             if (c.getDuration() > 0) {
                 c.decrementDuration();
                 if (c.getDuration() == 0) {
                     it.remove(); // 効果切れ
+                    if (data != null) {
+                        ui.print("　[" + data.getName() + "] の効果が切れた。");
+                    }
                 }
             }
         }
@@ -1411,6 +1506,67 @@ public class BattleManager {
         public HitResult(boolean isHit, boolean isCritical) {
             this.isHit = isHit;
             this.isCritical = isCritical;
+        }
+    }
+
+    /**
+     * 戦闘状態を対象リストに付与する共通メソッド。
+     * CombatConditionData の stackRule に従って重複時の挙動を分岐する。
+     *
+     * <ul>
+     *   <li>ACCUMULATE : 強度を合算し、ターンは新しい値で上書きする（dot向け）</li>
+     *   <li>MAX_ONLY   : 複数インスタンスをそのまま保持する（判定時に最大強度を参照）</li>
+     *   <li>EXTEND     : ターンを加算して延長する</li>
+     *   <li>REFRESH    : ターンの大きい方を採用する（デフォルト）</li>
+     * </ul>
+     */
+    private void applyCondition(
+            java.util.List<BattleState.ActiveCombatCondition> conditions,
+            String conditionId, int intensity, int duration) {
+
+        CombatConditionData def = CombatConditionRegistry.getConditionById(conditionId);
+        String rule = (def != null && def.getStackRule() != null) ? def.getStackRule() : "REFRESH";
+
+        switch (rule) {
+            case "ACCUMULATE": {
+                // 既存のインスタンスを探して強度を合算、ターンは新しい値で上書き
+                java.util.Optional<BattleState.ActiveCombatCondition> existing =
+                        conditions.stream().filter(c -> c.getConditionId().equals(conditionId)).findFirst();
+                if (existing.isPresent()) {
+                    existing.get().setIntensity(existing.get().getIntensity() + intensity);
+                    existing.get().setDuration(duration);
+                } else {
+                    conditions.add(new BattleState.ActiveCombatCondition(conditionId, duration, intensity));
+                }
+                break;
+            }
+            case "MAX_ONLY": {
+                // 複数インスタンスをそのまま保持（判定側で最大強度を使う）
+                conditions.add(new BattleState.ActiveCombatCondition(conditionId, duration, intensity));
+                break;
+            }
+            case "EXTEND": {
+                // ターンを加算して延長
+                java.util.Optional<BattleState.ActiveCombatCondition> existing =
+                        conditions.stream().filter(c -> c.getConditionId().equals(conditionId)).findFirst();
+                if (existing.isPresent()) {
+                    existing.get().setDuration(existing.get().getDuration() + duration);
+                } else {
+                    conditions.add(new BattleState.ActiveCombatCondition(conditionId, duration, intensity));
+                }
+                break;
+            }
+            default: // "REFRESH": ターンの大きい方を採用
+                java.util.Optional<BattleState.ActiveCombatCondition> existing =
+                        conditions.stream().filter(c -> c.getConditionId().equals(conditionId)).findFirst();
+                if (existing.isPresent()) {
+                    if (duration > existing.get().getDuration()) {
+                        existing.get().setDuration(duration);
+                    }
+                } else {
+                    conditions.add(new BattleState.ActiveCombatCondition(conditionId, duration, intensity));
+                }
+                break;
         }
     }
 }

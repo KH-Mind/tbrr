@@ -173,6 +173,13 @@ public interface GameUI {
 	}
 
 	/**
+	 * スタンスのプレビュー用リスナーを設定する
+	 */
+	default void setStanceChangeListener(java.util.function.Consumer<String> listener) {
+		// デフォルト実装は何もしない
+	}
+
+	/**
 	 * 逃走コマンドの有効/無効をUIへ通知する
 	 * @param canFlee true なら「逃げる」を選択可能にする
 	 */

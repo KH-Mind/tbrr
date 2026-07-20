@@ -6,6 +6,7 @@ public class CombatConditionData {
     private String description;
     private String type; // "BUFF", "DEBUFF", "NEUTRAL"
     private int duration; // ターン数（-1で永続）
+    private String stackRule; // "ACCUMULATE", "MAX_ONLY", "REFRESH", "EXTEND" (省略時はREFRESH)
     private CombatConditionModifiers modifiers;
 
     public String getId() { return id; }
@@ -22,6 +23,9 @@ public class CombatConditionData {
 
     public int getDuration() { return duration; }
     public void setDuration(int duration) { this.duration = duration; }
+
+    public String getStackRule() { return stackRule; }
+    public void setStackRule(String stackRule) { this.stackRule = stackRule; }
 
     public CombatConditionModifiers getModifiers() { return modifiers; }
     public void setModifiers(CombatConditionModifiers modifiers) { this.modifiers = modifiers; }

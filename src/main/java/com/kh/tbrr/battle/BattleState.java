@@ -84,10 +84,18 @@ public class BattleState {
     public static class ActiveCombatCondition {
         private String conditionId;
         private int duration; // 残り効果ターン数 (-1は永続)
+        private int intensity; // 強度（dotのダメージ量、hindranceの確率%など。0は強度なし扱い）
 
+        /** 強度なし（prone等の既存状態向け）後方互換コンストラクタ */
         public ActiveCombatCondition(String conditionId, int duration) {
+            this(conditionId, duration, 0);
+        }
+
+        /** 強度あり（dot等の強度を持つ状態向け）コンストラクタ */
+        public ActiveCombatCondition(String conditionId, int duration, int intensity) {
             this.conditionId = conditionId;
             this.duration = duration;
+            this.intensity = intensity;
         }
 
         public String getConditionId() {
@@ -100,6 +108,14 @@ public class BattleState {
 
         public void setDuration(int duration) {
             this.duration = duration;
+        }
+
+        public int getIntensity() {
+            return intensity;
+        }
+
+        public void setIntensity(int intensity) {
+            this.intensity = intensity;
         }
 
         public void decrementDuration() {

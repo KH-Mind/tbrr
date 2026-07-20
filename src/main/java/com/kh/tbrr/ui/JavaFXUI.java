@@ -99,6 +99,12 @@ public class JavaFXUI implements GameUI {
 	private CountDownLatch battleCommandLatch;
 	private AtomicReference<BattleCommand> battleCommandResult = new AtomicReference<>();
 	private HBox inputBox; // inputBoxのクラスフィールド保存用
+	
+	private java.util.function.Consumer<String> stanceChangeListener;
+
+	public void setStanceChangeListener(java.util.function.Consumer<String> listener) {
+		this.stanceChangeListener = listener;
+	}
 
 	// 戦闘情報サブウィンドウ用コントローラー
 	private BattlePanelController battlePanelController;
@@ -588,6 +594,11 @@ public class JavaFXUI implements GameUI {
 		stanceComboBox = new ComboBox<>();
 		stanceComboBox.getItems().addAll("なし");
 		stanceComboBox.setValue("なし");
+		stanceComboBox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+			if (stanceChangeListener != null && newVal != null) {
+				stanceChangeListener.accept(newVal);
+			}
+		});
 
 		specialComboBox = new ComboBox<>();
 		specialComboBox.setPrefWidth(120); // 長い技名が見切れないように幅を広げる
@@ -1106,7 +1117,7 @@ public class JavaFXUI implements GameUI {
 				}
 			} else {
 				// 状態異常がない場合は「なし」ラベルを表示
-				Label noStatusLabel = new Label("（状態異常：なし）");
+				Label noStatusLabel = new Label("（状態：元気）");
 				noStatusLabel.setStyle("-fx-text-fill: #999999; -fx-font-size: 11px;");
 				statusEffectsPane.getChildren().add(noStatusLabel);
 			}
