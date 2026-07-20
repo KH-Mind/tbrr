@@ -88,6 +88,13 @@ public interface GameUI {
 	void printPlayerStatus(Player player);
 
 	/**
+	 * プレイヤーの基本ステータス（HP/AP/お金など）のみを軽量に更新する
+	 */
+	default void refreshPlayerBasicStatus(Player player) {
+		// デフォルト実装は何もしない
+	}
+
+	/**
 	 * 選択肢を表示して選択を取得
 	 * 
 	 * @param choices 選択肢のリスト

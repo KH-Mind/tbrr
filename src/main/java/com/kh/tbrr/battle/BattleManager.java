@@ -299,6 +299,7 @@ public class BattleManager {
                     updateConditionsForTarget(state.getEnemyConditions(), null, state.getCurrentEnemy());
 
                     state.incrementTurn();
+                    ui.refreshPlayerBasicStatus(player);
                 }
             }
 
@@ -1221,7 +1222,7 @@ public class BattleManager {
             DamageResult dmgResult = enemy.applyBattleDamage(totalDamage, false);
             int hpDamage = dmgResult.actualHpDamage();
             int spAbsorbed = dmgResult.actualSpDamage();
-            
+
             String critMsg = result.isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
             String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
             ui.print("　機会攻撃命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！" + critMsg + spMsg);
@@ -1409,7 +1410,8 @@ public class BattleManager {
 
     /**
      * ターン終了時の状態異常更新。DOTダメージを対象に与えてからターンを減算する。
-     * @param conditions 更新対象の状態リスト
+     * 
+     * @param conditions   更新対象の状態リスト
      * @param targetPlayer DOTダメージを受けるプレイヤー（nullなら敵対象）
      * @param targetEnemy  DOTダメージを受ける敵（nullならプレイヤー対象）
      */
@@ -1514,10 +1516,10 @@ public class BattleManager {
      * CombatConditionData の stackRule に従って重複時の挙動を分岐する。
      *
      * <ul>
-     *   <li>ACCUMULATE : 強度を合算し、ターンは新しい値で上書きする（dot向け）</li>
-     *   <li>MAX_ONLY   : 複数インスタンスをそのまま保持する（判定時に最大強度を参照）</li>
-     *   <li>EXTEND     : ターンを加算して延長する</li>
-     *   <li>REFRESH    : ターンの大きい方を採用する（デフォルト）</li>
+     * <li>ACCUMULATE : 強度を合算し、ターンは新しい値で上書きする（dot向け）</li>
+     * <li>MAX_ONLY : 複数インスタンスをそのまま保持する（判定時に最大強度を参照）</li>
+     * <li>EXTEND : ターンを加算して延長する</li>
+     * <li>REFRESH : ターンの大きい方を採用する（デフォルト）</li>
      * </ul>
      */
     private void applyCondition(
@@ -1530,8 +1532,8 @@ public class BattleManager {
         switch (rule) {
             case "ACCUMULATE": {
                 // 既存のインスタンスを探して強度を合算、ターンは新しい値で上書き
-                java.util.Optional<BattleState.ActiveCombatCondition> existing =
-                        conditions.stream().filter(c -> c.getConditionId().equals(conditionId)).findFirst();
+                java.util.Optional<BattleState.ActiveCombatCondition> existing = conditions.stream()
+                        .filter(c -> c.getConditionId().equals(conditionId)).findFirst();
                 if (existing.isPresent()) {
                     existing.get().setIntensity(existing.get().getIntensity() + intensity);
                     existing.get().setDuration(duration);
@@ -1547,8 +1549,8 @@ public class BattleManager {
             }
             case "EXTEND": {
                 // ターンを加算して延長
-                java.util.Optional<BattleState.ActiveCombatCondition> existing =
-                        conditions.stream().filter(c -> c.getConditionId().equals(conditionId)).findFirst();
+                java.util.Optional<BattleState.ActiveCombatCondition> existing = conditions.stream()
+                        .filter(c -> c.getConditionId().equals(conditionId)).findFirst();
                 if (existing.isPresent()) {
                     existing.get().setDuration(existing.get().getDuration() + duration);
                 } else {
@@ -1557,8 +1559,8 @@ public class BattleManager {
                 break;
             }
             default: // "REFRESH": ターンの大きい方を採用
-                java.util.Optional<BattleState.ActiveCombatCondition> existing =
-                        conditions.stream().filter(c -> c.getConditionId().equals(conditionId)).findFirst();
+                java.util.Optional<BattleState.ActiveCombatCondition> existing = conditions.stream()
+                        .filter(c -> c.getConditionId().equals(conditionId)).findFirst();
                 if (existing.isPresent()) {
                     if (duration > existing.get().getDuration()) {
                         existing.get().setDuration(duration);

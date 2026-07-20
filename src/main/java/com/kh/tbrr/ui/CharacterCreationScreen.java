@@ -1169,6 +1169,13 @@ public class CharacterCreationScreen {
                     player.getBaseTraits().add(t.getAsString());
                 }
 
+                // 2.5. baseAbilities
+                if (jobObj.has("baseAbilities") && !jobObj.get("baseAbilities").isJsonNull()) {
+                    for (com.google.gson.JsonElement a : jobObj.getAsJsonArray("baseAbilities")) {
+                        player.getBaseAbilities().add(a.getAsString());
+                    }
+                }
+
                 // 3. フレーバーアイテム（所持のみ）
                 com.google.gson.JsonElement flavorElem = jobObj.get("flavorItem");
                 if (!flavorElem.isJsonNull()) {

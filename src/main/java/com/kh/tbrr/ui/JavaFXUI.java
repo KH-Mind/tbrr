@@ -1127,6 +1127,18 @@ public class JavaFXUI implements GameUI {
 		});
 	}
 
+	@Override
+	public void refreshPlayerBasicStatus(Player player) {
+		this.currentPlayer = player;
+		Platform.runLater(() -> {
+			if (hpLabel != null && apLabel != null && moneyLabel != null) {
+				hpLabel.setText(String.format("HP: %s/%s", player.getCurrentHP(), player.getEffectiveMaxHp()));
+				apLabel.setText(String.format("AP: %s/%s", player.getCurrentAP(), player.getEffectiveMaxAp()));
+				moneyLabel.setText(String.format("銀貨: %s/%s", player.getMoney(), player.getEffectiveMaxMoney()));
+			}
+		});
+	}
+
 	/**
 	 * 技能アイコンを作成する
 	 * 
