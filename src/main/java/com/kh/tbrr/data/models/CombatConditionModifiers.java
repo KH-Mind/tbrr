@@ -37,4 +37,8 @@ public class CombatConditionModifiers {
 
     public int getDotMagical() { return dotMagical; }
     public void setDotMagical(int dotMagical) { this.dotMagical = dotMagical; }
+
+    private int hindranceChance; // 阻害確率デフォルト値（%）。intensity が 0 の場合のフォールバック。
+    public int getHindranceChance() { return hindranceChance; }
+    public void setHindranceChance(int hindranceChance) { this.hindranceChance = hindranceChance; }
 }

@@ -436,6 +436,16 @@ public class BattleManager {
             moveAmount = 2; // 全力移動なら2マス動く
         }
 
+        // --- movement_hindrance チェック（プレイヤー）---
+        int movHindrance = getMaxConditionIntensity(state.getPlayerConditions(), "movement_hindrance");
+        if (movHindrance > 0 && !"停止".equals(move)) {
+            if (random.nextInt(100) + 1 <= movHindrance) {
+                String pNameMov = player.getName() != null ? player.getName() : "冒険者";
+                ui.print("　移動阻害により、" + pNameMov + " の移動は失敗した！（停止）");
+                move = "停止"; // 前進・後退処理ブロックをスキップ
+            }
+        }
+
         if ("前進".equals(move)) {
             state.setDistance(Math.max(0, state.getDistance() - moveAmount));
             ui.print("　プレイヤーは前進した。（現在距離: " + state.getDistance() + "）");
@@ -483,6 +493,16 @@ public class BattleManager {
         }
 
         if ("攻撃".equals(action) || (cmd.getSpecial() != null && !cmd.getSpecial().equals("なし"))) {
+            // --- action_hindrance チェック（プレイヤー）---
+            int actHindrance = getMaxConditionIntensity(state.getPlayerConditions(), "action_hindrance");
+            if (actHindrance > 0) {
+                if (random.nextInt(100) + 1 <= actHindrance) {
+                    String pNameAct = player.getName() != null ? player.getName() : "冒険者";
+                    ui.print("　行動阻害により、" + pNameAct + " の行動は失敗した！（AP消費なし）");
+                    return false;
+                }
+            }
+
             // --- AP不足チェックと転倒処理 ---
             if (ability.getApCost() > 0) {
                 if (player.getAp() < ability.getApCost()) {
@@ -907,46 +927,58 @@ public class BattleManager {
         CombatBaseRules baseRules = CombatDataLoader.getBaseRules();
 
         // --- 1. ムーブの実行 ---
-        if ("predator".equalsIgnoreCase(enemy.getAiType())) {
-            // Predator: 可能なら前進する
-            if (state.getDistance() > 0) {
-                state.setDistance(state.getDistance() - 1);
-                ui.print("　" + enemy.getName() + " は詰め寄ってきた。（現在距離: " + state.getDistance() + "）");
+        // --- movement_hindrance チェック（敵）---
+        boolean enemyCanMove = true;
+        int enemyMovHindrance = getMaxConditionIntensity(state.getEnemyConditions(), "movement_hindrance");
+        if (enemyMovHindrance > 0) {
+            if (random.nextInt(100) + 1 <= enemyMovHindrance) {
+                ui.print("　移動阻害により、" + enemy.getName() + " の移動は失敗した！");
+                enemyCanMove = false;
             }
-        } else if ("coward".equalsIgnoreCase(enemy.getAiType())) {
-            // Coward: 可能なら後退して距離を取る
-            if (state.getDistance() < 4) {
-                if (state.getDistance() == 0 && getActivePlayerTraits().stream().anyMatch(t -> t != null
-                        && "SYSTEMIC".equals(t.getType()) && "VIGILANCE".equals(t.getSystemicEffect()))) {
-                    String pName = (player.getName() != null && !player.getName().isEmpty()) ? player.getName() : "冒険者";
-                    ui.print("　" + pName + " は " + enemy.getName() + " が離れる隙を見逃さなかった！（警戒心による機会攻撃）");
-                    executePlayerOpportunityAttack(enemy);
+        }
+
+        if (enemyCanMove) {
+            if ("predator".equalsIgnoreCase(enemy.getAiType())) {
+                // Predator: 可能なら前進する
+                if (state.getDistance() > 0) {
+                    state.setDistance(state.getDistance() - 1);
+                    ui.print("　" + enemy.getName() + " は詰め寄ってきた。（現在距離: " + state.getDistance() + "）");
                 }
-                if (enemy.getHp() > 0) {
-                    state.setDistance(state.getDistance() + 1);
-                    ui.print("　" + enemy.getName() + " はじりじりと後退して距離を取った。（現在距離: " + state.getDistance() + "）");
+            } else if ("coward".equalsIgnoreCase(enemy.getAiType())) {
+                // Coward: 可能なら後退して距離を取る
+                if (state.getDistance() < 4) {
+                    if (state.getDistance() == 0 && getActivePlayerTraits().stream().anyMatch(t -> t != null
+                            && "SYSTEMIC".equals(t.getType()) && "VIGILANCE".equals(t.getSystemicEffect()))) {
+                        String pName = (player.getName() != null && !player.getName().isEmpty()) ? player.getName() : "冒険者";
+                        ui.print("　" + pName + " は " + enemy.getName() + " が離れる隙を見逃さなかった！（警戒心による機会攻撃）");
+                        executePlayerOpportunityAttack(enemy);
+                    }
+                    if (enemy.getHp() > 0) {
+                        state.setDistance(state.getDistance() + 1);
+                        ui.print("　" + enemy.getName() + " はじりじりと後退して距離を取った。（現在距離: " + state.getDistance() + "）");
+                    }
                 }
+            } else if ("midrange".equalsIgnoreCase(enemy.getAiType())) {
+                // Midrange: 距離2を維持しようとする
+                if (state.getDistance() > 2) {
+                    state.setDistance(state.getDistance() - 1);
+                    ui.print("　" + enemy.getName() + " は間合いを詰めてきた。（現在距離: " + state.getDistance() + "）");
+                } else if (state.getDistance() < 2) {
+                    if (state.getDistance() == 0 && getActivePlayerTraits().stream().anyMatch(t -> t != null
+                            && "SYSTEMIC".equals(t.getType()) && "VIGILANCE".equals(t.getSystemicEffect()))) {
+                        String pName = (player.getName() != null && !player.getName().isEmpty()) ? player.getName() : "冒険者";
+                        ui.print("　" + pName + " は " + enemy.getName() + " が離れる隙を見逃さなかった！（警戒心による機会攻撃）");
+                        executePlayerOpportunityAttack(enemy);
+                    }
+                    if (enemy.getHp() > 0) {
+                        state.setDistance(state.getDistance() + 1);
+                        ui.print("　" + enemy.getName() + " は後退して間合いを取った。（現在距離: " + state.getDistance() + "）");
+                    }
+                }
+            } else if ("stationary".equalsIgnoreCase(enemy.getAiType())) {
+                // Stationary: 一切移動しない（固定砲台、壁、城門など）
+                // 移動メッセージも出さず、距離の変化も起こさない
             }
-        } else if ("midrange".equalsIgnoreCase(enemy.getAiType())) {
-            // Midrange: 距離2を維持しようとする
-            if (state.getDistance() > 2) {
-                state.setDistance(state.getDistance() - 1);
-                ui.print("　" + enemy.getName() + " は間合いを詰めてきた。（現在距離: " + state.getDistance() + "）");
-            } else if (state.getDistance() < 2) {
-                if (state.getDistance() == 0 && getActivePlayerTraits().stream().anyMatch(t -> t != null
-                        && "SYSTEMIC".equals(t.getType()) && "VIGILANCE".equals(t.getSystemicEffect()))) {
-                    String pName = (player.getName() != null && !player.getName().isEmpty()) ? player.getName() : "冒険者";
-                    ui.print("　" + pName + " は " + enemy.getName() + " が離れる隙を見逃さなかった！（警戒心による機会攻撃）");
-                    executePlayerOpportunityAttack(enemy);
-                }
-                if (enemy.getHp() > 0) {
-                    state.setDistance(state.getDistance() + 1);
-                    ui.print("　" + enemy.getName() + " は後退して間合いを取った。（現在距離: " + state.getDistance() + "）");
-                }
-            }
-        } else if ("stationary".equalsIgnoreCase(enemy.getAiType())) {
-            // Stationary: 一切移動しない（固定砲台、壁、城門など）
-            // 移動メッセージも出さず、距離の変化も起こさない
         }
 
         // --- 2. ルール評価とアクション決定 ---
@@ -976,6 +1008,14 @@ public class BattleManager {
         }
 
         // --- 3. アクションの実行 ---
+        // --- action_hindrance チェック（敵）---
+        if (selectedAbilityId != null) {
+            int enemyActHindrance = getMaxConditionIntensity(state.getEnemyConditions(), "action_hindrance");
+            if (enemyActHindrance > 0 && random.nextInt(100) + 1 <= enemyActHindrance) {
+                ui.print("　行動阻害により、" + enemy.getName() + " の行動は失敗した！");
+                selectedAbilityId = null; // 行動キャンセル
+            }
+        }
         if (selectedAbilityId != null) {
             // 回数カウントアップ
             enemy.getRuleUsageCounts().put(matchedRule, enemy.getRuleUsageCounts().getOrDefault(matchedRule, 0) + 1);
@@ -1583,5 +1623,18 @@ public class BattleManager {
                 }
                 break;
         }
+    }
+
+    /**
+     * MAX_ONLY 方式の状態について、対象リストの中から指定IDの最大 intensity を返す。
+     * 該当する状態がなければ 0 を返す。
+     */
+    private int getMaxConditionIntensity(
+            java.util.List<BattleState.ActiveCombatCondition> conditions, String conditionId) {
+        return conditions.stream()
+                .filter(c -> c.getConditionId().equals(conditionId))
+                .mapToInt(BattleState.ActiveCombatCondition::getIntensity)
+                .max()
+                .orElse(0);
     }
 }
