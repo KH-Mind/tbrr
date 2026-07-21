@@ -298,6 +298,19 @@ public class BattleManager {
                     // 敵の状態 → 敵がDOT対象
                     updateConditionsForTarget(state.getEnemyConditions(), null, state.getCurrentEnemy());
 
+                    // 継続ダメージ等によるHP0判定
+                    if (player.getCurrentHP() <= 0) {
+                        lastResult = BattleResult.DEFEAT;
+                        battleEnded = true;
+                        continue;
+                    }
+                    if (state.getCurrentEnemy().getHp() <= 0) {
+                        ui.print("【勝利！】 " + state.getCurrentEnemy().getName() + " を倒した！");
+                        lastResult = BattleResult.VICTORY;
+                        battleEnded = true;
+                        continue;
+                    }
+
                     state.incrementTurn();
                     ui.refreshPlayerBasicStatus(player);
                 }
