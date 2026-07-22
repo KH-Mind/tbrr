@@ -402,30 +402,27 @@ public class CarryoverScreen {
                     player.addItem(flavorElem.getAsString());
                 }
 
-                // mainWeapon（所持・装備）
+                // mainWeapon（装備枠へ直接セット）
                 JsonElement mainWeaponElem = jobObj.get("mainWeapon");
                 if (mainWeaponElem != null && !mainWeaponElem.isJsonNull()) {
                     String weaponId = mainWeaponElem.getAsString();
-                    player.addItem(weaponId);
                     player.equipMainWeapon(weaponId);
                 }
 
-                // reserveWeapons（所持・予備スロット）
+                // reserveWeapons（予備スロットへ直接追加）
                 JsonArray reserveArr = jobObj.getAsJsonArray("reserveWeapons");
                 if (reserveArr != null) {
                     for (JsonElement r : reserveArr) {
                         String reserveId = r.getAsString();
-                        player.addItem(reserveId);
                         player.getReserveEquipments().add(reserveId);
                     }
                 }
 
-                // accessories（所持・装備）
+                // accessories（装備枠へ直接セット）
                 JsonArray accessoryArr = jobObj.getAsJsonArray("accessories");
                 if (accessoryArr != null) {
                     for (JsonElement a : accessoryArr) {
                         String accessoryId = a.getAsString();
-                        player.addItem(accessoryId);
                         player.equipAccessory(accessoryId);
                     }
                 }

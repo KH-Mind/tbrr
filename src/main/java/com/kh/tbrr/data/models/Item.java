@@ -25,6 +25,9 @@ public class Item {
 	private int damageReduction;      // ダメージ軽減値
 	private String rangeType;         // 射程タイプ: "melee" / "ranged" / "magic"
 	private java.util.Map<String, String> rangeOverride; // 距離→結果の個別上書きマップ（任意。槍など）
+	private String weaponAtkStat;     // 通常攻撃時の命中計算ステータス（任意）
+	private String weaponScalingStat; // 通常攻撃時のダメージ計算ステータス（任意）
+	private Double weaponStatScaling; // 通常攻撃時のダメージ倍率（任意）
 	private java.util.Map<String, CombatConditionModifiers> combatConditionModifiers; // 相手のCombatConditionに対する特効補正
 
 	// コンストラクタ
@@ -185,5 +188,29 @@ public class Item {
 
 	public void setCombatConditionModifiers(java.util.Map<String, CombatConditionModifiers> combatConditionModifiers) {
 		this.combatConditionModifiers = combatConditionModifiers;
+	}
+
+	public String getWeaponAtkStat() {
+		return weaponAtkStat;
+	}
+
+	public void setWeaponAtkStat(String weaponAtkStat) {
+		this.weaponAtkStat = weaponAtkStat;
+	}
+
+	public String getWeaponScalingStat() {
+		return weaponScalingStat;
+	}
+
+	public void setWeaponScalingStat(String weaponScalingStat) {
+		this.weaponScalingStat = weaponScalingStat;
+	}
+
+	public Double getWeaponStatScaling() {
+		return weaponStatScaling;
+	}
+
+	public void setWeaponStatScaling(Double weaponStatScaling) {
+		this.weaponStatScaling = weaponStatScaling;
 	}
 }

@@ -554,12 +554,15 @@ public class BattleManager {
                 return false;
             }
 
-            // 命中判定（アビリティの指定がない場合は機敏でフォールバック）
+            // 命中判定
             String atkStatName = ability.getCheck().getAttackerStat();
-            if (weapon != null && "ranged".equals(weapon.getRangeType())) {
-                atkStatName = "finesse"; // 弓などは命中を機敏に強制
-            } else if (atkStatName == null || atkStatName.isEmpty()) {
-                atkStatName = "finesse";
+            // アビリティ側の指定がなければ武器側の指定を見る。それも無ければデフォルト(finesse)
+            if (atkStatName == null || atkStatName.isEmpty()) {
+                if (weapon != null && weapon.getWeaponAtkStat() != null && !weapon.getWeaponAtkStat().isEmpty()) {
+                    atkStatName = weapon.getWeaponAtkStat();
+                } else {
+                    atkStatName = "finesse";
+                }
             }
             int atkStatVal = getCombatStat(player, atkStatName);
 
@@ -605,11 +608,18 @@ public class BattleManager {
                 double scaling = (ability.getCheck().getStatScaling() != null)
                         ? ability.getCheck().getStatScaling()
                         : 0.5;
-                if (weapon != null && "ranged".equals(weapon.getRangeType())) {
-                    scalingStatName = "finesse"; // 弓などはダメージスケールを機敏に強制
-                    scaling = 1.0;
-                } else if (scalingStatName == null || scalingStatName.isEmpty()) {
-                    scalingStatName = "might";
+
+                // 依存ステータスの指定がない場合のみ武器・デフォルトにフォールバック
+                if (scalingStatName == null || scalingStatName.isEmpty()) {
+                    if (weapon != null && weapon.getWeaponScalingStat() != null && !weapon.getWeaponScalingStat().isEmpty()) {
+                        scalingStatName = weapon.getWeaponScalingStat();
+                        // 武器側の倍率が指定されていれば上書きする
+                        if (weapon.getWeaponStatScaling() != null) {
+                            scaling = weapon.getWeaponStatScaling();
+                        }
+                    } else {
+                        scalingStatName = "might";
+                    }
                 }
                 int rawStatVal = getCombatStat(player, scalingStatName);
                 int scalingStatVal = (int) (rawStatVal * scaling);
@@ -629,6 +639,13 @@ public class BattleManager {
 
                 // 敵の固定ダメージ軽減（金属系の敵等に設定されるdamageReduction）
                 int enemyDmgReduction = enemy.getDamageReduction();
+                // 敵のTraitによるダメージ軽減
+                for (com.kh.tbrr.battle.data.TraitData t : getActiveEnemyTraits()) {
+                    if (t != null) {
+                        enemyDmgReduction += t.getDamageReduction();
+                    }
+                }
+                
                 if (enemyDmgReduction > 0) {
                     totalDamage = Math.max(0, totalDamage - enemyDmgReduction);
                 }
@@ -1151,6 +1168,13 @@ public class BattleManager {
                     }
                 }
             }
+            // 防御側（プレイヤー）Traitによるダメージ軽減
+            for (com.kh.tbrr.battle.data.TraitData t : getActivePlayerTraits()) {
+                if (t != null) {
+                    reduction += t.getDamageReduction();
+                }
+            }
+            
             totalDamage = Math.max(0, totalDamage - reduction);
 
             if (state.isPlayerDefending()) {
@@ -1425,6 +1449,20 @@ public class BattleManager {
                 .anyMatch(t -> t != null && "SYSTEMIC".equals(t.getType()) && "FLYING".equals(t.getSystemicEffect()));
         if (defenderHasFlying && !attackerHasFlying) {
             traitMod -= 20;
+        }
+
+        // 防御側のTraitによる回避ボーナス（命中率減算）
+        for (com.kh.tbrr.battle.data.TraitData t : defTraits) {
+            if (t != null) {
+                traitMod -= t.getEvasionBonus();
+            }
+        }
+
+        // 攻撃側のTraitによる命中ボーナス
+        for (com.kh.tbrr.battle.data.TraitData t : atkTraits) {
+            if (t != null) {
+                traitMod += t.getHitChanceBonus();
+            }
         }
 
         int hitChance = base + statMod + condMod + traitMod;

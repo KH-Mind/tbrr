@@ -1182,25 +1182,22 @@ public class CharacterCreationScreen {
                     player.addItem(flavorElem.getAsString());
                 }
 
-                // 4. メイン武器（所持してから装備）
+                // 4. メイン武器（装備枠へ直接セット）
                 com.google.gson.JsonElement mainWeaponElem = jobObj.get("mainWeapon");
                 if (!mainWeaponElem.isJsonNull()) {
                     String weaponId = mainWeaponElem.getAsString();
-                    player.addItem(weaponId);
                     player.equipMainWeapon(weaponId);
                 }
 
-                // 5. 予備スロット武器（所持してから予備スロットに追加）
+                // 5. 予備スロット武器（予備スロットへ直接追加）
                 for (com.google.gson.JsonElement r : jobObj.getAsJsonArray("reserveWeapons")) {
                     String reserveId = r.getAsString();
-                    player.addItem(reserveId);
                     player.getReserveEquipments().add(reserveId);
                 }
 
-                // 6. アクセサリ（所持してから装備）
+                // 6. アクセサリ（装備枠へ直接セット）
                 for (com.google.gson.JsonElement a : jobObj.getAsJsonArray("accessories")) {
                     String accessoryId = a.getAsString();
-                    player.addItem(accessoryId);
                     player.equipAccessory(accessoryId);
                 }
 

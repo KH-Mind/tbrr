@@ -63,6 +63,13 @@ public class TraitData {
      */
     private Map<String, Integer> statBonuses;
 
+    /**
+     * 防具や小手などの特徴によって得られる固定値ボーナス群。
+     */
+    private int hitChanceBonus;    // 命中率への固定値ボーナス
+    private int evasionBonus;      // 回避率（被弾率低下）への固定値ボーナス
+    private int damageReduction;   // 被ダメージ時の固定値軽減(DR)
+
     // --- ゲッター ---
 
     public String getId() { return id; }
@@ -88,6 +95,10 @@ public class TraitData {
     public List<String> getGrantedAbilities() { return grantedAbilities; }
     public Map<String, Integer> getStatBonuses() { return statBonuses; }
 
+    public int getHitChanceBonus() { return hitChanceBonus; }
+    public int getEvasionBonus() { return evasionBonus; }
+    public int getDamageReduction() { return damageReduction; }
+
     // --- セッター ---
 
     public void setId(String id) { this.id = id; }
@@ -107,4 +118,7 @@ public class TraitData {
     public void setGrantedTraits(List<String> grantedTraits) { this.grantedTraits = grantedTraits; }
     public void setGrantedAbilities(List<String> grantedAbilities) { this.grantedAbilities = grantedAbilities; }
     public void setStatBonuses(Map<String, Integer> statBonuses) { this.statBonuses = statBonuses; }
+    public void setHitChanceBonus(int hitChanceBonus) { this.hitChanceBonus = hitChanceBonus; }
+    public void setEvasionBonus(int evasionBonus) { this.evasionBonus = evasionBonus; }
+    public void setDamageReduction(int damageReduction) { this.damageReduction = damageReduction; }
 }

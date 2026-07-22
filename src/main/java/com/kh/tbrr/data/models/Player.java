@@ -347,23 +347,7 @@ public class Player {
         }
     }
 
-    /**
-     * 所持している（あるいは装備している）武器と装飾品の合計数を取得。
-     * 上限（計6つ）のチェックに使う。
-     */
-    public int getEquipmentCount() {
-        int count = 0;
-        for (String id : inventory) {
-            Item item = ItemRegistry.getItemById(id);
-            if (item != null) {
-                String cat = item.getEquipmentCategory();
-                if ("WEAPON".equalsIgnoreCase(cat) || "ACCESSORY".equalsIgnoreCase(cat)) {
-                    count++;
-                }
-            }
-        }
-        return count;
-    }
+
 
     // --- 装備操作メソッド群 ---
 
@@ -372,9 +356,7 @@ public class Player {
     }
 
     public void equipMainWeapon(String itemId) {
-        if (itemId == null || inventory.contains(itemId)) {
-            this.equippedMainWeapon = itemId;
-        }
+        this.equippedMainWeapon = itemId;
     }
 
     public List<String> getEquippedAccessories() {
@@ -382,7 +364,7 @@ public class Player {
     }
 
     public void equipAccessory(String itemId) {
-        if (itemId != null && inventory.contains(itemId) && !equippedAccessories.contains(itemId)) {
+        if (itemId != null && !equippedAccessories.contains(itemId)) {
             if (equippedAccessories.size() < 3) {
                 equippedAccessories.add(itemId);
             }
@@ -508,8 +490,7 @@ public class Player {
                 Item acc = ItemRegistry.getItemById(accId);
                 if (acc != null && acc.getGrantedTraits() != null) {
                     for (String traitId : acc.getGrantedTraits()) {
-                        if (!effective.contains(traitId))
-                            effective.add(traitId);
+                        effective.add(traitId);
                     }
                 }
             }
