@@ -6,8 +6,8 @@ public class EnemyData {
     private int hp;
     private int maxHp;
     private int might;
-    private int insight;
     private int finesse;
+    private int insight;
     private int presence;
     private int sensuality;
     private int moveSpeed = 1;
@@ -23,15 +23,15 @@ public class EnemyData {
     public static class EnemyScaling {
         private int hpPerLevel = 0;
         private int mightPerLevel = 0;
-        private int insightPerLevel = 0;
         private int finessePerLevel = 0;
+        private int insightPerLevel = 0;
         private int presencePerLevel = 0;
         private int sensualityPerLevel = 0;
 
         public int getHpPerLevel() { return hpPerLevel; }
         public int getMightPerLevel() { return mightPerLevel; }
-        public int getInsightPerLevel() { return insightPerLevel; }
         public int getFinessePerLevel() { return finessePerLevel; }
+        public int getInsightPerLevel() { return insightPerLevel; }
         public int getPresencePerLevel() { return presencePerLevel; }
         public int getSensualityPerLevel() { return sensualityPerLevel; }
     }
@@ -82,10 +82,10 @@ public class EnemyData {
     public void setMaxHp(int maxHp) { this.maxHp = maxHp; }
     public int getMight() { return might; }
     public void setMight(int might) { this.might = might; }
-    public int getInsight() { return insight; }
-    public void setInsight(int insight) { this.insight = insight; }
     public int getFinesse() { return finesse; }
     public void setFinesse(int finesse) { this.finesse = finesse; }
+    public int getInsight() { return insight; }
+    public void setInsight(int insight) { this.insight = insight; }
     public int getPresence() { return presence; }
     public void setPresence(int presence) { this.presence = presence; }
     public int getSensuality() { return sensuality; }
@@ -158,8 +158,8 @@ public class EnemyData {
     public int getStatByName(String statName) {
         return switch (statName.toUpperCase()) {
             case "MIGHT" -> might;
-            case "INSIGHT" -> insight;
             case "FINESSE" -> finesse;
+            case "INSIGHT" -> insight;
             case "PRESENCE" -> presence;
             case "SENSUALITY" -> sensuality;
             default -> 0;

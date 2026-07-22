@@ -641,7 +641,7 @@ public class Player {
      * 戦闘ステータスを計算して取得
      * 技能（baseSkills + アイテム由来）とアイテムのcombatStatsを合算
      * 
-     * @return 戦闘ステータス（might, insight, finesse, presence, sensuality）
+     * @return 戦闘ステータス（might, finesse, insight, presence, sensuality）
      */
     public CombatStats getCombatStats() {
         int totalMight = 0;
@@ -712,7 +712,7 @@ public class Player {
             }
         }
 
-        return CombatStats.of(totalMight, totalInsight, totalFinesse, totalPresence, totalSensuality);
+        return CombatStats.of(totalMight, totalFinesse, totalInsight, totalPresence, totalSensuality);
     }
 
     /**
@@ -720,8 +720,8 @@ public class Player {
      */
     public String getCombatStatsString() {
         CombatStats stats = getCombatStats();
-        return String.format("強靭:%d 聡明:%d 機敏:%d 風格:%d",
-                stats.might(), stats.insight(), stats.finesse(), stats.presence());
+        return String.format("強靭:%d 機敏:%d 聡明:%d 風格:%d",
+                stats.might(), stats.finesse(), stats.insight(), stats.presence());
     }
 
     // キャラクターシート
@@ -756,8 +756,8 @@ public class Player {
         CombatStats combatStats = getCombatStats();
         sb.append("戦闘ステータス: ");
         sb.append("強靭:").append(combatStats.might()).append(" ");
-        sb.append("聡明:").append(combatStats.insight()).append(" ");
         sb.append("機敏:").append(combatStats.finesse()).append(" ");
+        sb.append("聡明:").append(combatStats.insight()).append(" ");
         sb.append("風格:").append(combatStats.presence()).append("\n");
         // sb.append("官能性:").append(combatStats.sensuality()).append("\n"); //
         // 現状は隠しステータスとする

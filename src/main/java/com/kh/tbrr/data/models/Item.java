@@ -17,7 +17,7 @@ public class Item {
 	private boolean consumable; // 消費アイテムか
 	private boolean losableRandom; // ランダム喪失の対象か（デフォルト: true）
 	private int attackBonus; // 攻撃力ボーナス
-	private java.util.Map<String, Integer> combatStats; // 戦闘ステータス（might, insight, finesse, presence, sensuality）
+	private java.util.Map<String, Integer> combatStats; // 戦闘ステータス（might, finesse, insight, presence, sensuality）
 
 	// --- 装備用データ ---
 	private String equipmentCategory; // "WEAPON", "ACCESSORY" 等
