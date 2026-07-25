@@ -41,6 +41,17 @@ public class TraitData {
     // -----------------------------------------------------------------------
 
     /**
+     * このTraitを持つキャラクターが特定のアビリティ使用時に得られるAP消費軽減値。
+     */
+    private int apCostReduction;
+
+    /**
+     * AP消費軽減の対象となるアビリティタグ（OR条件）。
+     * 例: ["magic"]。nullまたは空リストの場合はすべてのアビリティに適用。
+     */
+    private List<String> apCostReductionTags;
+
+    /**
      * このTraitを持つキャラクターが得る技能のリスト。
      * 例: ["腕力"] → getEffectiveSkills() に反映予定。
      */
@@ -152,6 +163,14 @@ public class TraitData {
         return damageReduction;
     }
 
+    public int getApCostReduction() {
+        return apCostReduction;
+    }
+
+    public List<String> getApCostReductionTags() {
+        return apCostReductionTags;
+    }
+
     // --- セッター ---
 
     public void setId(String id) {
@@ -232,5 +251,13 @@ public class TraitData {
 
     public void setDamageReduction(int damageReduction) {
         this.damageReduction = damageReduction;
+    }
+
+    public void setApCostReduction(int apCostReduction) {
+        this.apCostReduction = apCostReduction;
+    }
+
+    public void setApCostReductionTags(List<String> apCostReductionTags) {
+        this.apCostReductionTags = apCostReductionTags;
     }
 }

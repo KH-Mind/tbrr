@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.kh.tbrr.battle.DamageResult;
-
 import com.kh.tbrr.battle.data.TraitData;
 import com.kh.tbrr.battle.data.TraitRegistry;
 import com.kh.tbrr.data.ItemRegistry;
@@ -346,8 +345,6 @@ public class Player {
             equippedAccessories.remove(itemId);
         }
     }
-
-
 
     // --- 装備操作メソッド群 ---
 
@@ -1231,5 +1228,33 @@ public class Player {
 
     public void setInheritedTraits(List<String> inheritedTraits) {
         this.inheritedTraits = inheritedTraits != null ? inheritedTraits : new ArrayList<>();
+    }
+
+    /**
+     * 指定されたアビリティのAP消費軽減値を計算して返す。
+     * 
+     * @param abilityTags 使用するアビリティのタグリスト
+     * @return 軽減されるAP値（合計）
+     */
+    public int getApCostReductionFor(List<String> abilityTags) {
+        int totalReduction = 0;
+        if (abilityTags == null) abilityTags = new ArrayList<>();
+
+        for (String traitId : getEffectiveTraits()) {
+            TraitData td = TraitRegistry.getTraitById(traitId);
+            if (td != null && td.getApCostReduction() > 0) {
+                if (td.getApCostReductionTags() == null || td.getApCostReductionTags().isEmpty()) {
+                    totalReduction += td.getApCostReduction();
+                } else {
+                    for (String tag : td.getApCostReductionTags()) {
+                        if (abilityTags.contains(tag)) {
+                            totalReduction += td.getApCostReduction();
+                            break; // 1つのTraitで重複して軽減しないように
+                        }
+                    }
+                }
+            }
+        }
+        return totalReduction;
     }
 }

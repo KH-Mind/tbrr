@@ -103,6 +103,7 @@ public class CombatDataLoader {
         loadTraitsFromFile("/data/battle/traits/initiative_traits.json");
         loadTraitsFromFile("/data/battle/traits/armor_traits.json");
         loadTraitsFromFile("/data/battle/traits/accessory_traits.json");
+        loadTraitsFromFile("/data/battle/traits/granted_ability_traits.json");
         traitsLoaded = true;
     }
 

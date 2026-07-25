@@ -504,8 +504,13 @@ public class BattleManager {
             }
 
             // --- AP不足チェックと転倒処理 ---
-            if (ability.getApCost() > 0) {
-                if (player.getAp() < ability.getApCost()) {
+            int originalApCost = ability.getApCost();
+            int actualApCost = originalApCost;
+            if (originalApCost > 0) {
+                int reduction = player.getApCostReductionFor(ability.getTags());
+                actualApCost = Math.max(1, originalApCost - reduction);
+
+                if (player.getAp() < actualApCost) {
                     String playerName = player.getName() != null ? player.getName() : "冒険者";
                     ui.print("　" + playerName + " は満身創痍で「" + ability.getName() + "」を出す気力が無い…。");
                     ui.print("　" + playerName + " は無様に転んでしまった！");
@@ -526,7 +531,7 @@ public class BattleManager {
 
                     return false; // 以降の攻撃処理をすべて不発にする
                 } else {
-                    player.modifyAp(-ability.getApCost());
+                    player.modifyAp(-actualApCost);
                 }
             }
 
@@ -611,7 +616,8 @@ public class BattleManager {
 
                 // 依存ステータスの指定がない場合のみ武器・デフォルトにフォールバック
                 if (scalingStatName == null || scalingStatName.isEmpty()) {
-                    if (weapon != null && weapon.getWeaponScalingStat() != null && !weapon.getWeaponScalingStat().isEmpty()) {
+                    if (weapon != null && weapon.getWeaponScalingStat() != null
+                            && !weapon.getWeaponScalingStat().isEmpty()) {
                         scalingStatName = weapon.getWeaponScalingStat();
                         // 武器側の倍率が指定されていれば上書きする
                         if (weapon.getWeaponStatScaling() != null) {
@@ -645,7 +651,7 @@ public class BattleManager {
                         enemyDmgReduction += t.getDamageReduction();
                     }
                 }
-                
+
                 if (enemyDmgReduction > 0) {
                     totalDamage = Math.max(0, totalDamage - enemyDmgReduction);
                 }
@@ -966,7 +972,8 @@ public class BattleManager {
                 if (state.getDistance() < 4) {
                     if (state.getDistance() == 0 && getActivePlayerTraits().stream().anyMatch(t -> t != null
                             && "SYSTEMIC".equals(t.getType()) && "VIGILANCE".equals(t.getSystemicEffect()))) {
-                        String pName = (player.getName() != null && !player.getName().isEmpty()) ? player.getName() : "冒険者";
+                        String pName = (player.getName() != null && !player.getName().isEmpty()) ? player.getName()
+                                : "冒険者";
                         ui.print("　" + pName + " は " + enemy.getName() + " が離れる隙を見逃さなかった！（警戒心による機会攻撃）");
                         executePlayerOpportunityAttack(enemy);
                     }
@@ -983,7 +990,8 @@ public class BattleManager {
                 } else if (state.getDistance() < 2) {
                     if (state.getDistance() == 0 && getActivePlayerTraits().stream().anyMatch(t -> t != null
                             && "SYSTEMIC".equals(t.getType()) && "VIGILANCE".equals(t.getSystemicEffect()))) {
-                        String pName = (player.getName() != null && !player.getName().isEmpty()) ? player.getName() : "冒険者";
+                        String pName = (player.getName() != null && !player.getName().isEmpty()) ? player.getName()
+                                : "冒険者";
                         ui.print("　" + pName + " は " + enemy.getName() + " が離れる隙を見逃さなかった！（警戒心による機会攻撃）");
                         executePlayerOpportunityAttack(enemy);
                     }
@@ -1174,7 +1182,7 @@ public class BattleManager {
                     reduction += t.getDamageReduction();
                 }
             }
-            
+
             totalDamage = Math.max(0, totalDamage - reduction);
 
             if (state.isPlayerDefending()) {
