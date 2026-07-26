@@ -25,15 +25,15 @@ public class AbilityData {
         private String attackerStat;
         private String defenderStat;
         private String damageDice;
-        private String scalingStat;
-        private Double statScaling;
+        /** ステータス名 → 倍率 のマップ。複数ステータスによる複合スケーリングに対応。
+         *  例: {"might": 0.5} / {"insight": 0.5, "presence": 0.5} */
+        private java.util.Map<String, Double> scalings;
 
         public Integer getBaseChance() { return baseChance; }
         public String getAttackerStat() { return attackerStat; }
         public String getDefenderStat() { return defenderStat; }
         public String getDamageDice() { return damageDice; }
-        public String getScalingStat() { return scalingStat; }
-        public Double getStatScaling() { return statScaling; }
+        public java.util.Map<String, Double> getScalings() { return scalings; }
     }
 
     public String getId() { return id; }
@@ -87,4 +87,11 @@ public class AbilityData {
 
     public Map<String, String> getUpgrades() { return upgrades; }
     public boolean isCountAbilityAsLevel() { return Boolean.TRUE.equals(countAbilityAsLevel); }
+
+    // --- 追加: アビリティ使用時のSP増加定義 ---
+    /** アビリティ使用時に発動者のSPを増加させる計算式。nullの場合はSP増加なし。 */
+    private ScalingData spGain;
+
+    public ScalingData getSpGain() { return spGain; }
+    public void setSpGain(ScalingData spGain) { this.spGain = spGain; }
 }

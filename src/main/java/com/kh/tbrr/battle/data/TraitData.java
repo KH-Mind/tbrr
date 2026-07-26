@@ -81,6 +81,14 @@ public class TraitData {
     private int evasionBonus; // 回避率（被弾率低下）への固定値ボーナス
     private int damageReduction; // 被ダメージ時の固定値軽減(DR)
 
+    // --- SP自動回復定義 ---
+    /**
+     * このTraitを持つキャラクターが行動終了時に得るSP増加量の計算式。
+     * nullの場合はSP回復なし。
+     * 例: { "base": 3, "scalings": { "presence": 0.25 } }
+     */
+    private ScalingData spRegenAfterAction;
+
     // --- ゲッター ---
 
     public String getId() {
@@ -171,6 +179,10 @@ public class TraitData {
         return apCostReductionTags;
     }
 
+    public ScalingData getSpRegenAfterAction() {
+        return spRegenAfterAction;
+    }
+
     // --- セッター ---
 
     public void setId(String id) {
@@ -259,5 +271,9 @@ public class TraitData {
 
     public void setApCostReductionTags(List<String> apCostReductionTags) {
         this.apCostReductionTags = apCostReductionTags;
+    }
+
+    public void setSpRegenAfterAction(ScalingData spRegenAfterAction) {
+        this.spRegenAfterAction = spRegenAfterAction;
     }
 }

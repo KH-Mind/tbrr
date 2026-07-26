@@ -292,7 +292,18 @@ public class BattleManager {
                         }
                     }
 
-                    // --- ターン終了処理（ステータス更新） ---
+                    // --- ターン終了処理（ステータス更新）---
+                    // --- 行動後SP自動回復（信念等のTraitによる）---
+                    for (TraitData trait : getActivePlayerTraits()) {
+                        ScalingData spRegen = trait.getSpRegenAfterAction();
+                        if (spRegen != null) {
+                            int regen = calculateSpGainForPlayer(spRegen);
+                            int newSp = Math.min(com.kh.tbrr.data.models.Player.SP_MAX, player.getCurrentSp() + regen);
+                            player.setCurrentSp(newSp);
+                            ui.print("　[" + trait.getName() + "] SP+" + regen + "（現在SP: " + newSp + "）");
+                        }
+                    }
+                    ui.printPlayerStatus(player);
                     // プレイヤーの状態 → プレイヤーがDOT対象
                     updateConditionsForTarget(state.getPlayerConditions(), player, null);
                     // 敵の状態 → 敵がDOT対象
@@ -559,6 +570,22 @@ public class BattleManager {
                 return false;
             }
 
+            // --- SP増加処理（checkを持たないSPバフ系アビリティはここで終了）---
+            ScalingData spGain = ability.getSpGain();
+            if (spGain != null) {
+                int gain = calculateSpGainForPlayer(spGain);
+                int newSp = Math.min(com.kh.tbrr.data.models.Player.SP_MAX, player.getCurrentSp() + gain);
+                player.setCurrentSp(newSp);
+                String playerName = player.getName() != null ? player.getName() : "冒険者";
+                ui.print("　" + playerName + " のSPが " + gain + " 回復した！（現在SP: " + newSp + "）");
+                ui.printPlayerStatus(player);
+            }
+
+            // check が null（SPバフ専用アビリティ等）の場合は攻撃処理を行わず終了
+            if (ability.getCheck() == null) {
+                return false;
+            }
+
             // 命中判定
             String atkStatName = ability.getCheck().getAttackerStat();
             // アビリティ側の指定がなければ武器側の指定を見る。それも無ければデフォルト(finesse)
@@ -608,27 +635,23 @@ public class BattleManager {
                 int masteryDiceSum = calculateMasteryDice(masteryLevel);
                 int masteryFixedBonus = calculateMasteryFixedBonus(masteryLevel);
 
-                // ステータス加算計算
-                String scalingStatName = ability.getCheck().getScalingStat();
-                double scaling = (ability.getCheck().getStatScaling() != null)
-                        ? ability.getCheck().getStatScaling()
-                        : 0.5;
-
-                // 依存ステータスの指定がない場合のみ武器・デフォルトにフォールバック
-                if (scalingStatName == null || scalingStatName.isEmpty()) {
-                    if (weapon != null && weapon.getWeaponScalingStat() != null
-                            && !weapon.getWeaponScalingStat().isEmpty()) {
-                        scalingStatName = weapon.getWeaponScalingStat();
-                        // 武器側の倍率が指定されていれば上書きする
-                        if (weapon.getWeaponStatScaling() != null) {
-                            scaling = weapon.getWeaponStatScaling();
-                        }
-                    } else {
-                        scalingStatName = "might";
+                // ステータス加算計算（複合スケーリング対応）
+                int scalingStatVal = 0;
+                java.util.Map<String, Double> scalings = ability.getCheck().getScalings();
+                if (scalings != null && !scalings.isEmpty()) {
+                    // アビリティに scalings が指定されている場合: 複合スケーリング計算
+                    for (java.util.Map.Entry<String, Double> entry : scalings.entrySet()) {
+                        scalingStatVal += (int) (getCombatStat(player, entry.getKey()) * entry.getValue());
                     }
+                } else {
+                    // アビリティに scalings がない場合: 武器のスケーリング設定にフォールバック
+                    String fallbackStat = (weapon != null && weapon.getWeaponScalingStat() != null
+                            && !weapon.getWeaponScalingStat().isEmpty())
+                            ? weapon.getWeaponScalingStat() : "might";
+                    double fallbackScale = (weapon != null && weapon.getWeaponStatScaling() != null)
+                            ? weapon.getWeaponStatScaling() : 0.5;
+                    scalingStatVal = (int) (getCombatStat(player, fallbackStat) * fallbackScale);
                 }
-                int rawStatVal = getCombatStat(player, scalingStatName);
-                int scalingStatVal = (int) (rawStatVal * scaling);
                 int baseDamage = diceRoll + masteryDiceSum + masteryFixedBonus + scalingStatVal;
 
                 // クリティカル処理（BONUS判定 または ダイス1〜5）
@@ -774,11 +797,16 @@ public class BattleManager {
             int offMastery = calculateMasteryLevel(offHandWeapon.getTags());
             int offMasteryDice = calculateMasteryDice(offMastery);
             int offMasteryFixed = calculateMasteryFixedBonus(offMastery);
-            String scalingStatName = ability.getCheck().getScalingStat();
-            if (scalingStatName == null || scalingStatName.isEmpty())
-                scalingStatName = "might";
-            int rawStat = getCombatStat(player, scalingStatName);
-            int offScaling = (int) (rawStat * 0.5);
+            // ステータス加算計算（複合スケーリング対応）
+            int offScaling = 0;
+            java.util.Map<String, Double> offScalings = ability.getCheck().getScalings();
+            if (offScalings != null && !offScalings.isEmpty()) {
+                for (java.util.Map.Entry<String, Double> entry : offScalings.entrySet()) {
+                    offScaling += (int) (getCombatStat(player, entry.getKey()) * entry.getValue());
+                }
+            } else {
+                offScaling = (int) (getCombatStat(player, "might") * 0.5);
+            }
             int offBase = offRoll + offMasteryDice + offMasteryFixed + offScaling;
 
             // ダメージ倍率の適用（ペナルティなしなら1.0、ありなら offHandDamageMultiplier）
@@ -866,6 +894,10 @@ public class BattleManager {
         }
         // 2. アビリティの rangeType が明示されていればそれを使用
         if (ability.getRangeType() != null && !ability.getRangeType().isEmpty()) {
+            // "self" は距離に関わらず常にHIT（バフ・SP回復などの自己対象アビリティ用）
+            if ("self".equals(ability.getRangeType())) {
+                return "HIT";
+            }
             return rules.getRangeResult(ability.getRangeType(), distance);
         }
         // 3. 武器の rangeOverride が存在する距離なら使用
@@ -1152,12 +1184,16 @@ public class BattleManager {
             }
             int diceRoll = DiceRoller.roll(dice);
 
-            String scalingStatName = ability.getCheck().getScalingStat();
-            if (scalingStatName == null || scalingStatName.isEmpty())
-                scalingStatName = "might";
-            int rawStatVal = enemy.getStatByName(scalingStatName);
-            double scaling = (ability.getCheck().getStatScaling() != null) ? ability.getCheck().getStatScaling() : 0.5;
-            int scalingStatVal = (int) (rawStatVal * scaling);
+            // ステータス加算計算（複合スケーリング対応）
+            int scalingStatVal = 0;
+            java.util.Map<String, Double> scalings = ability.getCheck().getScalings();
+            if (scalings != null && !scalings.isEmpty()) {
+                for (java.util.Map.Entry<String, Double> entry : scalings.entrySet()) {
+                    scalingStatVal += (int) (enemy.getStatByName(entry.getKey()) * entry.getValue());
+                }
+            } else {
+                scalingStatVal = (int) (enemy.getStatByName("might") * 0.5);
+            }
             int baseDamage = diceRoll + scalingStatVal;
 
             boolean isCritical = "BONUS".equals(rangeResult) || result.isCritical;
@@ -1287,12 +1323,16 @@ public class BattleManager {
             int masteryDiceSum = calculateMasteryDice(masteryLevel);
             int masteryFixedBonus = calculateMasteryFixedBonus(masteryLevel);
 
-            String scalingStatName = ability.getCheck().getScalingStat();
-            if (scalingStatName == null || scalingStatName.isEmpty())
-                scalingStatName = "might";
-            int rawStatVal = getCombatStat(player, scalingStatName);
-            double scaling = (ability.getCheck().getStatScaling() != null) ? ability.getCheck().getStatScaling() : 0.5;
-            int scalingStatVal = (int) (rawStatVal * scaling);
+            // ステータス加算計算（複合スケーリング対応）
+            int scalingStatVal = 0;
+            java.util.Map<String, Double> oaScalings = ability.getCheck().getScalings();
+            if (oaScalings != null && !oaScalings.isEmpty()) {
+                for (java.util.Map.Entry<String, Double> entry : oaScalings.entrySet()) {
+                    scalingStatVal += (int) (getCombatStat(player, entry.getKey()) * entry.getValue());
+                }
+            } else {
+                scalingStatVal = (int) (getCombatStat(player, "might") * 0.5);
+            }
 
             int baseDamage = diceRoll + masteryDiceSum + masteryFixedBonus + scalingStatVal;
             double critMult = result.isCritical ? resolveCritMultiplier(player) : 1.0;
@@ -1682,5 +1722,22 @@ public class BattleManager {
                 .mapToInt(BattleState.ActiveCombatCondition::getIntensity)
                 .max()
                 .orElse(0);
+    }
+
+    /**
+     * ScalingData に基づいてプレイヤーのSP増加量を計算する。
+     * BattleManager の getCombatStat() を通じてステータスを解決する。
+     *
+     * @param scalingData SP計算式の定義
+     * @return 計算されたSP増加量（最小値0）
+     */
+    private int calculateSpGainForPlayer(ScalingData scalingData) {
+        int total = scalingData.getBase();
+        if (scalingData.getScalings() != null) {
+            for (java.util.Map.Entry<String, Double> entry : scalingData.getScalings().entrySet()) {
+                total += (int) (getCombatStat(player, entry.getKey()) * entry.getValue());
+            }
+        }
+        return Math.max(0, total);
     }
 }
