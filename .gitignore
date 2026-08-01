@@ -21,6 +21,7 @@ portable/
 
 # Agent & Docs
 .agent/
+.agents/
 !.agent/workflows/
 kikaku/
 隔離/
