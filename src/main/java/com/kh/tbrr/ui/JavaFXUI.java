@@ -7,11 +7,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.kh.tbrr.battle.data.AbilityData;
-import com.kh.tbrr.battle.data.CombatDataLoader;
-import com.kh.tbrr.battle.BattleManager;
-import com.kh.tbrr.battle.BattleState;
-import com.kh.tbrr.battle.EnemyData;
+import com.kh.tbrr.data.models.AbilityData;
+import com.kh.tbrr.data.CombatDataLoader;
+import com.kh.tbrr.manager.BattleManager;
+import com.kh.tbrr.data.models.BattleState;
+import com.kh.tbrr.data.models.EnemyData;
 import com.kh.tbrr.data.models.Player;
 import com.kh.tbrr.system.DeveloperMode;
 
@@ -41,7 +41,7 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import javafx.scene.control.ComboBox;
-import com.kh.tbrr.battle.BattleCommand;
+import com.kh.tbrr.data.models.BattleCommand;
 
 /**
  * JavaFX版UI実装（1600x900、Enterキー対応、立ち絵エリア追加）

@@ -1,4 +1,4 @@
-package com.kh.tbrr.battle;
+package com.kh.tbrr.data.models;
 
 public class EnemyData {
     private String id;
@@ -17,7 +17,7 @@ public class EnemyData {
     private String deathCause = "generic"; // 敗北時の死因（デフォルトはgeneric）
     private boolean canFlee = false; // 逃走可能かどうか（明示的にtrueと書かないと逃走不可）
     private java.util.List<String> traits; // 敵が所持する特徴（Trait）
-    private java.util.List<com.kh.tbrr.battle.BattleState.ActiveCombatCondition> initialCombatConditions;
+    private java.util.List<com.kh.tbrr.data.models.BattleState.ActiveCombatCondition> initialCombatConditions;
 
     // 脅威度スケーリング: 脅威度1ごとに加算されるステータス値（nullの場合はスケーリングなし）
     public static class EnemyScaling {
@@ -97,7 +97,7 @@ public class EnemyData {
     public String getDeathCause() { return deathCause; }
     public boolean isCanFlee() { return canFlee; }
     public java.util.List<String> getTraits() { return traits; }
-    public java.util.List<com.kh.tbrr.battle.BattleState.ActiveCombatCondition> getInitialCombatConditions() { return initialCombatConditions; }
+    public java.util.List<com.kh.tbrr.data.models.BattleState.ActiveCombatCondition> getInitialCombatConditions() { return initialCombatConditions; }
 
     // ランク・スケーリング・ダメージ軽減
     public int getRank() { return rank; }

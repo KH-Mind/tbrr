@@ -3,9 +3,7 @@ package com.kh.tbrr.data.models;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.kh.tbrr.battle.DamageResult;
-import com.kh.tbrr.battle.data.TraitData;
-import com.kh.tbrr.battle.data.TraitRegistry;
+import com.kh.tbrr.data.TraitRegistry;
 import com.kh.tbrr.data.ItemRegistry;
 import com.kh.tbrr.data.SkillStatsMapper;
 import com.kh.tbrr.data.SkillStatsMapper.CombatStats;
@@ -210,7 +208,7 @@ public class Player {
         int base = 20;
         int bonus = 0;
         for (String traitId : getEffectiveTraits()) {
-            com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+            com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
             if (td != null && td.getStatBonuses() != null) {
                 bonus += td.getStatBonuses().getOrDefault("initial_sp", 0);
             }
@@ -699,7 +697,7 @@ public class Player {
 
         // 特徴(Trait)からステータスを加算（装備由来のTraitも含む）
         for (String traitId : getEffectiveTraits()) {
-            com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+            com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
             if (td != null && td.getStatBonuses() != null) {
                 totalMight += td.getStatBonuses().getOrDefault("might", 0);
                 totalInsight += td.getStatBonuses().getOrDefault("insight", 0);
@@ -779,7 +777,7 @@ public class Player {
             sb.append("特徴: ");
             java.util.List<String> traitNames = new java.util.ArrayList<>();
             for (String traitId : allTraitIds) {
-                com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+                com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
                 traitNames.add(td != null ? td.getName() : traitId);
             }
             sb.append(String.join(", ", traitNames)).append("\n");
@@ -961,7 +959,7 @@ public class Player {
     public int getEffectiveMaxHp() {
         int bonus = 0;
         for (String traitId : getEffectiveTraits()) {
-            com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+            com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
             if (td != null && td.getStatBonuses() != null) {
                 bonus += td.getStatBonuses().getOrDefault("max_hp", 0);
             }
@@ -988,7 +986,7 @@ public class Player {
     public int getEffectiveMaxAp() {
         int bonus = 0;
         for (String traitId : getEffectiveTraits()) {
-            com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+            com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
             if (td != null && td.getStatBonuses() != null) {
                 bonus += td.getStatBonuses().getOrDefault("max_ap", 0);
             }
@@ -1015,7 +1013,7 @@ public class Player {
     public int getEffectiveMaxMoney() {
         int bonus = 0;
         for (String traitId : getEffectiveTraits()) {
-            com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+            com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
             if (td != null && td.getStatBonuses() != null) {
                 bonus += td.getStatBonuses().getOrDefault("max_money", 0);
             }
@@ -1052,7 +1050,7 @@ public class Player {
         long bigBagCount = 0;
         // 3分類全てを対象にする（getEffectiveTraitsで合算済み）
         for (String traitId : getEffectiveTraits()) {
-            com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+            com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
             if (td != null && "BIG_BAG".equals(td.getSystemicEffect())) {
                 bigBagCount++;
             }
@@ -1238,7 +1236,8 @@ public class Player {
      */
     public int getApCostReductionFor(List<String> abilityTags) {
         int totalReduction = 0;
-        if (abilityTags == null) abilityTags = new ArrayList<>();
+        if (abilityTags == null)
+            abilityTags = new ArrayList<>();
 
         for (String traitId : getEffectiveTraits()) {
             TraitData td = TraitRegistry.getTraitById(traitId);

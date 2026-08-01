@@ -1,10 +1,10 @@
 package com.kh.tbrr.ui;
 
-import com.kh.tbrr.battle.BattleState;
-import com.kh.tbrr.battle.EnemyData;
+import com.kh.tbrr.data.models.BattleState;
+import com.kh.tbrr.data.models.EnemyData;
 import com.kh.tbrr.data.CombatConditionRegistry;
 import com.kh.tbrr.data.models.CombatConditionData;
-import com.kh.tbrr.battle.BattleManager.HitChanceDetails;
+import com.kh.tbrr.manager.BattleManager.HitChanceDetails;
 import com.kh.tbrr.data.models.Player;
 import javafx.application.Platform;
 import javafx.geometry.Insets;

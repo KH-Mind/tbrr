@@ -695,12 +695,12 @@ public class DataManager {
 	/**
 	 * 敵JSONオブジェクトを読み込む
 	 */
-	public com.kh.tbrr.battle.EnemyData loadEnemyData(String enemyId) {
+	public com.kh.tbrr.data.models.EnemyData loadEnemyData(String enemyId) {
 		for (String folder : ENEMY_FOLDERS) {
 			String path = DATA_ROOT + "enemies/" + folder + "/" + enemyId + ".json";
 			try {
 				String json = loadResourceContent(path);
-				return gson.fromJson(json, com.kh.tbrr.battle.EnemyData.class);
+				return gson.fromJson(json, com.kh.tbrr.data.models.EnemyData.class);
 			} catch (IOException e) {
 				// continue
 			}
@@ -709,7 +709,7 @@ public class DataManager {
 		String oldPath = DATA_ROOT + "enemies/" + enemyId + ".json";
 		try {
 			String json = loadResourceContent(oldPath);
-			return gson.fromJson(json, com.kh.tbrr.battle.EnemyData.class);
+			return gson.fromJson(json, com.kh.tbrr.data.models.EnemyData.class);
 		} catch (IOException e) {
 			// continue
 		}

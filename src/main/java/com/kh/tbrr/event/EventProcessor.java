@@ -271,7 +271,7 @@ public class EventProcessor {
 		if (effects.getTraitsGained() != null && !effects.getTraitsGained().isEmpty()) {
 			for (String traitId : effects.getTraitsGained()) {
 				player.addTrait(traitId);
-				com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+				com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
 				String traitName = td != null ? td.getName() : traitId;
 				ui.print("【" + traitName + "を体得した。】");
 			}
@@ -281,7 +281,7 @@ public class EventProcessor {
 		if (effects.getTraitsLost() != null && !effects.getTraitsLost().isEmpty()) {
 			for (String traitId : effects.getTraitsLost()) {
 				player.removeTrait(traitId);
-				com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+				com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
 				String traitName = td != null ? td.getName() : traitId;
 				String logMessage = "【" + traitName + "を失った】";
 				printFloorDividerIfNeeded(gameState);
@@ -293,7 +293,7 @@ public class EventProcessor {
 		if (effects.getTraitsLostAll() != null && !effects.getTraitsLostAll().isEmpty()) {
 			for (String traitId : effects.getTraitsLostAll()) {
 				player.removeAllTraits(traitId);
-				com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+				com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
 				String traitName = td != null ? td.getName() : traitId;
 				String logMessage = "【" + traitName + "をすべて失った】";
 				printFloorDividerIfNeeded(gameState);
@@ -1160,7 +1160,7 @@ public class EventProcessor {
 		if (result.getTraitsGained() != null && !result.getTraitsGained().isEmpty()) {
 			for (String traitId : result.getTraitsGained()) {
 				player.addTrait(traitId);
-				com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+				com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
 				String traitName = td != null ? td.getName() : traitId;
 				ui.print("【" + traitName + "を体得した。】");
 			}
@@ -1170,7 +1170,7 @@ public class EventProcessor {
 		if (result.getTraitsLost() != null && !result.getTraitsLost().isEmpty()) {
 			for (String traitId : result.getTraitsLost()) {
 				player.removeTrait(traitId);
-				com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+				com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
 				String traitName = td != null ? td.getName() : traitId;
 				String logMessage = "【" + traitName + "を失った】";
 				printFloorDividerIfNeeded(gameState);
@@ -1182,7 +1182,7 @@ public class EventProcessor {
 		if (result.getTraitsLostAll() != null && !result.getTraitsLostAll().isEmpty()) {
 			for (String traitId : result.getTraitsLostAll()) {
 				player.removeAllTraits(traitId);
-				com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+				com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
 				String traitName = td != null ? td.getName() : traitId;
 				String logMessage = "【" + traitName + "をすべて失った】";
 				printFloorDividerIfNeeded(gameState);
@@ -1375,10 +1375,10 @@ public class EventProcessor {
 			// ★ 戦闘開始: 中断セーブを禁止する
 			ui.setSuspendSaveEnabled(false);
 			try {
-				com.kh.tbrr.battle.BattleManager battleManager = new com.kh.tbrr.battle.BattleManager(ui, player, dataManager);
-				com.kh.tbrr.battle.BattleManager.BattleResult battleResult = battleManager.startBattle(result.getBattle(), gameState);
+				com.kh.tbrr.manager.BattleManager battleManager = new com.kh.tbrr.manager.BattleManager(ui, player, dataManager);
+				com.kh.tbrr.manager.BattleManager.BattleResult battleResult = battleManager.startBattle(result.getBattle(), gameState);
 
-				if (battleResult == com.kh.tbrr.battle.BattleManager.BattleResult.DEFEAT) {
+				if (battleResult == com.kh.tbrr.manager.BattleManager.BattleResult.DEFEAT) {
 					// 敗北: 死亡処理
 					if (deathManager != null) {
 						String cause = result.getBattleDeathCause();
@@ -1388,7 +1388,7 @@ public class EventProcessor {
 						deathManager.processDeath(cause, player, gameState);
 					}
 					died = true;
-				} else if (battleResult == com.kh.tbrr.battle.BattleManager.BattleResult.FLED) {
+				} else if (battleResult == com.kh.tbrr.manager.BattleManager.BattleResult.FLED) {
 					// 逃走成功: fleeEventId があれば連鎖、なければそのまま終了
 					if (result.getFleeEventId() != null && !result.getFleeEventId().isEmpty()) {
 						boolean wasInRecursive = gameState.isInRecursiveEvent();

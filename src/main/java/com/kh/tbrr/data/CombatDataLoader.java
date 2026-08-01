@@ -1,4 +1,7 @@
-package com.kh.tbrr.battle.data;
+package com.kh.tbrr.data;
+
+import com.kh.tbrr.data.models.*;
+
 
 import java.io.InputStream;
 import java.io.InputStreamReader;

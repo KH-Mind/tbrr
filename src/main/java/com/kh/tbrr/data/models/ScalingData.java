@@ -1,4 +1,4 @@
-package com.kh.tbrr.battle.data;
+package com.kh.tbrr.data.models;
 
 import java.util.Map;
 
@@ -38,7 +38,7 @@ public class ScalingData {
      * @param enemy 計算対象の敵
      * @return base + Σ(stat × scaling) の計算結果（最小値0）
      */
-    public int calculate(com.kh.tbrr.battle.EnemyData enemy) {
+    public int calculate(com.kh.tbrr.data.models.EnemyData enemy) {
         int total = base;
         if (scalings != null) {
             for (Map.Entry<String, Double> entry : scalings.entrySet()) {

@@ -1,4 +1,4 @@
-package com.kh.tbrr.battle.data;
+package com.kh.tbrr.data.models;
 
 import java.util.List;
 import java.util.Map;

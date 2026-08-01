@@ -92,7 +92,7 @@ public class GameEngine {
 		}
 
 		// 特徴（Trait）データのロードはここで一括で行うように変更（非戦闘時バフ対応）
-		com.kh.tbrr.battle.data.CombatDataLoader.loadAllTraits();
+		com.kh.tbrr.data.CombatDataLoader.loadAllTraits();
 
 		// イベントデータのロード登録
 		for (com.kh.tbrr.data.models.StatusEffect effect : dataManager

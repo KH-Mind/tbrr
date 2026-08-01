@@ -1,4 +1,4 @@
-package com.kh.tbrr.battle;
+package com.kh.tbrr.data.models;
 
 /**
  * ダメージ処理の結果（実際に減ったHPと吸収されたSP）を保持するレコードクラス。

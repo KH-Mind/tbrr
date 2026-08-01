@@ -1,4 +1,4 @@
-package com.kh.tbrr.battle;
+package com.kh.tbrr.data.models;
 
 public enum StatType {
     MIGHT("強靭"),

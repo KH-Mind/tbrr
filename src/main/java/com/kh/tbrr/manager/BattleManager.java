@@ -1,4 +1,4 @@
-package com.kh.tbrr.battle;
+package com.kh.tbrr.manager;
 
 import com.kh.tbrr.data.models.Item;
 import com.kh.tbrr.data.models.CombatConditionData;
@@ -6,13 +6,15 @@ import com.kh.tbrr.data.ItemRegistry;
 import com.kh.tbrr.data.CombatConditionRegistry;
 import com.kh.tbrr.ui.GameUI;
 import com.kh.tbrr.ui.JavaFXUI;
-import com.kh.tbrr.manager.DataManager;
+
 import com.kh.tbrr.core.GameState;
 
 import java.util.Random;
 
 import com.kh.tbrr.data.models.Player;
-import com.kh.tbrr.battle.data.*;
+import com.kh.tbrr.data.models.*;
+import com.kh.tbrr.data.*;
+import com.kh.tbrr.utils.*;
 
 public class BattleManager {
 
@@ -669,7 +671,7 @@ public class BattleManager {
                 // 敵の固定ダメージ軽減（金属系の敵等に設定されるdamageReduction）
                 int enemyDmgReduction = enemy.getDamageReduction();
                 // 敵のTraitによるダメージ軽減
-                for (com.kh.tbrr.battle.data.TraitData t : getActiveEnemyTraits()) {
+                for (com.kh.tbrr.data.models.TraitData t : getActiveEnemyTraits()) {
                     if (t != null) {
                         enemyDmgReduction += t.getDamageReduction();
                     }
@@ -1213,7 +1215,7 @@ public class BattleManager {
                 }
             }
             // 防御側（プレイヤー）Traitによるダメージ軽減
-            for (com.kh.tbrr.battle.data.TraitData t : getActivePlayerTraits()) {
+            for (com.kh.tbrr.data.models.TraitData t : getActivePlayerTraits()) {
                 if (t != null) {
                     reduction += t.getDamageReduction();
                 }
@@ -1422,15 +1424,15 @@ public class BattleManager {
             return new HitChanceDetails(0, 0, 0, 0);
 
         int previewFinesse = player.getCombatStats().finesse();
-        java.util.List<com.kh.tbrr.battle.data.TraitData> previewTraits = new java.util.ArrayList<>(
+        java.util.List<com.kh.tbrr.data.models.TraitData> previewTraits = new java.util.ArrayList<>(
                 getActivePlayerTraits());
 
         if (previewStanceName != null && !previewStanceName.isEmpty() && !previewStanceName.equals("なし")) {
-            com.kh.tbrr.battle.data.StanceData sd = com.kh.tbrr.battle.data.CombatDataLoader
+            com.kh.tbrr.data.models.StanceData sd = com.kh.tbrr.data.CombatDataLoader
                     .getStanceByName(previewStanceName);
             if (sd != null && sd.getGrantedTraitIds() != null) {
                 for (String traitId : sd.getGrantedTraitIds()) {
-                    com.kh.tbrr.battle.data.TraitData td = com.kh.tbrr.battle.data.TraitRegistry.getTraitById(traitId);
+                    com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
                     if (td != null) {
                         if (td.getStatBonuses() != null) {
                             previewFinesse += td.getStatBonuses().getOrDefault("finesse", 0);
@@ -1459,8 +1461,8 @@ public class BattleManager {
             boolean targetDefending,
             java.util.List<BattleState.ActiveCombatCondition> atkConds,
             java.util.List<BattleState.ActiveCombatCondition> defConds,
-            java.util.List<com.kh.tbrr.battle.data.TraitData> atkTraits,
-            java.util.List<com.kh.tbrr.battle.data.TraitData> defTraits) {
+            java.util.List<com.kh.tbrr.data.models.TraitData> atkTraits,
+            java.util.List<com.kh.tbrr.data.models.TraitData> defTraits) {
 
         if (atkTraits == null)
             atkTraits = java.util.Collections.emptyList();
@@ -1500,14 +1502,14 @@ public class BattleManager {
         }
 
         // 防御側のTraitによる回避ボーナス（命中率減算）
-        for (com.kh.tbrr.battle.data.TraitData t : defTraits) {
+        for (com.kh.tbrr.data.models.TraitData t : defTraits) {
             if (t != null) {
                 traitMod -= t.getEvasionBonus();
             }
         }
 
         // 攻撃側のTraitによる命中ボーナス
-        for (com.kh.tbrr.battle.data.TraitData t : atkTraits) {
+        for (com.kh.tbrr.data.models.TraitData t : atkTraits) {
             if (t != null) {
                 traitMod += t.getHitChanceBonus();
             }
@@ -1522,8 +1524,8 @@ public class BattleManager {
     private HitResult checkHit(int attackerStat, int defenderStat, Integer overrideBaseChance, boolean targetDefending,
             java.util.List<BattleState.ActiveCombatCondition> atkConds,
             java.util.List<BattleState.ActiveCombatCondition> defConds,
-            java.util.List<com.kh.tbrr.battle.data.TraitData> atkTraits,
-            java.util.List<com.kh.tbrr.battle.data.TraitData> defTraits) {
+            java.util.List<com.kh.tbrr.data.models.TraitData> atkTraits,
+            java.util.List<com.kh.tbrr.data.models.TraitData> defTraits) {
 
         HitChanceDetails details = calculateHitChanceDetails(attackerStat, defenderStat, overrideBaseChance,
                 targetDefending, atkConds, defConds, atkTraits, defTraits);

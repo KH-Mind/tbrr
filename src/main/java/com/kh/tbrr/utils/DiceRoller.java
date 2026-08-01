@@ -1,4 +1,4 @@
-package com.kh.tbrr.battle.data;
+package com.kh.tbrr.utils;
 
 import java.util.Random;
 
