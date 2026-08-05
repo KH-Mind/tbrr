@@ -729,7 +729,8 @@ public class BattleManager {
                 }
 
                 // --- CombatCondition付与の処理 ---
-                if (ability.getApplyCombatConditions() != null) {
+                // 吸収（吸収発動）・無効（ダメージ=0）の場合はデバフも発生させない
+                if (ability.getApplyCombatConditions() != null && !modResult.isAbsorb && modResult.finalDamage > 0) {
                     for (var app : ability.getApplyCombatConditions()) {
                         int r = random.nextInt(100) + 1; // 1-100
                         if (r <= app.getChance()) {
@@ -1296,7 +1297,8 @@ public class BattleManager {
             }
 
             // --- 敵アビリティによる CombatCondition 付与 ---
-            if (ability.getApplyCombatConditions() != null) {
+            // 吸収・無効の場合はデバフも発生させない
+            if (ability.getApplyCombatConditions() != null && !modResult.isAbsorb && modResult.finalDamage > 0) {
                 for (var app : ability.getApplyCombatConditions()) {
                     int r = random.nextInt(100) + 1;
                     if (r <= app.getChance()) {
