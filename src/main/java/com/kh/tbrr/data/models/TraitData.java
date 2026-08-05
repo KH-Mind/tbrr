@@ -12,6 +12,7 @@ import java.util.Map;
  * CRIT_MULTIPLIER - クリティカル倍率の上書き
  * SYSTEMIC - 戦闘フローそのものを拡張する特殊特徴（二刀流など）
  * INITIATIVE - イニシアチブ判定へのボーナス
+ * DAMAGE_MODIFIER - 特定タグの攻撃に対するダメージ増減（弱点・半減・無効・吸収）
  */
 public class TraitData {
     private String id;
@@ -35,6 +36,14 @@ public class TraitData {
 
     // --- INITIATIVE 型用フィールド ---
     private int initiativeBonus; // イニシアチブ判定への固定値ボーナス（例: 10, -10, 999）
+
+    // --- DAMAGE_MODIFIER 型用フィールド ---
+    /**
+     * ダメージ補正の効果種別。
+     * 設定値: "WEAKNESS"（弱点 ×2.0）, "RESIST"（半減 ×0.5）, "IMMUNE"（無効 ×0.0）, "ABSORB"（SP吸収）
+     * targetTags と組み合わせて使用する。
+     */
+    private String damageModifierEffect;
 
     // -----------------------------------------------------------------------
     // 将来拡張用フィールド
@@ -143,6 +152,10 @@ public class TraitData {
         return initiativeBonus;
     }
 
+    public String getDamageModifierEffect() {
+        return damageModifierEffect;
+    }
+
     public List<String> getGrantedSkills() {
         return grantedSkills;
     }
@@ -235,6 +248,10 @@ public class TraitData {
 
     public void setInitiativeBonus(int initiativeBonus) {
         this.initiativeBonus = initiativeBonus;
+    }
+
+    public void setDamageModifierEffect(String damageModifierEffect) {
+        this.damageModifierEffect = damageModifierEffect;
     }
 
     public void setGrantedSkills(List<String> grantedSkills) {

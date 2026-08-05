@@ -7,8 +7,7 @@ public class CombatConditionModifiers {
     private double damageMultiplier;
     private boolean preventMovement;
     private boolean preventAction;
-    private int dotPhysical; // 物理継続ダメージ
-    private int dotMagical;  // 魔法継続ダメージ
+    private int dotDamage; // 継続ダメージ（沖、火傍等すべての要因は単一フィールドで管理）
 
     public CombatConditionModifiers() {
         this.damageMultiplier = 1.0;
@@ -32,11 +31,8 @@ public class CombatConditionModifiers {
     public boolean isPreventAction() { return preventAction; }
     public void setPreventAction(boolean preventAction) { this.preventAction = preventAction; }
 
-    public int getDotPhysical() { return dotPhysical; }
-    public void setDotPhysical(int dotPhysical) { this.dotPhysical = dotPhysical; }
-
-    public int getDotMagical() { return dotMagical; }
-    public void setDotMagical(int dotMagical) { this.dotMagical = dotMagical; }
+    public int getDotDamage() { return dotDamage; }
+    public void setDotDamage(int dotDamage) { this.dotDamage = dotDamage; }
 
     private int hindranceChance; // 阻害確率デフォルト値（%）。intensity が 0 の場合のフォールバック。
     public int getHindranceChance() { return hindranceChance; }

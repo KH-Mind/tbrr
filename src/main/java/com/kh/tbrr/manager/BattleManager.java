@@ -681,25 +681,51 @@ public class BattleManager {
                     totalDamage = Math.max(0, totalDamage - enemyDmgReduction);
                 }
 
-                // ダメージ処理（SP→HPの順）
-                boolean isPenetrating = false;
-                DamageResult dmgResult = enemy.applyBattleDamage(totalDamage, isPenetrating);
-                int hpDamage = dmgResult.actualHpDamage();
-                int spAbsorbed = dmgResult.actualSpDamage();
+                // 耐性判定（DAMAGE_MODIFIER型Traitによるダメージ補正）
+                java.util.List<String> attackTags = new java.util.ArrayList<>();
+                if (ability.getTags() != null) attackTags.addAll(ability.getTags());
+                if (Boolean.TRUE.equals(ability.getInheritWeapon()) && weapon != null && weapon.getTags() != null) {
+                    attackTags.addAll(weapon.getTags());
+                }
+                DamageModifierResult modResult = resolveAttackDamageModifier(
+                        getActiveEnemyTraits(), attackTags, totalDamage);
 
-                String diceMsg = "(基礎ダイス:" + diceRoll + (masteryLevel > 0 ? " + 習熟追加" + masteryLevel + "d4" : "")
-                        + " + 習熟固定:" + masteryFixedBonus + " + ステ修正:" + scalingStatVal + ")";
-                String critMsg = isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
-                String reductionMsg = enemyDmgReduction > 0 ? "（" + enemyDmgReduction + "ダメージ軽減）" : "";
-                String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
-                ui.print("　命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！ " + diceMsg + critMsg + reductionMsg
-                        + spMsg);
-                // サブウィンドウのログに要約を追記
-                if (ui instanceof JavaFXUI) {
-                    String logSummary = "命中！" + enemy.getName() + "に" + totalDamage + "ダメージ"
-                            + (isCritical ? "　[クリティカル]" : "")
-                            + (spAbsorbed > 0 ? "　SP" + spAbsorbed + "吸収" : "");
-                    ((JavaFXUI) ui).appendBattleLog(logSummary);
+                if (modResult.isAbsorb) {
+                    // 吸収：HPダメージなし、SPを増加
+                    int newSp = Math.min(9999, enemy.getCurrentSp() + modResult.finalDamage);
+                    enemy.setCurrentSp(newSp);
+                    String diceMsg = "(基礎ダイス:" + diceRoll + (masteryLevel > 0 ? " + 習熟追加" + masteryLevel + "d4" : "")
+                            + " + 習熟固定:" + masteryFixedBonus + " + ステ修正:" + scalingStatVal + ")";
+                    String critMsg = isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
+                    String reductionMsg = enemyDmgReduction > 0 ? "（" + enemyDmgReduction + "ダメージ軽減）" : "";
+                    ui.print("　命中！ " + enemy.getName() + " は " + modResult.finalDamage + " ダメージを吸収した！ " + diceMsg + critMsg + reductionMsg);
+                    if (ui instanceof JavaFXUI) {
+                        ((JavaFXUI) ui).appendBattleLog("命中！" + enemy.getName() + "が" + modResult.finalDamage + "ダメージを吸収！SP回復"
+                                + (isCritical ? "　[クリティカル]" : ""));
+                    }
+                } else {
+                    // 通常ダメージ処理（SP→HPの順）
+                    boolean isPenetrating = false;
+                    DamageResult dmgResult = enemy.applyBattleDamage(modResult.finalDamage, isPenetrating);
+                    int hpDamage = dmgResult.actualHpDamage();
+                    int spAbsorbed = dmgResult.actualSpDamage();
+
+                    String diceMsg = "(基礎ダイス:" + diceRoll + (masteryLevel > 0 ? " + 習熟追加" + masteryLevel + "d4" : "")
+                            + " + 習熟固定:" + masteryFixedBonus + " + ステ修正:" + scalingStatVal + ")";
+                    String critMsg = isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
+                    String reductionMsg = enemyDmgReduction > 0 ? "（" + enemyDmgReduction + "ダメージ軽減）" : "";
+                    String modifierMsg = modResult.modifierName != null ? "（" + modResult.modifierName + "）" : "";
+                    String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
+                    ui.print("　命中！ " + enemy.getName() + " に " + modResult.finalDamage + " のダメージ！ " + diceMsg + critMsg + reductionMsg
+                            + modifierMsg + spMsg);
+                    // サブウィンドウのログに要約を追記
+                    if (ui instanceof JavaFXUI) {
+                        String logSummary = "命中！" + enemy.getName() + "に" + modResult.finalDamage + "ダメージ"
+                                + (isCritical ? "　[クリティカル]" : "")
+                                + (modResult.modifierName != null ? "　[" + modResult.modifierName + "]" : "")
+                                + (spAbsorbed > 0 ? "　SP" + spAbsorbed + "吸収" : "");
+                        ((JavaFXUI) ui).appendBattleLog(logSummary);
+                    }
                 }
 
                 // --- CombatCondition付与の処理 ---
@@ -1227,25 +1253,47 @@ public class BattleManager {
                 totalDamage /= 2; // プレイヤーが防御していればダメージ半減
             }
 
-            // ダメージ処理（SP→HPの順）
-            boolean isPenetrating = false;
-            DamageResult dmgResult = player.applyBattleDamage(totalDamage, isPenetrating);
-            int hpDamage = dmgResult.actualHpDamage();
-            int spAbsorbed = dmgResult.actualSpDamage();
+            // 耐性判定（DAMAGE_MODIFIER型Traitによるダメージ補正）
+            java.util.List<String> atkTags = ability.getTags() != null
+                    ? new java.util.ArrayList<>(ability.getTags())
+                    : new java.util.ArrayList<>();
+            DamageModifierResult modResult = resolveAttackDamageModifier(
+                    getActivePlayerTraits(), atkTags, totalDamage);
 
             String playerName = player.getName() != null ? player.getName() : "冒険者";
             String reduceMsg = reduction > 0 ? "（" + reduction + "ダメージ軽減）" : "";
             String critMsg = isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
-            String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
-            ui.print("→ " + playerName + " に " + totalDamage + " のダメージ！" + reduceMsg + critMsg + spMsg);
-            // サブウィンドウのログに要約を追記
-            if (ui instanceof JavaFXUI) {
-                String logSummary = enemy.getName() + "の攻撃！" + totalDamage + "ダメージ"
-                        + (isCritical ? "　[クリティカル]" : "")
-                        + (spAbsorbed > 0 ? "　SP" + spAbsorbed + "吸収" : "");
-                ((JavaFXUI) ui).appendBattleLog(logSummary);
+
+            if (modResult.isAbsorb) {
+                // 吸収：HPダメージなし、プレイヤーSPを増加
+                int newSp = Math.min(com.kh.tbrr.data.models.Player.SP_MAX, player.getCurrentSp() + modResult.finalDamage);
+                player.setCurrentSp(newSp);
+                ui.print("→ " + playerName + " は " + modResult.finalDamage + " ダメージを吸収した！" + reduceMsg + critMsg);
+                if (ui instanceof JavaFXUI) {
+                    ((JavaFXUI) ui).appendBattleLog(enemy.getName() + "の攻撃！" + playerName + "が" + modResult.finalDamage + "ダメージを吸収！SP回復"
+                            + (isCritical ? "　[クリティカル]" : ""));
+                }
+                ui.printPlayerStatus(player);
+            } else {
+                // 通常ダメージ処理（SP→HPの順）
+                boolean isPenetrating = false;
+                DamageResult dmgResult = player.applyBattleDamage(modResult.finalDamage, isPenetrating);
+                int hpDamage = dmgResult.actualHpDamage();
+                int spAbsorbed = dmgResult.actualSpDamage();
+
+                String modifierMsg = modResult.modifierName != null ? "（" + modResult.modifierName + "）" : "";
+                String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
+                ui.print("→ " + playerName + " に " + modResult.finalDamage + " のダメージ！" + reduceMsg + critMsg + modifierMsg + spMsg);
+                // サブウィンドウのログに要約を追記
+                if (ui instanceof JavaFXUI) {
+                    String logSummary = enemy.getName() + "の攻撃！" + modResult.finalDamage + "ダメージ"
+                            + (isCritical ? "　[クリティカル]" : "")
+                            + (modResult.modifierName != null ? "　[" + modResult.modifierName + "]" : "")
+                            + (spAbsorbed > 0 ? "　SP" + spAbsorbed + "吸収" : "");
+                    ((JavaFXUI) ui).appendBattleLog(logSummary);
+                }
+                ui.printPlayerStatus(player); // 右パネルのHP/AP表示を更新
             }
-            ui.printPlayerStatus(player); // 右パネルのHP/AP表示を更新
 
             // --- 敵アビリティによる CombatCondition 付与 ---
             if (ability.getApplyCombatConditions() != null) {
@@ -1568,10 +1616,10 @@ public class BattleManager {
             if (data != null && data.getModifiers() != null) {
                 // intensity > 0 ならアビリティ側で指定された強度、なければJSON定義のデフォルト値を使用
                 int dotDmg = 0;
-                if (data.getModifiers().getDotPhysical() > 0 || data.getModifiers().getDotMagical() > 0) {
+                if (data.getModifiers().getDotDamage() > 0) {
                     dotDmg = c.getIntensity() > 0
                             ? c.getIntensity()
-                            : (data.getModifiers().getDotPhysical() + data.getModifiers().getDotMagical());
+                            : data.getModifiers().getDotDamage();
                 }
                 if (dotDmg > 0) {
                     if (targetPlayer != null) {
@@ -1650,6 +1698,87 @@ public class BattleManager {
             this.isHit = isHit;
             this.isCritical = isCritical;
         }
+    }
+
+    /**
+     * 耐性判定の結果を保持する内部クラス。
+     * finalDamage: 補正後のダメージ値
+     * isAbsorb: 吸収が発動した場合true（呼び出し元でSP増加処理を行う）
+     * modifierName: 適用された耐性名（なければnull）
+     */
+    private static class DamageModifierResult {
+        public final int finalDamage;
+        public final boolean isAbsorb;
+        public final String modifierName;
+
+        public DamageModifierResult(int finalDamage, boolean isAbsorb, String modifierName) {
+            this.finalDamage = finalDamage;
+            this.isAbsorb = isAbsorb;
+            this.modifierName = modifierName;
+        }
+    }
+
+    /**
+     * 攻撃タグと防御側のDAMAGE_MODIFIER型Traitを照らし合わせ、　ダメージ補正結果を返す。
+     *
+     * 優先順位: ABSORB > IMMUNE > RESIST > WEAKNESS（最上位の1つのみ適用）
+     *
+     * @param defenderTraits 防御側のアクティブなTrait一覧
+     * @param attackTags     攻撃側のタグ一覧
+     * @param damage         耐扇判定前のダメージ値
+     * @return 補正後のダメージ結果
+     */
+    private DamageModifierResult resolveAttackDamageModifier(
+            java.util.List<TraitData> defenderTraits,
+            java.util.List<String> attackTags,
+            int damage) {
+
+        if (defenderTraits == null || attackTags == null || attackTags.isEmpty()) {
+            return new DamageModifierResult(damage, false, null);
+        }
+
+        // ヒットした耐扇効果の最高優先度を追跡する
+        // 優先度: ABSORB=4, IMMUNE=3, RESIST=2, WEAKNESS=1
+        int bestPriority = 0;
+        String bestEffect = null;
+        String bestTraitName = null;
+
+        for (TraitData trait : defenderTraits) {
+            if (trait == null || !"DAMAGE_MODIFIER".equals(trait.getType())) continue;
+            if (trait.getDamageModifierEffect() == null) continue;
+            if (trait.getTargetTags() == null || trait.getTargetTags().isEmpty()) continue;
+
+            // 攻撃タグとtargetTagsのOR判定
+            boolean matched = attackTags.stream().anyMatch(tag -> trait.getTargetTags().contains(tag));
+            if (!matched) continue;
+
+            int priority = switch (trait.getDamageModifierEffect()) {
+                case "ABSORB"   -> 4;
+                case "IMMUNE"   -> 3;
+                case "RESIST"   -> 2;
+                case "WEAKNESS" -> 1;
+                default -> 0;
+            };
+
+            if (priority > bestPriority) {
+                bestPriority = priority;
+                bestEffect = trait.getDamageModifierEffect();
+                bestTraitName = trait.getName();
+            }
+        }
+
+        if (bestEffect == null) {
+            // 該当する耐扇なし
+            return new DamageModifierResult(damage, false, null);
+        }
+
+        return switch (bestEffect) {
+            case "ABSORB"   -> new DamageModifierResult(damage, true, bestTraitName);
+            case "IMMUNE"   -> new DamageModifierResult(0, false, bestTraitName);
+            case "RESIST"   -> new DamageModifierResult((int) (damage * 0.5), false, bestTraitName);
+            case "WEAKNESS" -> new DamageModifierResult((int) (damage * 2.0), false, bestTraitName);
+            default         -> new DamageModifierResult(damage, false, null);
+        };
     }
 
     /**
