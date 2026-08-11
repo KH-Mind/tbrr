@@ -787,11 +787,13 @@ public class Player {
         if (inventory.isEmpty()) {
             sb.append("所持品: なし\n");
         } else {
-            sb.append("所持品:\n");
+            sb.append("所持品: ");
+            java.util.List<String> itemNames = new java.util.ArrayList<>();
             for (String itemId : inventory) {
                 String name = ItemRegistry.getNameById(itemId);
-                sb.append("  - ").append(name != null ? name : itemId).append("\n");
+                itemNames.add(name != null ? name : itemId);
             }
+            sb.append(String.join(", ", itemNames)).append("\n");
         }
 
         // 状態異常表示
