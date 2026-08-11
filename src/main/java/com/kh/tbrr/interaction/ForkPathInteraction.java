@@ -100,19 +100,32 @@ public class ForkPathInteraction implements InteractionHandler {
         // 選択状態
         final boolean[] selected = { false };
 
+        // クリーンアップ用参照
+        final java.util.concurrent.atomic.AtomicReference<javafx.event.EventHandler<javafx.scene.input.KeyEvent>> keyFilterRef = new java.util.concurrent.atomic.AtomicReference<>();
+        final java.util.concurrent.atomic.AtomicReference<javafx.beans.value.ChangeListener<javafx.scene.Scene>> sceneListenerRef = new java.util.concurrent.atomic.AtomicReference<>();
+        
+        Runnable cleanupAction = () -> {
+            if (sceneListenerRef.get() != null) {
+                container.sceneProperty().removeListener(sceneListenerRef.get());
+            }
+            if (keyFilterRef.get() != null && container.getScene() != null) {
+                container.getScene().removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilterRef.get());
+            }
+        };
+
         // 選択処理
         Runnable selectLeft = () -> {
             if (selected[0])
                 return;
             selected[0] = true;
-            showSelectionResult(container, leftLabelText, future, leftResult);
+            showSelectionResult(container, leftLabelText, future, leftResult, cleanupAction);
         };
 
         Runnable selectRight = () -> {
             if (selected[0])
                 return;
             selected[0] = true;
-            showSelectionResult(container, rightLabelText, future, rightResult);
+            showSelectionResult(container, rightLabelText, future, rightResult, cleanupAction);
         };
 
         // 左矢印
@@ -174,8 +187,8 @@ public class ForkPathInteraction implements InteractionHandler {
             container.getScene().addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
         }
 
-        container.getProperties().put("fork_keyFilter", keyFilter);
-        container.getProperties().put("fork_sceneListener", sceneListener);
+        keyFilterRef.set(keyFilter);
+        sceneListenerRef.set(sceneListener);
 
         // ○ボタン用入力コールバックを設定（矢印ボタン対応）
         if (params != null && params.containsKey("_inputCallback")) {
@@ -240,18 +253,10 @@ public class ForkPathInteraction implements InteractionHandler {
      * 選択結果を表示
      */
     private void showSelectionResult(VBox container, String selectedLabel,
-            CompletableFuture<InteractionResult> future, String resultKey) {
-        // キーボードイベントの横取りを解除
-        @SuppressWarnings("unchecked")
-        javafx.event.EventHandler<javafx.scene.input.KeyEvent> kf = (javafx.event.EventHandler<javafx.scene.input.KeyEvent>) container.getProperties().get("fork_keyFilter");
-        @SuppressWarnings("unchecked")
-        javafx.beans.value.ChangeListener<javafx.scene.Scene> sl = (javafx.beans.value.ChangeListener<javafx.scene.Scene>) container.getProperties().get("fork_sceneListener");
+            CompletableFuture<InteractionResult> future, String resultKey, Runnable cleanupAction) {
         
-        if (sl != null) {
-            container.sceneProperty().removeListener(sl);
-        }
-        if (kf != null && container.getScene() != null) {
-            container.getScene().removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, kf);
+        if (cleanupAction != null) {
+            cleanupAction.run();
         }
 
         // 入力を無効化

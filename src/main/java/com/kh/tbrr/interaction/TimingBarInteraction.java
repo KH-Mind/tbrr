@@ -165,6 +165,19 @@ public class TimingBarInteraction implements InteractionHandler {
         final double[] position = { 0.0 }; // 0.0-1.0
         final int[] direction = { 1 }; // 1=右, -1=左
 
+        // クリーンアップ用参照
+        final java.util.concurrent.atomic.AtomicReference<javafx.event.EventHandler<javafx.scene.input.KeyEvent>> keyFilterRef = new java.util.concurrent.atomic.AtomicReference<>();
+        final java.util.concurrent.atomic.AtomicReference<javafx.beans.value.ChangeListener<javafx.scene.Scene>> sceneListenerRef = new java.util.concurrent.atomic.AtomicReference<>();
+        
+        Runnable cleanupAction = () -> {
+            if (sceneListenerRef.get() != null) {
+                container.sceneProperty().removeListener(sceneListenerRef.get());
+            }
+            if (keyFilterRef.get() != null && container.getScene() != null) {
+                container.getScene().removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilterRef.get());
+            }
+        };
+
         // バーアニメーション
         double animationInterval = 16; // 約60fps
         double movePerFrame = (barSpeed * 2) / (1000.0 / animationInterval);
@@ -206,7 +219,7 @@ public class TimingBarInteraction implements InteractionHandler {
             if (inZone) {
                 // 成功
                 indicator.setFill(Color.LIMEGREEN);
-                showResult(container, true, future);
+                showResult(container, true, future, cleanupAction);
             } else {
                 // 失敗
                 remainingAttempts[0]--;
@@ -225,7 +238,7 @@ public class TimingBarInteraction implements InteractionHandler {
                     retryDelay.play();
                 } else {
                     // 最終失敗
-                    showResult(container, false, future);
+                    showResult(container, false, future, cleanupAction);
                 }
             }
         };
@@ -251,8 +264,8 @@ public class TimingBarInteraction implements InteractionHandler {
             container.getScene().addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
         }
 
-        container.getProperties().put("timing_keyFilter", keyFilter);
-        container.getProperties().put("timing_sceneListener", sceneListener);
+        keyFilterRef.set(keyFilter);
+        sceneListenerRef.set(sceneListener);
 
         // ○ボタン用入力コールバックを設定
         if (params != null && params.containsKey("_inputCallback")) {
@@ -270,18 +283,10 @@ public class TimingBarInteraction implements InteractionHandler {
      * 結果を表示
      */
     private void showResult(VBox container, boolean success,
-            CompletableFuture<InteractionResult> future) {
-        // キーボードイベントの横取りを解除
-        @SuppressWarnings("unchecked")
-        javafx.event.EventHandler<javafx.scene.input.KeyEvent> kf = (javafx.event.EventHandler<javafx.scene.input.KeyEvent>) container.getProperties().get("timing_keyFilter");
-        @SuppressWarnings("unchecked")
-        javafx.beans.value.ChangeListener<javafx.scene.Scene> sl = (javafx.beans.value.ChangeListener<javafx.scene.Scene>) container.getProperties().get("timing_sceneListener");
+            CompletableFuture<InteractionResult> future, Runnable cleanupAction) {
         
-        if (sl != null) {
-            container.sceneProperty().removeListener(sl);
-        }
-        if (kf != null && container.getScene() != null) {
-            container.getScene().removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, kf);
+        if (cleanupAction != null) {
+            cleanupAction.run();
         }
 
         // 入力を無効化

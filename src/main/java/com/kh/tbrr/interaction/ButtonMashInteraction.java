@@ -125,6 +125,19 @@ public class ButtonMashInteraction implements InteractionHandler {
         final boolean[] gameStarted = { false }; // スタート前フラグ
         final int[] timeRemaining = { timeLimit };
 
+        // クリーンアップ用参照
+        final java.util.concurrent.atomic.AtomicReference<javafx.event.EventHandler<javafx.scene.input.KeyEvent>> keyFilterRef = new java.util.concurrent.atomic.AtomicReference<>();
+        final java.util.concurrent.atomic.AtomicReference<javafx.beans.value.ChangeListener<javafx.scene.Scene>> sceneListenerRef = new java.util.concurrent.atomic.AtomicReference<>();
+        
+        Runnable cleanupAction = () -> {
+            if (sceneListenerRef.get() != null) {
+                container.sceneProperty().removeListener(sceneListenerRef.get());
+            }
+            if (keyFilterRef.get() != null && container.getScene() != null) {
+                container.getScene().removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilterRef.get());
+            }
+        };
+
         // 連打処理
         Runnable mashAction = () -> {
             if (!gameStarted[0] || gameOver[0]) // スタート前または終了後は無視
@@ -167,8 +180,8 @@ public class ButtonMashInteraction implements InteractionHandler {
             container.getScene().addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
         }
 
-        container.getProperties().put("mash_keyFilter", keyFilter);
-        container.getProperties().put("mash_sceneListener", sceneListener);
+        keyFilterRef.set(keyFilter);
+        sceneListenerRef.set(sceneListener);
 
         // ○ボタン用入力コールバックを設定
         if (params != null && params.containsKey("_inputCallback")) {
@@ -196,12 +209,7 @@ public class ButtonMashInteraction implements InteractionHandler {
 
         timer.setOnFinished(e -> {
             gameOver[0] = true;
-            @SuppressWarnings("unchecked")
-            javafx.event.EventHandler<javafx.scene.input.KeyEvent> kf = (javafx.event.EventHandler<javafx.scene.input.KeyEvent>) container.getProperties().get("mash_keyFilter");
-            @SuppressWarnings("unchecked")
-            javafx.beans.value.ChangeListener<javafx.scene.Scene> sl = (javafx.beans.value.ChangeListener<javafx.scene.Scene>) container.getProperties().get("mash_sceneListener");
-            if (sl != null) container.sceneProperty().removeListener(sl);
-            if (kf != null && container.getScene() != null) container.getScene().removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, kf);
+            cleanupAction.run();
 
             container.setOnMouseClicked(null);
             container.setOnKeyPressed(null);

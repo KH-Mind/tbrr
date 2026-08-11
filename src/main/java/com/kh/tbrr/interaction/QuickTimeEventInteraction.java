@@ -147,6 +147,19 @@ public class QuickTimeEventInteraction implements InteractionHandler {
         final boolean[] gameOver = { false };
         final double[] timeRemaining = { timeLimit };
 
+        // クリーンアップ用参照
+        final java.util.concurrent.atomic.AtomicReference<javafx.event.EventHandler<javafx.scene.input.KeyEvent>> keyFilterRef = new java.util.concurrent.atomic.AtomicReference<>();
+        final java.util.concurrent.atomic.AtomicReference<javafx.beans.value.ChangeListener<javafx.scene.Scene>> sceneListenerRef = new java.util.concurrent.atomic.AtomicReference<>();
+        
+        Runnable cleanupAction = () -> {
+            if (sceneListenerRef.get() != null) {
+                container.sceneProperty().removeListener(sceneListenerRef.get());
+            }
+            if (keyFilterRef.get() != null && container.getScene() != null) {
+                container.getScene().removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilterRef.get());
+            }
+        };
+
         // タイマー処理
         Timeline timer = new Timeline();
         timer.setCycleCount(Timeline.INDEFINITE);
@@ -161,7 +174,7 @@ public class QuickTimeEventInteraction implements InteractionHandler {
                 timeRemaining[0] = 0;
                 gameOver[0] = true;
                 timer.stop();
-                showResult(container, false, future);
+                showResult(container, false, future, cleanupAction);
             }
 
             // 表示更新
@@ -199,7 +212,7 @@ public class QuickTimeEventInteraction implements InteractionHandler {
                     // 全クリア
                     gameOver[0] = true;
                     timer.stop();
-                    showResult(container, true, future);
+                    showResult(container, true, future, cleanupAction);
                 } else {
                     // 次のキーをハイライト
                     highlightKey(keyLabels.get(currentIndex[0]), true);
@@ -260,9 +273,9 @@ public class QuickTimeEventInteraction implements InteractionHandler {
             container.getScene().addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
         }
 
-        // クリーンアップ用にプロパティへ退避
-        container.getProperties().put("qte_keyFilter", keyFilter);
-        container.getProperties().put("qte_sceneListener", sceneListener);
+        // クリーンアップ用に参照へ退避
+        keyFilterRef.set(keyFilter);
+        sceneListenerRef.set(sceneListener);
 
         // ○ボタン用入力コールバックを設定
         if (params != null && params.containsKey("_inputCallback")) {
@@ -321,20 +334,10 @@ public class QuickTimeEventInteraction implements InteractionHandler {
      * 結果を表示
      */
     private void showResult(VBox container, boolean success,
-            CompletableFuture<InteractionResult> future) {
-        // キーボードイベントの横取りを解除
-        @SuppressWarnings("unchecked")
-        javafx.event.EventHandler<javafx.scene.input.KeyEvent> keyFilter = 
-            (javafx.event.EventHandler<javafx.scene.input.KeyEvent>) container.getProperties().get("qte_keyFilter");
-        @SuppressWarnings("unchecked")
-        javafx.beans.value.ChangeListener<javafx.scene.Scene> sceneListener = 
-            (javafx.beans.value.ChangeListener<javafx.scene.Scene>) container.getProperties().get("qte_sceneListener");
+            CompletableFuture<InteractionResult> future, Runnable cleanupAction) {
         
-        if (sceneListener != null) {
-            container.sceneProperty().removeListener(sceneListener);
-        }
-        if (keyFilter != null && container.getScene() != null) {
-            container.getScene().removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
+        if (cleanupAction != null) {
+            cleanupAction.run();
         }
 
         // 入力を無効化

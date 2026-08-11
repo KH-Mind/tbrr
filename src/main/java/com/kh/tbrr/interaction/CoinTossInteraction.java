@@ -108,17 +108,25 @@ public class CoinTossInteraction implements InteractionHandler {
         // アクション実行フラグ（二重実行防止）
         final boolean[] actionExecuted = { false };
 
+        // クリーンアップ用参照
+        final java.util.concurrent.atomic.AtomicReference<javafx.event.EventHandler<javafx.scene.input.KeyEvent>> keyFilterRef = new java.util.concurrent.atomic.AtomicReference<>();
+        final java.util.concurrent.atomic.AtomicReference<javafx.beans.value.ChangeListener<javafx.scene.Scene>> sceneListenerRef = new java.util.concurrent.atomic.AtomicReference<>();
+        
+        Runnable cleanupAction = () -> {
+            if (sceneListenerRef.get() != null) {
+                container.sceneProperty().removeListener(sceneListenerRef.get());
+            }
+            if (keyFilterRef.get() != null && container.getScene() != null) {
+                container.getScene().removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilterRef.get());
+            }
+        };
+
         // コイントス実行のランナブル
         Runnable flipAction = () -> {
             if (actionExecuted[0])
                 return;
             actionExecuted[0] = true;
-            @SuppressWarnings("unchecked")
-            javafx.event.EventHandler<javafx.scene.input.KeyEvent> kf = (javafx.event.EventHandler<javafx.scene.input.KeyEvent>) container.getProperties().get("coin_keyFilter");
-            @SuppressWarnings("unchecked")
-            javafx.beans.value.ChangeListener<javafx.scene.Scene> sl = (javafx.beans.value.ChangeListener<javafx.scene.Scene>) container.getProperties().get("coin_sceneListener");
-            if (sl != null) container.sceneProperty().removeListener(sl);
-            if (kf != null && container.getScene() != null) container.getScene().removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, kf);
+            cleanupAction.run();
 
             container.setOnMouseClicked(null);
             container.setOnKeyPressed(null);
@@ -146,8 +154,8 @@ public class CoinTossInteraction implements InteractionHandler {
             container.getScene().addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
         }
 
-        container.getProperties().put("coin_keyFilter", keyFilter);
-        container.getProperties().put("coin_sceneListener", sceneListener);
+        keyFilterRef.set(keyFilter);
+        sceneListenerRef.set(sceneListener);
 
         // ○ボタン用入力コールバックを設定（EventProcessorから渡される）
         if (params != null && params.containsKey("_inputCallback")) {
