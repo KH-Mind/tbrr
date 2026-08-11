@@ -209,10 +209,10 @@ public class QuickTimeEventInteraction implements InteractionHandler {
             }
         };
 
-        // キーボードイベント
-        container.setFocusTraversable(true);
-        container.requestFocus();
-        container.setOnKeyPressed(e -> {
+        // キーボードイベント（Scene全体で横取りする）
+        javafx.event.EventHandler<javafx.scene.input.KeyEvent> keyFilter = e -> {
+            if (gameOver[0])
+                return;
             KeyType input = null;
             switch (e.getCode()) {
                 case UP:
@@ -243,8 +243,26 @@ public class QuickTimeEventInteraction implements InteractionHandler {
             if (input != null) {
                 final KeyType finalInput = input;
                 Platform.runLater(() -> inputProcessor.accept(finalInput));
+                e.consume(); // 他のコンポーネントへイベントを流さない
             }
-        });
+        };
+
+        javafx.beans.value.ChangeListener<javafx.scene.Scene> sceneListener = (obs, oldScene, newScene) -> {
+            if (oldScene != null) {
+                oldScene.removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
+            }
+            if (newScene != null) {
+                newScene.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
+            }
+        };
+        container.sceneProperty().addListener(sceneListener);
+        if (container.getScene() != null) {
+            container.getScene().addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
+        }
+
+        // クリーンアップ用にプロパティへ退避
+        container.getProperties().put("qte_keyFilter", keyFilter);
+        container.getProperties().put("qte_sceneListener", sceneListener);
 
         // ○ボタン用入力コールバックを設定
         if (params != null && params.containsKey("_inputCallback")) {
@@ -304,6 +322,21 @@ public class QuickTimeEventInteraction implements InteractionHandler {
      */
     private void showResult(VBox container, boolean success,
             CompletableFuture<InteractionResult> future) {
+        // キーボードイベントの横取りを解除
+        @SuppressWarnings("unchecked")
+        javafx.event.EventHandler<javafx.scene.input.KeyEvent> keyFilter = 
+            (javafx.event.EventHandler<javafx.scene.input.KeyEvent>) container.getProperties().get("qte_keyFilter");
+        @SuppressWarnings("unchecked")
+        javafx.beans.value.ChangeListener<javafx.scene.Scene> sceneListener = 
+            (javafx.beans.value.ChangeListener<javafx.scene.Scene>) container.getProperties().get("qte_sceneListener");
+        
+        if (sceneListener != null) {
+            container.sceneProperty().removeListener(sceneListener);
+        }
+        if (keyFilter != null && container.getScene() != null) {
+            container.getScene().removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
+        }
+
         // 入力を無効化
         container.setOnKeyPressed(null);
         container.setOnMouseClicked(null);

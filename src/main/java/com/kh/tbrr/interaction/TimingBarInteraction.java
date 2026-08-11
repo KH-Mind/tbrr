@@ -233,16 +233,26 @@ public class TimingBarInteraction implements InteractionHandler {
         // クリックイベント
         container.setOnMouseClicked(e -> Platform.runLater(stopAction));
 
-        // キーボードイベント
-        container.setFocusTraversable(true);
-        container.requestFocus();
-        container.setOnKeyPressed(e -> {
+        javafx.event.EventHandler<javafx.scene.input.KeyEvent> keyFilter = e -> {
             if (e.getCode() == javafx.scene.input.KeyCode.ENTER ||
                     e.getCode() == javafx.scene.input.KeyCode.SPACE ||
                     e.getCode() == javafx.scene.input.KeyCode.NUMPAD5) {
                 Platform.runLater(stopAction);
+                e.consume();
             }
-        });
+        };
+
+        javafx.beans.value.ChangeListener<javafx.scene.Scene> sceneListener = (obs, oldScene, newScene) -> {
+            if (oldScene != null) oldScene.removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
+            if (newScene != null) newScene.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
+        };
+        container.sceneProperty().addListener(sceneListener);
+        if (container.getScene() != null) {
+            container.getScene().addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
+        }
+
+        container.getProperties().put("timing_keyFilter", keyFilter);
+        container.getProperties().put("timing_sceneListener", sceneListener);
 
         // ○ボタン用入力コールバックを設定
         if (params != null && params.containsKey("_inputCallback")) {
@@ -261,6 +271,19 @@ public class TimingBarInteraction implements InteractionHandler {
      */
     private void showResult(VBox container, boolean success,
             CompletableFuture<InteractionResult> future) {
+        // キーボードイベントの横取りを解除
+        @SuppressWarnings("unchecked")
+        javafx.event.EventHandler<javafx.scene.input.KeyEvent> kf = (javafx.event.EventHandler<javafx.scene.input.KeyEvent>) container.getProperties().get("timing_keyFilter");
+        @SuppressWarnings("unchecked")
+        javafx.beans.value.ChangeListener<javafx.scene.Scene> sl = (javafx.beans.value.ChangeListener<javafx.scene.Scene>) container.getProperties().get("timing_sceneListener");
+        
+        if (sl != null) {
+            container.sceneProperty().removeListener(sl);
+        }
+        if (kf != null && container.getScene() != null) {
+            container.getScene().removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, kf);
+        }
+
         // 入力を無効化
         container.setOnMouseClicked(null);
         container.setOnKeyPressed(null);

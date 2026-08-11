@@ -148,23 +148,34 @@ public class ForkPathInteraction implements InteractionHandler {
 
         container.getChildren().add(layout);
 
-        // キーボードイベント
-        container.setFocusTraversable(true);
-        container.requestFocus();
-        container.setOnKeyPressed(e -> {
+        javafx.event.EventHandler<javafx.scene.input.KeyEvent> keyFilter = e -> {
             switch (e.getCode()) {
                 case LEFT:
                 case NUMPAD4:
                     Platform.runLater(selectLeft);
+                    e.consume();
                     break;
                 case RIGHT:
                 case NUMPAD6:
                     Platform.runLater(selectRight);
+                    e.consume();
                     break;
                 default:
                     break;
             }
-        });
+        };
+
+        javafx.beans.value.ChangeListener<javafx.scene.Scene> sceneListener = (obs, oldScene, newScene) -> {
+            if (oldScene != null) oldScene.removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
+            if (newScene != null) newScene.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
+        };
+        container.sceneProperty().addListener(sceneListener);
+        if (container.getScene() != null) {
+            container.getScene().addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, keyFilter);
+        }
+
+        container.getProperties().put("fork_keyFilter", keyFilter);
+        container.getProperties().put("fork_sceneListener", sceneListener);
 
         // ○ボタン用入力コールバックを設定（矢印ボタン対応）
         if (params != null && params.containsKey("_inputCallback")) {
@@ -230,6 +241,19 @@ public class ForkPathInteraction implements InteractionHandler {
      */
     private void showSelectionResult(VBox container, String selectedLabel,
             CompletableFuture<InteractionResult> future, String resultKey) {
+        // キーボードイベントの横取りを解除
+        @SuppressWarnings("unchecked")
+        javafx.event.EventHandler<javafx.scene.input.KeyEvent> kf = (javafx.event.EventHandler<javafx.scene.input.KeyEvent>) container.getProperties().get("fork_keyFilter");
+        @SuppressWarnings("unchecked")
+        javafx.beans.value.ChangeListener<javafx.scene.Scene> sl = (javafx.beans.value.ChangeListener<javafx.scene.Scene>) container.getProperties().get("fork_sceneListener");
+        
+        if (sl != null) {
+            container.sceneProperty().removeListener(sl);
+        }
+        if (kf != null && container.getScene() != null) {
+            container.getScene().removeEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, kf);
+        }
+
         // 入力を無効化
         container.setOnMouseClicked(null);
         container.setOnKeyPressed(null);

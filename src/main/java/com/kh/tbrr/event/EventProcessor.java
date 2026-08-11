@@ -1375,8 +1375,10 @@ public class EventProcessor {
 			// ★ 戦闘開始: 中断セーブを禁止する
 			ui.setSuspendSaveEnabled(false);
 			try {
-				com.kh.tbrr.manager.BattleManager battleManager = new com.kh.tbrr.manager.BattleManager(ui, player, dataManager);
-				com.kh.tbrr.manager.BattleManager.BattleResult battleResult = battleManager.startBattle(result.getBattle(), gameState);
+				com.kh.tbrr.manager.BattleManager battleManager = new com.kh.tbrr.manager.BattleManager(ui, player,
+						dataManager);
+				com.kh.tbrr.manager.BattleManager.BattleResult battleResult = battleManager
+						.startBattle(result.getBattle(), gameState);
 
 				if (battleResult == com.kh.tbrr.manager.BattleManager.BattleResult.DEFEAT) {
 					// 敗北: 死亡処理
@@ -1651,18 +1653,6 @@ public class EventProcessor {
 			}
 		}
 
-		// 次のイベントへの遷移
-		if (outcomeData.get("nextEventId") != null) {
-			String nextEventId = (String) outcomeData.get("nextEventId");
-			GameEvent nextEvent = com.kh.tbrr.manager.EventManager.getEventById(nextEventId);
-			if (nextEvent != null) {
-				gameState.setInRecursiveEvent(true);
-				ui.waitForEnter();
-				processEvent(nextEvent, player, gameState);
-				gameState.setInRecursiveEvent(false);
-			}
-		}
-
 		// HP変化
 		if (outcomeData.get("hpChange") != null) {
 			int hpChange = parseValueChange(outcomeData.get("hpChange"), player, "hp");
@@ -1686,6 +1676,21 @@ public class EventProcessor {
 				} else {
 					ui.printImportantLog(player.getName() + "は銀貨を" + (-moneyChange) + "枚失った。");
 				}
+			}
+		}
+
+		// 次のイベントへの遷移
+		if (outcomeData.get("nextEventId") != null) {
+			String nextEventId = (String) outcomeData.get("nextEventId");
+			GameEvent nextEvent = dataManager.loadEvent(nextEventId);
+			if (nextEvent != null) {
+				boolean wasInRecursive = gameState.isInRecursiveEvent();
+				if (!wasInRecursive) {
+					gameState.setInRecursiveEvent(true);
+				}
+				ui.waitForEnter();
+				processEvent(nextEvent, player, gameState);
+				gameState.setInRecursiveEvent(wasInRecursive);
 			}
 		}
 	}
