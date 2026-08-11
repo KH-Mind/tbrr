@@ -52,6 +52,7 @@ public class InteractionRegistry {
         register(new ForkPathInteraction());
         register(new TimingBarInteraction());
         register(new QuickTimeEventInteraction());
+        register(new LockPickInteraction());
 
         System.out.println("[InteractionRegistry] 初期化完了（登録数: " + handlers.size() + "）");
     }
