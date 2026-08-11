@@ -100,9 +100,9 @@ public class LockPickInteraction implements InteractionHandler {
          * successRadius : 成功ゾーン半径（±px）
          */
         private enum Difficulty {
-            EASY(3, 5, 0.45, 28),
-            NORMAL(4, 3, 0.70, 20),
-            HARD(5, 2, 1.10, 13);
+            EASY(3, 5, 0.65, 28),
+            NORMAL(4, 3, 1.00, 20),
+            HARD(5, 2, 1.50, 13);
 
             final int pinCount;
             final int pickCount;
@@ -389,6 +389,7 @@ public class LockPickInteraction implements InteractionHandler {
                 gameLoop.stop();
             if (cleanupAction != null)
                 cleanupAction.run();
+            drawLock(); // 最終状態（全ピン固定等）を確実に1フレーム描画
 
             String msg = success ? "解錠成功！" : "ピックが折れた...";
             Color color = success ? Color.LIMEGREEN : Color.TOMATO;

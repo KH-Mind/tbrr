@@ -1514,6 +1514,23 @@ public class JavaFXUI implements GameUI {
 				return;
 			}
 
+			// サブウィンドウが「通常状態」かどうかを確認
+			// 通常状態 = 空、または背景画像、または戦闘パネルのいずれか
+			// それ以外（インタラクション実行中など）は装備を開けない
+			boolean isDefaultState = subWindowBox.getChildren().isEmpty()
+					|| subWindowBox.getChildren().contains(subWindowImageView)
+					|| (battlePanelController != null
+							&& subWindowBox.getChildren().contains(battlePanelController.getPanel()));
+
+			if (!isDefaultState) {
+				Alert alert = new Alert(Alert.AlertType.INFORMATION);
+				alert.setTitle("装備");
+				alert.setHeaderText(null);
+				alert.setContentText("今は装備を開けません。");
+				alert.showAndWait();
+				return;
+			}
+
 			EquipmentPanel panel = new EquipmentPanel(
 					currentPlayer,
 					() -> {
