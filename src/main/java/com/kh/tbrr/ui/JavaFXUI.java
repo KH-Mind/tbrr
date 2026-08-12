@@ -109,6 +109,9 @@ public class JavaFXUI implements GameUI {
 	// 戦闘情報サブウィンドウ用コントローラー
 	private BattlePanelController battlePanelController;
 
+	// ステータス画面（カスタムダイアログ）
+	private StatusScreen currentStatusScreen = null;
+
 	public JavaFXUI(Stage stage, DeveloperMode developerMode) {
 		this.stage = stage;
 		this.developerMode = developerMode;
@@ -1466,7 +1469,8 @@ public class JavaFXUI implements GameUI {
 	}
 
 	/**
-	 * ステータスダイアログを表示
+	 * ステータスダイアログを表示（カスタム Stage ベース）
+	 * ゲームスレッドをブロックしないよう show() を使用する。
 	 */
 	private void showStatusDialog() {
 		Platform.runLater(() -> {
@@ -1479,27 +1483,12 @@ public class JavaFXUI implements GameUI {
 				return;
 			}
 
-			Alert statusDialog = new Alert(Alert.AlertType.INFORMATION);
-			statusDialog.setTitle("ステータス");
-			statusDialog.setHeaderText("現在のキャラクター情報");
-			statusDialog.setResizable(true);
-
-			// キャラクターシートを取得
-			String characterSheet = currentPlayer.getCharacterSheet();
-
-			// TextAreaで表示（スクロール可能）
-			TextArea textArea = new TextArea(characterSheet);
-			textArea.setEditable(false);
-			textArea.setWrapText(true);
-			textArea.setFont(Font.font("MS Gothic", 12));
-			textArea.setPrefWidth(500);
-			textArea.setPrefHeight(400);
-
-			statusDialog.getDialogPane().setContent(textArea);
-			statusDialog.getDialogPane().setPrefWidth(550);
-			statusDialog.getDialogPane().setPrefHeight(500);
-
-			statusDialog.showAndWait();
+			// 既に開いている場合は閉じてから開き直す
+			if (currentStatusScreen != null && currentStatusScreen.isShowing()) {
+				currentStatusScreen.close();
+			}
+			currentStatusScreen = new StatusScreen(currentPlayer);
+			currentStatusScreen.show();
 		});
 	}
 
