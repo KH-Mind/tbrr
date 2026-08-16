@@ -274,7 +274,7 @@ public class DeveloperMode {
 		} else if (cmd.startsWith("player.removestance ")) {
 			String stanceId = cmd.substring("player.removestance ".length()).trim();
 			if (!stanceId.isEmpty()) {
-				player.getStances().remove(stanceId);
+				player.removeStance(stanceId);
 				if (debugVisible && ui != null)
 					ui.print("[DEBUG] スタンス '" + stanceId + "' を削除しました");
 			}

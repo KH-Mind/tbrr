@@ -80,7 +80,11 @@ public class Player {
     private List<String> abilities; // その周で得たアビリティ（一時取得）
 
     // passivesフィールドはtraitsに統合済み
-    private List<String> stances; // 習得しているスタンス用リスト
+
+    // スタンス（構え）の3分類
+    private List<String> baseStances;      // キャラ作成時から使用可能なスタンス（職業由来）
+    private List<String> inheritedStances; // 過去の引継ぎで恒久化したスタンス
+    private List<String> stances;          // その周で取得したスタンス（一時取得。引継ぎ時にリセットされる）
 
     // 特徴/Traitの3分類
     private List<String> baseTraits; // キャラ作成時から持つ特徴（職業由来等）
@@ -155,6 +159,8 @@ public class Player {
         this.baseAbilities = new ArrayList<>();
         this.inheritedAbilities = new ArrayList<>();
         this.abilities = new ArrayList<>();
+        this.baseStances = new ArrayList<>();
+        this.inheritedStances = new ArrayList<>();
         this.stances = new ArrayList<>();
         this.baseTraits = new ArrayList<>();
         this.inheritedTraits = new ArrayList<>();
@@ -1096,6 +1102,28 @@ public class Player {
         }
     }
 
+    // ========== スタンス 3分類 getter/setter ==========
+
+    public List<String> getBaseStances() {
+        if (baseStances == null)
+            baseStances = new ArrayList<>();
+        return baseStances;
+    }
+
+    public void setBaseStances(List<String> baseStances) {
+        this.baseStances = baseStances != null ? baseStances : new ArrayList<>();
+    }
+
+    public List<String> getInheritedStances() {
+        if (inheritedStances == null)
+            inheritedStances = new ArrayList<>();
+        return inheritedStances;
+    }
+
+    public void setInheritedStances(List<String> inheritedStances) {
+        this.inheritedStances = inheritedStances != null ? inheritedStances : new ArrayList<>();
+    }
+
     public List<String> getStances() {
         return stances;
     }
@@ -1104,10 +1132,44 @@ public class Player {
         this.stances = stances;
     }
 
+    /**
+     * base + inherited + stances（一時取得）の3リストを合算して返す。
+     * 戦闘画面での使用可能スタンスの絞り込みに使用する。
+     */
+    public List<String> getEffectiveStances() {
+        if (baseStances == null)
+            baseStances = new ArrayList<>();
+        if (inheritedStances == null)
+            inheritedStances = new ArrayList<>();
+        if (stances == null)
+            stances = new ArrayList<>();
+
+        List<String> effective = new ArrayList<>();
+        effective.addAll(baseStances);
+        effective.addAll(inheritedStances);
+        effective.addAll(stances);
+        return effective;
+    }
+
+    /**
+     * スタンスを一時取得リスト（stances）に追加する。
+     * イベントや開発者コマンドからの取得に使用。
+     */
     public void addStance(String stanceId) {
-        if (!stances.contains(stanceId)) {
+        if (stances == null)
+            stances = new ArrayList<>();
+        if (!getEffectiveStances().contains(stanceId)) {
             stances.add(stanceId);
         }
+    }
+
+    /**
+     * スタンスを一時取得リスト（stances）から削除する。
+     * 開発者コマンド（player.removestance）等から使用。
+     */
+    public void removeStance(String stanceId) {
+        if (stances != null)
+            stances.remove(stanceId);
     }
 
     public List<String> getTraits() {

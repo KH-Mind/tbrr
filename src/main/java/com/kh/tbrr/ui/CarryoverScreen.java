@@ -52,8 +52,11 @@ public class CarryoverScreen {
     private ImageManager imageManager;
 
     // 引継ぎ選択に関する状態
-    private String selectedId = null; // 選択されたアビリティ/特徴のID
-    private boolean isAbility = false; // true=アビリティ, false=特徴
+    private String selectedId = null; // 選択されたアビリティ/特徴/スタンスのID
+    private ItemType selectedType = ItemType.TRAIT; // 選択したアイテムの種別
+
+    /** 引継ぎ候補の種別を表す内部enum */
+    private static enum ItemType { ABILITY, TRAIT, STANCE }
 
     // 仮フレーバーメッセージ（後でロア担当が差し替え）
     private static final String FLAVOR_TEXT = "　足元に薄く水が張ったような、果てしなく続く真っ白な空間。\n\n" +
@@ -178,7 +181,14 @@ public class CarryoverScreen {
             rb.setStyle("-fx-text-fill: #dddddd;");
 
             // 表示テキスト: [種別] 名前 — 説明
-            String typeLabel = item.isAbility ? "【アビリティ】" : "【特徴】";
+            String typeLabel;
+            if (item.type == ItemType.ABILITY) {
+                typeLabel = "【アビリティ】";
+            } else if (item.type == ItemType.STANCE) {
+                typeLabel = "【スタンス】";
+            } else {
+                typeLabel = "【特徴】";
+            }
             String display = typeLabel + " " + item.displayName;
             if (item.description != null && !item.description.isEmpty()) {
                 display += "  ―  " + item.description;
@@ -188,7 +198,7 @@ public class CarryoverScreen {
             rb.setOnAction(e -> {
                 CarryoverItem sel = (CarryoverItem) rb.getUserData();
                 selectedId = sel.id;
-                isAbility = sel.isAbility;
+                selectedType = sel.type;
             });
 
             radioBox.getChildren().add(rb);
@@ -209,8 +219,10 @@ public class CarryoverScreen {
                 alert.showAndWait();
                 return;
             }
-            String itemName = getDisplayNameById(selectedId, isAbility);
-            String confirmMsg = (isAbility ? "アビリティ「" : "特徴「") + itemName + "」を引き継ぎますか？";
+            String itemName = getDisplayNameById(selectedId, selectedType);
+            String typeLabel = (selectedType == ItemType.ABILITY) ? "アビリティ「"
+                    : (selectedType == ItemType.STANCE) ? "スタンス「" : "特徴「";
+            String confirmMsg = typeLabel + itemName + "」を引き継ぎますか？";
             Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION, confirmMsg, ButtonType.YES, ButtonType.NO);
             confirmAlert.setHeaderText(null);
             confirmAlert.showAndWait().ifPresent(result -> {
@@ -292,7 +304,7 @@ public class CarryoverScreen {
                 String desc = (ad != null && ad.getDescription() != null)
                         ? String.join("", ad.getDescription())
                         : "";
-                list.add(new CarryoverItem(abilityId, name, desc, true));
+                list.add(new CarryoverItem(abilityId, name, desc, ItemType.ABILITY));
             }
         }
 
@@ -302,7 +314,21 @@ public class CarryoverScreen {
                 TraitData td = TraitRegistry.getTraitById(traitId);
                 String name = (td != null) ? td.getName() : traitId;
                 String desc = (td != null) ? td.getDescription() : "";
-                list.add(new CarryoverItem(traitId, name, desc, false));
+                list.add(new CarryoverItem(traitId, name, desc, ItemType.TRAIT));
+            }
+        }
+
+        // その周で得たスタンス（baseStances/inheritedStancesは含まない）
+        // ===== スタンス引継ぎをやめたい場合は、このブロックをコメントアウトすること。 =====
+        if (player.getStances() != null) {
+            CombatDataLoader.loadAllStances(); // 名前解決のためロード保証
+            for (String stanceId : player.getStances()) {
+                com.kh.tbrr.data.models.StanceData sd = CombatDataLoader.getStance(stanceId);
+                String name = (sd != null) ? sd.getName() : stanceId;
+                String desc = (sd != null && sd.getDescription() != null)
+                        ? String.join("", sd.getDescription())
+                        : "";
+                list.add(new CarryoverItem(stanceId, name, desc, ItemType.STANCE));
             }
         }
 
@@ -311,7 +337,7 @@ public class CarryoverScreen {
             TraitData fallback = TraitRegistry.getTraitById("hp_plus_20");
             String name = (fallback != null) ? fallback.getName() : "追加HP";
             String desc = (fallback != null) ? fallback.getDescription() : "最大HPが20増加する。";
-            list.add(new CarryoverItem("hp_plus_20", name, desc, false));
+            list.add(new CarryoverItem("hp_plus_20", name, desc, ItemType.TRAIT));
         }
 
         return list;
@@ -327,16 +353,22 @@ public class CarryoverScreen {
             return;
 
         // 選択した1つを inherited に移動
-        if (isAbility) {
+        if (selectedType == ItemType.ABILITY) {
             player.getInheritedAbilities().add(selectedId);
+        } else if (selectedType == ItemType.STANCE) {
+            // ===== スタンスの引継ぎ =====
+            // スタンス引継ぎをやめたい場合は、このブロックをコメントアウトすること。
+            // コメントアウト時はスタンス引継ぎ候補に表示されること自体、buildCandidates()内のSTANCEブロックも删除すること。
+            player.getInheritedStances().add(selectedId);
         } else {
             player.getInheritedTraits().add(selectedId);
         }
 
-        // その周の一時アビリティ・特徴をクリア
+        // その周の一時アビリティ・特徴・スタンスをクリア
         // nullの場合はgetterが初期化してくれるのでそのまま呼ぶ
         player.getAbilities().clear();
         player.getTraits().clear();
+        player.getStances().clear(); // その周で取得したスタンスもリセット
 
         // grade +1
         player.incrementGrade();
@@ -438,10 +470,13 @@ public class CarryoverScreen {
     /**
      * IDと種別から表示名を取得するヘルパー
      */
-    private String getDisplayNameById(String id, boolean isAbilityType) {
-        if (isAbilityType) {
+    private String getDisplayNameById(String id, ItemType type) {
+        if (type == ItemType.ABILITY) {
             AbilityData ad = CombatDataLoader.getAbility(id);
             return (ad != null) ? ad.getName() : id;
+        } else if (type == ItemType.STANCE) {
+            com.kh.tbrr.data.models.StanceData sd = CombatDataLoader.getStance(id);
+            return (sd != null) ? sd.getName() : id;
         } else {
             TraitData td = TraitRegistry.getTraitById(id);
             return (td != null) ? td.getName() : id;
@@ -481,13 +516,13 @@ public class CarryoverScreen {
         final String id;
         final String displayName;
         final String description;
-        final boolean isAbility;
+        final ItemType type;
 
-        CarryoverItem(String id, String displayName, String description, boolean isAbility) {
+        CarryoverItem(String id, String displayName, String description, ItemType type) {
             this.id = id;
             this.displayName = displayName;
             this.description = description;
-            this.isAbility = isAbility;
+            this.type = type;
         }
     }
 }

@@ -1190,6 +1190,30 @@ public class EventProcessor {
 			}
 		}
 
+		// スタンス習得（複数対応）
+		if (result.getStancesGained() != null && !result.getStancesGained().isEmpty()) {
+			for (String stanceId : result.getStancesGained()) {
+				player.addStance(stanceId);
+				com.kh.tbrr.data.CombatDataLoader.loadAllStances(); // 名前解決のためロード保証
+				com.kh.tbrr.data.models.StanceData sd = com.kh.tbrr.data.CombatDataLoader.getStance(stanceId);
+				String stanceName = sd != null ? sd.getName() : stanceId;
+				printFloorDividerIfNeeded(gameState);
+				ui.printImportantLog(player.getName() + "は【" + stanceName + "】の構えを習得した。");
+			}
+		}
+
+		// スタンス喪失（複数対応）
+		if (result.getStancesLost() != null && !result.getStancesLost().isEmpty()) {
+			for (String stanceId : result.getStancesLost()) {
+				player.removeStance(stanceId);
+				com.kh.tbrr.data.CombatDataLoader.loadAllStances(); // 名前解決のためロード保証
+				com.kh.tbrr.data.models.StanceData sd = com.kh.tbrr.data.CombatDataLoader.getStance(stanceId);
+				String stanceName = sd != null ? sd.getName() : stanceId;
+				printFloorDividerIfNeeded(gameState);
+				ui.printImportantLog("【" + stanceName + "】の構えを失った。");
+			}
+		}
+
 		// 状態異常の処理
 		if (result.getStatusEffectChanges() != null) {
 			for (java.util.Map.Entry<String, Object> entry : result.getStatusEffectChanges().entrySet()) {

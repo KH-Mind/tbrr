@@ -108,7 +108,7 @@ public class BattleManager {
         // 使用可能なスタンスリストを構築してUIに渡す
         java.util.List<String> stanceNames = new java.util.ArrayList<>();
         for (StanceData sd : CombatDataLoader.getAllStances()) {
-            if (sd.isDefault() || (player.getStances() != null && player.getStances().contains(sd.getId()))) {
+            if (sd.isDefault() || (player.getEffectiveStances() != null && player.getEffectiveStances().contains(sd.getId()))) {
                 stanceNames.add(sd.getName());
             }
         }

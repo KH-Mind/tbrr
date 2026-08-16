@@ -480,6 +480,8 @@ public class GameEvent {
 		private List<String> traitsGained; // 複数特徴習得
 		private List<String> traitsLost; // 複数特徴喪失
 		private List<String> traitsLostAll; // 指定した特徴をすべて失うリスト
+		private List<String> stancesGained; // 複数スタンス習得
+		private List<String> stancesLost;   // 複数スタンス喀失
 		private int chance;
 		private String condition;
 		private String nextEventId;
@@ -540,6 +542,8 @@ public class GameEvent {
 			this.traitsGained = new ArrayList<>();
 			this.traitsLost = new ArrayList<>();
 			this.traitsLostAll = new ArrayList<>();
+			this.stancesGained = new ArrayList<>();
+			this.stancesLost = new ArrayList<>();
 			this.flagsToAdd = new ArrayList<>();
 			this.flagsToRemove = new ArrayList<>();
 		}
@@ -706,6 +710,22 @@ public class GameEvent {
 
 		public void setTraitsLostAll(List<String> traitsLostAll) {
 			this.traitsLostAll = traitsLostAll;
+		}
+
+		public List<String> getStancesGained() {
+			return stancesGained;
+		}
+
+		public void setStancesGained(List<String> stancesGained) {
+			this.stancesGained = stancesGained;
+		}
+
+		public List<String> getStancesLost() {
+			return stancesLost;
+		}
+
+		public void setStancesLost(List<String> stancesLost) {
+			this.stancesLost = stancesLost;
 		}
 
 		public int getChance() {
