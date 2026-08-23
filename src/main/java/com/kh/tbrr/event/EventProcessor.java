@@ -273,7 +273,8 @@ public class EventProcessor {
 				player.addTrait(traitId);
 				com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
 				String traitName = td != null ? td.getName() : traitId;
-				ui.print("【" + traitName + "を体得した。】");
+				String logMessage = player.getName() + "は【" + traitName + "】を体得した。";
+				ui.printImportantLog(logMessage);
 			}
 		}
 
@@ -283,7 +284,7 @@ public class EventProcessor {
 				player.removeTrait(traitId);
 				com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
 				String traitName = td != null ? td.getName() : traitId;
-				String logMessage = "【" + traitName + "を失った】";
+				String logMessage = player.getName() + "は【" + traitName + "】を失った。";
 				printFloorDividerIfNeeded(gameState);
 				ui.printImportantLog(logMessage);
 			}
@@ -295,7 +296,7 @@ public class EventProcessor {
 				player.removeAllTraits(traitId);
 				com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
 				String traitName = td != null ? td.getName() : traitId;
-				String logMessage = "【" + traitName + "をすべて失った】";
+				String logMessage = player.getName() + "は【" + traitName + "】をすべて失った。";
 				printFloorDividerIfNeeded(gameState);
 				ui.printImportantLog(logMessage);
 			}
@@ -1162,7 +1163,8 @@ public class EventProcessor {
 				player.addTrait(traitId);
 				com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
 				String traitName = td != null ? td.getName() : traitId;
-				ui.print("【" + traitName + "を体得した。】");
+				String logMessage = player.getName() + "は【" + traitName + "】を体得した。";
+				ui.printImportantLog(logMessage);
 			}
 		}
 
@@ -1172,7 +1174,7 @@ public class EventProcessor {
 				player.removeTrait(traitId);
 				com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
 				String traitName = td != null ? td.getName() : traitId;
-				String logMessage = "【" + traitName + "を失った】";
+				String logMessage = player.getName() + "は【" + traitName + "】を失った。";
 				printFloorDividerIfNeeded(gameState);
 				ui.printImportantLog(logMessage);
 			}
@@ -1184,7 +1186,7 @@ public class EventProcessor {
 				player.removeAllTraits(traitId);
 				com.kh.tbrr.data.models.TraitData td = com.kh.tbrr.data.TraitRegistry.getTraitById(traitId);
 				String traitName = td != null ? td.getName() : traitId;
-				String logMessage = "【" + traitName + "をすべて失った】";
+				String logMessage = player.getName() + "は【" + traitName + "】をすべて失った。";
 				printFloorDividerIfNeeded(gameState);
 				ui.printImportantLog(logMessage);
 			}
@@ -1198,7 +1200,7 @@ public class EventProcessor {
 				com.kh.tbrr.data.models.StanceData sd = com.kh.tbrr.data.CombatDataLoader.getStance(stanceId);
 				String stanceName = sd != null ? sd.getName() : stanceId;
 				printFloorDividerIfNeeded(gameState);
-				ui.printImportantLog(player.getName() + "は【" + stanceName + "】の構えを習得した。");
+				ui.printImportantLog(player.getName() + "は【" + stanceName + "】のスタンスを習得した。");
 			}
 		}
 
@@ -1210,7 +1212,7 @@ public class EventProcessor {
 				com.kh.tbrr.data.models.StanceData sd = com.kh.tbrr.data.CombatDataLoader.getStance(stanceId);
 				String stanceName = sd != null ? sd.getName() : stanceId;
 				printFloorDividerIfNeeded(gameState);
-				ui.printImportantLog("【" + stanceName + "】の構えを失った。");
+				ui.printImportantLog(player.getName() + "は【" + stanceName + "】のスタンスを失った。");
 			}
 		}
 

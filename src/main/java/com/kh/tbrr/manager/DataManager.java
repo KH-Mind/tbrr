@@ -61,7 +61,7 @@ public class DataManager {
 	private Map<String, GameEvent> eventCache;
 	private Map<String, Scenario> scenarioCache;
 	private Map<String, GameMap> mapCache;
-	private Map<String, List<String>> deathEndings = new HashMap<>();
+
 
 	/**
 	 * コンストラクタ
@@ -74,8 +74,7 @@ public class DataManager {
 		this.eventCache = new HashMap<>();
 		this.scenarioCache = new HashMap<>();
 		this.mapCache = new HashMap<>();
-		this.deathEndings = new HashMap<>();
-		loadDeathEndings();
+
 	}
 
 	public void setDataPath(String path) {
@@ -542,80 +541,24 @@ public class DataManager {
 	}
 
 	/**
-	 * 死亡エンディングを読み込む（メインメソッド）
-	 * リソース -> File の順に試行
+	 * 死亡エンディングを取得（遅延読み込み）
+	 * 死因IDが決まった時点でファイルを読む。事前キャッシュ不要。
 	 */
-	public void loadDeathEndings() {
-		System.out.println("[DataManager] 死亡エンディングを読み込み中...");
-		int loadedFiles = 0;
-
-		for (String folder : DEATH_FOLDERS) {
-			// 各フォルダのindex.jsonを読み込む
-			String indexPath = DATA_ROOT + "deaths/" + folder + "/index.json";
-
-			try {
-				String indexJson = loadResourceContent(indexPath);
-				JsonObject indexObj = gson.fromJson(indexJson, JsonObject.class);
-
-				if (indexObj.has("deaths")) {
-					JsonArray deathsArray = indexObj.getAsJsonArray("deaths");
-
-					// インデックスに記載された各ファイルを読み込む
-					for (JsonElement elem : deathsArray) {
-						String deathId = elem.getAsString();
-						String deathFilePath = DATA_ROOT + "deaths/" + folder + "/" + deathId + ".json";
-
-						if (loadSingleDeathFile(deathFilePath)) {
-							loadedFiles++;
-						}
-					}
-				}
-			} catch (IOException e) {
-				// インデックスがない場合はスキップ（またはローカルフォルダ走査などを実装可能）
-				if (developerMode != null && developerMode.isDebugVisible()) {
-					System.out.println("[DEBUG] インデックス読み込み失敗: " + indexPath);
-				}
-			}
-		}
-
-		if (loadedFiles > 0) {
-			System.out.println("✅ 死亡エンディング読み込み完了: " + deathEndings.size() + "ファイル");
-		} else {
-			System.out.println("⚠ 死亡エンディングファイルが見つかりません。");
-		}
-	}
-
-	private boolean loadSingleDeathFile(String path) {
-		try {
-			String json = loadResourceContent(path);
-			JsonElement root = gson.fromJson(json, JsonElement.class);
-
-			if (root.isJsonObject()) {
-				JsonObject obj = root.getAsJsonObject();
-
-				if (obj.has("endings")) {
-					// パスからファイル名(キー)を抽出
-					String fileName = path.substring(path.lastIndexOf('/') + 1);
-					String key = fileName.replace(".json", "");
-
-					JsonArray arr = obj.getAsJsonArray("endings");
-					List<String> endings = new ArrayList<>();
-					for (JsonElement e : arr) {
-						endings.add(e.getAsString());
-					}
-					deathEndings.put(key, endings);
-					return true;
-				}
-			}
-		} catch (Exception e) {
-			System.err.println("[ERROR] ファイル読み込みエラー: " + path + " - " + e.getMessage());
-		}
-
-		return false;
-	}
-
 	public List<String> getDeathEndings(String cause) {
-		return deathEndings.getOrDefault(cause, deathEndings.get("death_by_generic"));
+		JsonObject obj = loadDeathJson(cause);
+		if (obj != null && obj.has("endings")) {
+			JsonArray arr = obj.getAsJsonArray("endings");
+			List<String> endings = new ArrayList<>();
+			for (JsonElement e : arr) {
+				endings.add(e.getAsString());
+			}
+			return endings;
+		}
+		// フォールバック: death_by_generic
+		if (!"death_by_generic".equals(cause)) {
+			return getDeathEndings("death_by_generic");
+		}
+		return List.of();
 	}
 
 	/**
