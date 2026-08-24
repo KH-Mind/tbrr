@@ -398,6 +398,25 @@ public class DeveloperMode {
 				if (ui != null)
 					ui.printError("[DEBUG] 使用法: enemy.setthreat <数値>");
 			}
+		} else if (cmd.startsWith("game.setfloor ")) {
+			// ⚠ 【現在未動作】game.setfloor <数値> : フロアを指定番号にスキップする（街フェーズテスト用）
+			// 問題: inheritMap:trueのフロアにジャンプすると currentMap=null のため地形エラーで強制終了する。
+			// 修正方針: ジャンプ先手前の最後の新規マップ選択フロアのpoolから選んでセットする処理が必要。
+			// 詳細: kikaku/logic/コンソールコマンド一覧.md の「ゲーム進行操作コマンド」セクションを参照。
+			try {
+				int floor = Integer.parseInt(cmd.substring("game.setfloor ".length()).trim());
+				if (gameState != null) {
+					gameState.setCurrentFloor(floor);
+					gameState.setCurrentMap(null); // マップ再選択を強制
+					if (ui != null)
+						ui.print("[DEV] フロアを " + floor + " にスキップしました（次ターン適用）");
+				} else {
+					if (ui != null) ui.printError("[DEV] エラー: ゲーム状態が未初期化です");
+				}
+			} catch (NumberFormatException e) {
+				if (ui != null)
+					ui.printError("[DEV] 使用法: game.setfloor <フロア番号(0始まり)>");
+			}
 		}
 	}
 }

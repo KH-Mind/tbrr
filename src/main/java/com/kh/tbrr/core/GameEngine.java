@@ -46,6 +46,7 @@ public class GameEngine {
 	private RandomWordsManager randomWordsManager;
 	private com.kh.tbrr.manager.ImageManager imageManager;
 	private com.kh.tbrr.manager.AudioManager audioManager;
+	private com.kh.tbrr.manager.TownManager townManager;
 
 	// 現在のシナリオ
 	private Scenario currentScenario;
@@ -120,6 +121,7 @@ public class GameEngine {
 		this.deathManager = new DeathManager(ui, dataManager);
 		this.eventProcessor = new EventProcessor(ui, deathManager, developerMode, dataManager, audioManager);
 		this.eventManager = new EventManager(dataManager, eventProcessor, scenarioManager, developerMode);
+		this.townManager = new com.kh.tbrr.manager.TownManager(ui, dataManager, eventProcessor);
 
 		// インタラクションシステム初期化
 		com.kh.tbrr.interaction.InteractionRegistry.initialize();
@@ -387,6 +389,15 @@ public class GameEngine {
 
 			if (gameState.isGameOver())
 				return;
+
+			// 街フェーズトリガーチェック（advanceFloor()の前に実行、フロアカウントは消費しない）
+			Scenario.StageConfig townCheckConfig = currentScenario.getStageConfigByFloor(gameState.getCurrentFloor());
+			if (townCheckConfig != null && townCheckConfig.isTriggerTownPhase()) {
+				// TODO: セーブ機能本実装時: 街フェーズ前後のセーブポイント対応を検討する
+				townManager.runTownPhase(player, gameState);
+				if (gameState.isGameOver())
+					return;
+			}
 
 			// フロア進行
 			advanceFloor();

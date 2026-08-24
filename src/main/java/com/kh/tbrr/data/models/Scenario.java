@@ -56,6 +56,10 @@ public class Scenario {
 		private boolean allowPlayerChoice = false; // プレイヤーに選択させるか
 		private List<MapChoice> mapChoices; // 選択肢リスト
 
+		// ★新規追加: 街フェーズトリガー
+		// このフロアのイベント処理後に街フェーズ（TownManager）を呼び出す
+		private boolean triggerTownPhase = false;
+
 		/**
 		 * マップ選択肢クラス
 		 * プレイヤーが選択できるマップの情報を保持
@@ -182,6 +186,15 @@ public class Scenario {
 
 		public void setMapChoices(List<MapChoice> mapChoices) {
 			this.mapChoices = mapChoices;
+		}
+
+		// ★新規追加: 街フェーズトリガーのGetter/Setter
+		public boolean isTriggerTownPhase() {
+			return triggerTownPhase;
+		}
+
+		public void setTriggerTownPhase(boolean triggerTownPhase) {
+			this.triggerTownPhase = triggerTownPhase;
 		}
 	}
 

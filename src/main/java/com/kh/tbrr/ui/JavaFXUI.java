@@ -880,8 +880,9 @@ public class JavaFXUI implements GameUI {
 			if (result != null && !result.isEmpty()) {
 				String lowerInput = result.trim().toLowerCase();
 
-				// 開発者コマンドの判定（admin, dev, admin on/off, debug on/off, helper on/off, player.*）
-				if (lowerInput.equals("admin") ||
+				// 開発者コマンドの判定（admin, dev, admin on/off, debug on/off, helper on/off, player.*/game.*/enemy.*）
+				// game.* / enemy.* は開発者モードON時のみ通す
+				boolean isDevCmd = lowerInput.equals("admin") ||
 						lowerInput.equals("dev") ||
 						lowerInput.equals("admin on") ||
 						lowerInput.equals("admin off") ||
@@ -889,8 +890,11 @@ public class JavaFXUI implements GameUI {
 						lowerInput.equals("debug off") ||
 						lowerInput.equals("helper on") ||
 						lowerInput.equals("helper off") ||
-						lowerInput.startsWith("player.")) {
+						lowerInput.startsWith("player.") ||
+						(developerMode != null && developerMode.isEnabled() &&
+							(lowerInput.startsWith("game.") || lowerInput.startsWith("enemy.")));
 
+				if (isDevCmd) {
 					if (developerMode != null) {
 						Player currentPlayer = developerMode.getCurrentPlayer();
 						developerMode.handleDevCommand(result, currentPlayer);
@@ -940,6 +944,7 @@ public class JavaFXUI implements GameUI {
 			if (input != null && !input.isEmpty()) {
 				String lowerInput = input.trim().toLowerCase();
 
+				// admin/dev トグルは常時通す（devOFF時も有効）
 				if (lowerInput.equals("admin") || lowerInput.equals("dev")) {
 					if (developerMode != null) {
 						developerMode.handleDevCommand(input, currentPlayer);
@@ -947,20 +952,13 @@ public class JavaFXUI implements GameUI {
 					return getPlayerChoiceInternal(max, currentPlayer, false);
 				}
 
-				if (developerMode != null && developerMode.isEnabled()) {
-					if (lowerInput.startsWith("player.") ||
-							lowerInput.equals("admin on") ||
-							lowerInput.equals("admin off") ||
-							lowerInput.equals("debug on") ||
-							lowerInput.equals("debug off") ||
-							lowerInput.equals("helper on") ||
-							lowerInput.equals("helper off")) {
-
-						if (currentPlayer != null) {
-							developerMode.handleDevCommand(input, currentPlayer);
-						}
-						return getPlayerChoiceInternal(max, currentPlayer, false);
-					}
+				// B案: devモーONかつ数値でない入力は全てhandleDevCommandに渡す
+				// （statusコマンドは後ブロックで処理されるため、先に数値チェックを行う）
+				if (developerMode != null && developerMode.isEnabled()
+						&& !lowerInput.matches("\\d+")
+						&& !lowerInput.equals("status") && !lowerInput.equals("ステータス") && !lowerInput.equals("s")) {
+					developerMode.handleDevCommand(input, currentPlayer);
+					return getPlayerChoiceInternal(max, currentPlayer, false);
 				}
 			}
 

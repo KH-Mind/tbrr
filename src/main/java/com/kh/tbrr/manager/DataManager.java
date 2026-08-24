@@ -62,7 +62,6 @@ public class DataManager {
 	private Map<String, Scenario> scenarioCache;
 	private Map<String, GameMap> mapCache;
 
-
 	/**
 	 * コンストラクタ
 	 */
@@ -257,12 +256,16 @@ public class DataManager {
 
 	// イベントフォルダのリストを定数化（または動的取得）
 	private static final String[] EVENT_SUBDIRS = {
-			"system", "common", "unique", "landscapes", "traps", "hazard", "npc",
-			"encounter", "friendly", "slime", "test", "untested", "creature",
-			"celestial_alignment", "memorial_chamber",
-			"old_manor", "special", "boss", // 重複や漏れを統合
-			"encounter_hostile", "encounter_outlaws", "encounter_wildlife", "encounter_monsters", "encounter_nature",
-			"encounter_neutrals", "last_resort"
+			"system", "unique_event",
+			"town_events", "landscapes",
+			"encounter_hostile", "encounter_monsters", "encounter_nature",
+			"encounter_neutrals", "encounter_outlaws", "encounter_wildlife",
+			"hazard", "traps",
+			"last_resort", "memorial_chamber", // 試験会場
+			"old_manor", // 残骸
+			"common", "creature", "friendly", // 基本的には使わない予備
+			"test", "unfinished", "untested", // 割とゴミ置き場
+			"celestial_alignment" // ver3以降用
 	};
 
 	public GameEvent loadEvent(String eventId) {

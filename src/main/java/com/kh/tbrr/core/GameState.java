@@ -53,6 +53,11 @@ public class GameState {
 	// シナリオ開始時にGameEngineがScenario.getThreatLevelInterval()の値をセットする
 	private int threatLevelInterval = 20;
 
+	// ========== 街フェーズ管理 ==========
+	// 街フェーズ中の残り行動力（表示名：「町での残り行動可能数」）
+	// TODO: セーブ機能本実装時に保存対象に含めること
+	private int townAP = 0;
+
 	// ↑↑↑ 後で整理しような ↑↑↑
 
 	// ========== イベント山札管理 ==========
@@ -247,6 +252,18 @@ public class GameState {
 	/** 脅威度が1上昇するフロア間隔を設定する。シナリオ開始時にGameEngineが呼び出す。 */
 	public void setThreatLevelInterval(int interval) {
 		this.threatLevelInterval = interval;
+	}
+
+	// ========== 街フェーズ行動力（townAP）管理 ==========
+
+	/** 街フェーズの残り行動力を取得する。 */
+	public int getTownAP() {
+		return townAP;
+	}
+
+	/** 街フェーズの残り行動力を設定する。 */
+	public void setTownAP(int townAP) {
+		this.townAP = townAP;
 	}
 
 	// ========== 死亡履歴 ==========
