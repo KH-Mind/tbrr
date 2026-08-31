@@ -53,6 +53,9 @@ public class GameState {
 	// シナリオ開始時にGameEngineがScenario.getThreatLevelInterval()の値をセットする
 	private int threatLevelInterval = 20;
 
+	// 引継ぎ処理を許可するか（シナリオ開始時にGameEngineがScenario.isAllowCarryover()の値をセットする）
+	private boolean allowCarryover = true;
+
 	// ========== 街フェーズ管理 ==========
 	// 街フェーズ中の残り行動力（表示名：「町での残り行動可能数」）
 	// TODO: セーブ機能本実装時に保存対象に含めること
@@ -252,6 +255,16 @@ public class GameState {
 	/** 脅威度が1上昇するフロア間隔を設定する。シナリオ開始時にGameEngineが呼び出す。 */
 	public void setThreatLevelInterval(int interval) {
 		this.threatLevelInterval = interval;
+	}
+
+	/** 引継ぎ処理を許可するかを取得する。 */
+	public boolean isAllowCarryover() {
+		return allowCarryover;
+	}
+
+	/** 引継ぎ処理を許可するかを設定する。シナリオ開始時にGameEngineが呼び出す。 */
+	public void setAllowCarryover(boolean allowCarryover) {
+		this.allowCarryover = allowCarryover;
 	}
 
 	// ========== 街フェーズ行動力（townAP）管理 ==========

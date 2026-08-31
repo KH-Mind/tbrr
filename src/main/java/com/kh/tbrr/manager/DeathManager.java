@@ -165,8 +165,8 @@ public class DeathManager {
 			ui.print("");
 			ui.waitForEnter();
 
-			// 運命に導かれし者の判定
-			if (player.isFatedOne()) {
+			// 運命に導かれし者の判定（かつシナリオ側で引継ぎが許可されている場合のみ）
+			if (player.isFatedOne() && gameState.isAllowCarryover()) {
 
 				ui.print("（引継ぎ処理へ移行します…）");
 				ui.print("");

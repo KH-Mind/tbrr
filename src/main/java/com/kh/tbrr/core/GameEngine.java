@@ -179,6 +179,7 @@ public class GameEngine {
 		gameState.setCurrentScenario(scenarioId);
 		gameState.setMaxFloor(currentScenario.getTotalFloors());
 		gameState.setThreatLevelInterval(currentScenario.getThreatLevelInterval()); // 脅威度スケーリング間隔を設定
+		gameState.setAllowCarryover(currentScenario.isAllowCarryover()); // 引継ぎ許可フラグを設定
 		developerMode.setGameState(gameState);
 
 		// フロアを0から開始
@@ -215,6 +216,7 @@ public class GameEngine {
 		int totalFloors = currentScenario.getStageConfigs().size();
 		gameState.setMaxFloor(totalFloors);
 		gameState.setThreatLevelInterval(currentScenario.getThreatLevelInterval()); // 脅威度スケーリング間隔を設定
+		gameState.setAllowCarryover(currentScenario.isAllowCarryover()); // 引継ぎ許可フラグを設定
 
 		// フロアを0から開始
 		gameState.setCurrentFloor(0);

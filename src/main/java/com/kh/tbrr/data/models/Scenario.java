@@ -20,6 +20,9 @@ public class Scenario {
 	// 脅威度スケーリング: 何フロアごとに脅威度が1上昇するか（0=フロアによる自動上昇なし）
 	private int threatLevelInterval = 20;
 
+	// 引継ぎ処理を許可するか（デフォルト: true。falseにするとisFatedOne問わずゲームオーバーのみ）
+	private boolean allowCarryover = true;
+
 	// JSONの"areas"を"stageConfigs"にマッピング
 	@SerializedName("areas")
 	private List<StageConfig> stageConfigs; // フロア設定リスト
@@ -328,6 +331,14 @@ public class Scenario {
 
 	public void setThreatLevelInterval(int threatLevelInterval) {
 		this.threatLevelInterval = threatLevelInterval;
+	}
+
+	public boolean isAllowCarryover() {
+		return allowCarryover;
+	}
+
+	public void setAllowCarryover(boolean allowCarryover) {
+		this.allowCarryover = allowCarryover;
 	}
 
 	public int getTotalFloors() {
