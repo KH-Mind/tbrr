@@ -70,7 +70,7 @@ public class ConfigDialog {
             ConfigManager.getInstance().saveConfig();
             dialogStage.close();
         });
-        
+
         // ×ボタンで閉じられた場合も保存
         dialogStage.setOnCloseRequest(e -> ConfigManager.getInstance().saveConfig());
 
@@ -94,7 +94,8 @@ public class ConfigDialog {
         content.setStyle("-fx-background-color: #3a3a3a;");
 
         Label titleLabel = new Label("ゲーム設定");
-        titleLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18px; -fx-font-family: Arial;");
+        titleLabel
+                .setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18px; -fx-font-family: Arial;");
 
         Button returnToMenuButton = new Button("タイトルに戻る"); // 現在、実質的にメインメニューがタイトルである。
         returnToMenuButton.setPrefWidth(250);
@@ -136,7 +137,8 @@ public class ConfigDialog {
         content.setStyle("-fx-background-color: #3a3a3a;");
 
         Label titleLabel = new Label("音量設定");
-        titleLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18px; -fx-font-family: Arial;");
+        titleLabel
+                .setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18px; -fx-font-family: Arial;");
 
         VBox bgmBox = new VBox(5);
         Label bgmLabel = new Label("BGM音量: " + (int) (bgmVolume * 100) + "%");
@@ -169,7 +171,7 @@ public class ConfigDialog {
             ConfigManager.getInstance().getConfigData().setSeVolume(seVolume);
             AudioManager.getInstance().setSEVolume(seVolume);
         });
-        
+
         // スライダーから指を離した際にテスト音を鳴らす
         seSlider.setOnMouseReleased(e -> {
             AudioManager.getInstance().playSE("se_sys_chime01.wav");
@@ -191,7 +193,8 @@ public class ConfigDialog {
         content.setStyle("-fx-background-color: #3a3a3a;");
 
         Label titleLabel = new Label("ゲームの遊び方");
-        titleLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18px; -fx-font-family: Arial;");
+        titleLabel
+                .setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18px; -fx-font-family: Arial;");
 
         Label helpText = new Label(
                 "【基本操作】\n" +
