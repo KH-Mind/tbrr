@@ -115,7 +115,7 @@ public class GameEngine {
 		// ImageManagerの初期化
 		this.imageManager = new com.kh.tbrr.manager.ImageManager();
 		// AudioManagerの初期化
-		this.audioManager = new com.kh.tbrr.manager.AudioManager();
+		this.audioManager = com.kh.tbrr.manager.AudioManager.getInstance();
 
 		// サブシステム初期化（UI が必要なものは ui を渡す）
 		this.deathManager = new DeathManager(ui, dataManager);

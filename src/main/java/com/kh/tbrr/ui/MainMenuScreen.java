@@ -46,6 +46,9 @@ public class MainMenuScreen {
 	 * メインメニューを表示
 	 */
 	public void show() {
+		// タイトルBGMを再生
+		com.kh.tbrr.manager.AudioManager.getInstance().playBGM("bgm_mainmenuscreen.mp3");
+
 		// 背景画像を読み込み
 		Image backgroundImage = imageManager.loadBackground("mainmenu.png");
 		ImageView backgroundView = new ImageView(backgroundImage);

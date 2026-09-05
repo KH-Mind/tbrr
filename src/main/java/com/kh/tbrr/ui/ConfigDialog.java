@@ -2,6 +2,9 @@ package com.kh.tbrr.ui;
 
 import java.util.Optional;
 
+import com.kh.tbrr.manager.ConfigManager;
+import com.kh.tbrr.manager.AudioManager;
+
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -15,7 +18,6 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.Font;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -30,8 +32,8 @@ public class ConfigDialog {
     private Stage parentStage;
     private Runnable onReturnToMainMenu;
     private Runnable onSuspendGame; // 中断用コールバック
-    private double bgmVolume = 0.8;
-    private double seVolume = 0.8;
+    private double bgmVolume = ConfigManager.getInstance().getConfigData().getBgmVolume();
+    private double seVolume = ConfigManager.getInstance().getConfigData().getSeVolume();
 
     public ConfigDialog(Stage parentStage, Runnable onReturnToMainMenu) {
         this.parentStage = parentStage;
@@ -46,8 +48,7 @@ public class ConfigDialog {
         dialogStage = new Stage();
         dialogStage.initModality(Modality.APPLICATION_MODAL);
         dialogStage.initOwner(parentStage);
-        dialogStage.initStyle(StageStyle.UTILITY);
-        dialogStage.setTitle("コンフィグ");
+        dialogStage.initStyle(StageStyle.UNDECORATED);
         dialogStage.setResizable(false);
 
         TabPane tabPane = new TabPane();
@@ -65,7 +66,13 @@ public class ConfigDialog {
 
         Button closeButton = new Button("閉じる");
         closeButton.setPrefWidth(100);
-        closeButton.setOnAction(e -> dialogStage.close());
+        closeButton.setOnAction(e -> {
+            ConfigManager.getInstance().saveConfig();
+            dialogStage.close();
+        });
+        
+        // ×ボタンで閉じられた場合も保存
+        dialogStage.setOnCloseRequest(e -> ConfigManager.getInstance().saveConfig());
 
         HBox buttonBox = new HBox();
         buttonBox.setAlignment(Pos.CENTER_RIGHT);
@@ -87,19 +94,18 @@ public class ConfigDialog {
         content.setStyle("-fx-background-color: #3a3a3a;");
 
         Label titleLabel = new Label("ゲーム設定");
-        titleLabel.setFont(Font.font("Arial", 18));
-        titleLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        titleLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18px; -fx-font-family: Arial;");
 
         Button returnToMenuButton = new Button("タイトルに戻る"); // 現在、実質的にメインメニューがタイトルである。
         returnToMenuButton.setPrefWidth(250);
         returnToMenuButton.setPrefHeight(40);
-        returnToMenuButton.setFont(Font.font("Arial", 14));
+        returnToMenuButton.setStyle("-fx-font-size: 14px; -fx-font-family: Arial;");
         returnToMenuButton.setOnAction(e -> confirmReturnToMainMenu());
 
         Button exitGameButton = new Button("ゲームを終了する");
         exitGameButton.setPrefWidth(250);
         exitGameButton.setPrefHeight(40);
-        exitGameButton.setFont(Font.font("Arial", 14));
+        exitGameButton.setStyle("-fx-font-size: 14px; -fx-font-family: Arial;");
         exitGameButton.setOnAction(e -> confirmExitGame());
 
         content.getChildren().addAll(titleLabel, returnToMenuButton, exitGameButton);
@@ -107,7 +113,7 @@ public class ConfigDialog {
         Button suspendGameButton = new Button("ゲームを中断する（タイトルへ）");
         suspendGameButton.setPrefWidth(250);
         suspendGameButton.setPrefHeight(40);
-        suspendGameButton.setFont(Font.font("Arial", 14));
+        suspendGameButton.setStyle("-fx-font-size: 14px; -fx-font-family: Arial;");
         suspendGameButton.setOnAction(e -> confirmSuspendGame());
 
         // 中断コールバックがない場合はボタンを無効化
@@ -130,8 +136,7 @@ public class ConfigDialog {
         content.setStyle("-fx-background-color: #3a3a3a;");
 
         Label titleLabel = new Label("音量設定");
-        titleLabel.setFont(Font.font("Arial", 18));
-        titleLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        titleLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18px; -fx-font-family: Arial;");
 
         VBox bgmBox = new VBox(5);
         Label bgmLabel = new Label("BGM音量: " + (int) (bgmVolume * 100) + "%");
@@ -144,6 +149,8 @@ public class ConfigDialog {
         bgmSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
             bgmVolume = newVal.doubleValue() / 100.0;
             bgmLabel.setText("BGM音量: " + newVal.intValue() + "%");
+            ConfigManager.getInstance().getConfigData().setBgmVolume(bgmVolume);
+            AudioManager.getInstance().setBGMVolume(bgmVolume);
         });
 
         bgmBox.getChildren().addAll(bgmLabel, bgmSlider);
@@ -159,14 +166,18 @@ public class ConfigDialog {
         seSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
             seVolume = newVal.doubleValue() / 100.0;
             seLabel.setText("SE音量: " + newVal.intValue() + "%");
+            ConfigManager.getInstance().getConfigData().setSeVolume(seVolume);
+            AudioManager.getInstance().setSEVolume(seVolume);
+        });
+        
+        // スライダーから指を離した際にテスト音を鳴らす
+        seSlider.setOnMouseReleased(e -> {
+            AudioManager.getInstance().playSE("se_sys_chime01.wav");
         });
 
         seBox.getChildren().addAll(seLabel, seSlider);
 
-        Label notImplementedLabel = new Label("※ BGM/SE機能は未実装です");
-        notImplementedLabel.setStyle("-fx-text-fill: #888888; -fx-font-size: 11px;");
-
-        content.getChildren().addAll(titleLabel, bgmBox, seBox, notImplementedLabel);
+        content.getChildren().addAll(titleLabel, bgmBox, seBox);
 
         tab.setContent(content);
         return tab;
@@ -180,8 +191,7 @@ public class ConfigDialog {
         content.setStyle("-fx-background-color: #3a3a3a;");
 
         Label titleLabel = new Label("ゲームの遊び方");
-        titleLabel.setFont(Font.font("Arial", 18));
-        titleLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        titleLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18px; -fx-font-family: Arial;");
 
         Label helpText = new Label(
                 "【基本操作】\n" +

@@ -14,7 +14,7 @@ module com.kh.tbrr {
 	opens com.kh.tbrr to javafx.graphics;
 	opens com.kh.tbrr.ui to javafx.fxml;
 	opens com.kh.tbrr.core;
-	opens com.kh.tbrr.manager to javafx.fxml;
+	opens com.kh.tbrr.manager to javafx.fxml, com.google.gson;
 	opens com.kh.tbrr.data.models;
 	opens com.kh.tbrr.system;
 	opens com.kh.tbrr.event;

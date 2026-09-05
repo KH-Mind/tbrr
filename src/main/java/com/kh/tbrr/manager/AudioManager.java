@@ -14,6 +14,8 @@ import javafx.scene.media.MediaPlayer;
  */
 public class AudioManager {
 
+	private static AudioManager instance;
+
 	// SE cache (AudioClip is suitable for short sound effects)
 	private Map<String, AudioClip> seCache;
 
@@ -28,12 +30,21 @@ public class AudioManager {
 	private boolean seEnabled;
 	private boolean bgmEnabled;
 
-	public AudioManager() {
+	private AudioManager() {
 		this.seCache = new HashMap<>();
-		this.seVolume = 0.7;
-		this.bgmVolume = 0.5;
 		this.seEnabled = true;
 		this.bgmEnabled = true;
+		
+		// 初期音量をコンフィグから読み込む
+		this.seVolume = ConfigManager.getInstance().getConfigData().getSeVolume();
+		this.bgmVolume = ConfigManager.getInstance().getConfigData().getBgmVolume();
+	}
+
+	public static synchronized AudioManager getInstance() {
+		if (instance == null) {
+			instance = new AudioManager();
+		}
+		return instance;
 	}
 
 	/**
