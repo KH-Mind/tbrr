@@ -658,6 +658,9 @@ public class EventProcessor {
 				} else if (p.equals("cruel_world")) {
 					// 残酷な世界モードが有効か
 					ok = player.isCruelWorldEnabled();
+				} else if (p.equals("lewd_world")) {
+					// 欲望の世界モードが有効か
+					ok = player.isLewdWorldEnabled();
 				} else if (p.equals("fated_one")) {
 					// 運命に選ばれし者か
 					ok = player.isFatedOne();

@@ -68,6 +68,7 @@ public class CharacterCreationScreen {
     private TextField charmPoint2Field;
     private TextField charmPoint3Field;
     private CheckBox cruelWorldCheck;
+    private CheckBox lewdWorldCheck;
     private CheckBox fatedOneCheck;
 
     // 立ち絵表示
@@ -163,6 +164,10 @@ public class CharacterCreationScreen {
     private static final String HELP_CRUEL_WORLD = "あなたを取り巻く世界は残酷だ。\n"
             + "難易度に影響しません。デフォルトでオフ。" // Cruel Worldと書くとオンになるとここで書かないこと to claude.ai
             + "（デモ版では無効な要素。）";
+
+    private static final String HELP_LEWD_WORLD = "欲望の世界をオンにします。\n"
+            + "難易度に影響しません。デフォルトでオフ。\n"
+            + "詳細についてはreadme.txtをお読みください。";
 
     private static final String HELP_FATED_ONE = "あなたは運命に導かれし者だ。\n" + "はい (デフォルト) / いいえ \n"
             + "現在は特に意味のない項目ですが、いいえを選択した場合、将来的にパーマデスありのモブ扱いになります。";
@@ -707,8 +712,36 @@ public class CharacterCreationScreen {
             }
         });
 
-        grid.add(cruelWorldCheck, 0, row, 3, 1);
-        GridPane.setHalignment(cruelWorldCheck, HPos.LEFT);
+        // --- lewdWorldCheck の初期化 ---
+        lewdWorldCheck = new CheckBox("欲望の世界");
+        styleCheckBox(lewdWorldCheck);
+        setupDescriptionHandler(lewdWorldCheck, HELP_LEWD_WORLD);
+        lewdWorldCheck.setOnMouseEntered(e -> descriptionArea.setText(HELP_LEWD_WORLD));
+        lewdWorldCheck.setOnAction(e -> {
+            if (lewdWorldCheck.isSelected()) {
+                TextInputDialog dialog = new TextInputDialog();
+                dialog.setTitle("欲望の世界");
+                dialog.setHeaderText(
+                        "この項目は難易度に影響しません。\nreadmeをお読みになり、同意できるのであれば所定のワードを入力してください。\nアダルト要素がオンになります。");
+                dialog.setContentText("入力:");
+                var result = dialog.showAndWait();
+                if (result.isPresent() && "Lewd World".equals(result.get())) {
+                    // 正解なのでそのまま
+                } else {
+                    lewdWorldCheck.setSelected(false);
+                    if (result.isPresent()) {
+                        showAlert("エラー", "正しく入力されませんでした。");
+                    }
+                }
+            }
+        });
+
+        // --- 残酷な世界・欲望の世界を横並びで同一行に配置 ---
+        HBox sensitiveBox = new HBox(20);
+        sensitiveBox.setAlignment(Pos.CENTER_LEFT);
+        sensitiveBox.getChildren().addAll(cruelWorldCheck, lewdWorldCheck);
+        grid.add(sensitiveBox, 0, row, 3, 1);
+        GridPane.setHalignment(sensitiveBox, HPos.LEFT);
         row++;
 
         fatedOneCheck = new CheckBox("選ばれし者");
@@ -1103,6 +1136,7 @@ public class CharacterCreationScreen {
 
         // その他
         player.setCruelWorldEnabled(cruelWorldCheck.isSelected());
+        player.setLewdWorldEnabled(lewdWorldCheck.isSelected());
         player.setFatedOne(fatedOneCheck.isSelected());
 
         // グレード初期値を明示的にセット（grade = 死んだ回数。作成時は0）

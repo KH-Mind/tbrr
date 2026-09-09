@@ -3,6 +3,7 @@ package com.kh.tbrr.data.models;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.gson.annotations.SerializedName;
 import com.kh.tbrr.data.TraitRegistry;
 import com.kh.tbrr.data.ItemRegistry;
 import com.kh.tbrr.data.SkillStatsMapper;
@@ -105,6 +106,8 @@ public class Player {
 
     // flags
     private boolean cruelWorldEnabled = false;
+    private boolean lewdWorldEnabled = false;
+    @SerializedName("isFatedOne")
     private boolean isFatedOne;
 
     // グレード: 死亡した回数（引継ぎ回数）。最大20。
@@ -1194,6 +1197,14 @@ public class Player {
 
     public void setCruelWorldEnabled(boolean enabled) {
         this.cruelWorldEnabled = enabled;
+    }
+
+    public boolean isLewdWorldEnabled() {
+        return lewdWorldEnabled;
+    }
+
+    public void setLewdWorldEnabled(boolean enabled) {
+        this.lewdWorldEnabled = enabled;
     }
 
     public boolean isFatedOne() {
