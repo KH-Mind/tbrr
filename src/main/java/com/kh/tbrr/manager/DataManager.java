@@ -261,7 +261,7 @@ public class DataManager {
 			"encounter_hostile", "encounter_monsters", "encounter_nature",
 			"encounter_neutrals", "encounter_outlaws", "encounter_wildlife",
 			"hazard", "traps",
-			"last_resort", "memorial_chamber", // 試験会場
+			"last_resort", "memorial_chamber", "template", // 試験会場
 			"old_manor", // 残骸
 			"common", "creature", "friendly", // 基本的には使わない予備
 			"test", "unfinished", "untested", // 割とゴミ置き場
