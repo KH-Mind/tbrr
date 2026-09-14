@@ -158,6 +158,9 @@ public class EventProcessor {
 		}
 
 		if (!gameState.isInRecursiveEvent()) {
+			// 一連のイベント処理が終わったタイミングで、右側パネルのUIを最新状態に一括リフレッシュする
+			ui.printPlayerStatus(player);
+			
 			ui.print("");
 			ui.waitForEnter();
 		}
