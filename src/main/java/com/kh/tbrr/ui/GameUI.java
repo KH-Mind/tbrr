@@ -218,4 +218,24 @@ public interface GameUI {
 	default void setSuspendSaveEnabled(boolean enabled) {
 		// デフォルト実装は何もしない（ConsoleUI向け）
 	}
+
+	/**
+	 * サブウィンドウにゾーンマップを表示する。
+	 * JavaFXUIが実装する。ConsoleUIはno-op。
+	 *
+	 * @param zone          ゾーン定義データ
+	 * @param onNodeClicked ノードがクリックされた際に呼ばれるコールバック
+	 */
+	default void showZoneMap(com.kh.tbrr.data.models.ZoneData zone,
+			java.util.function.Consumer<com.kh.tbrr.data.models.ZoneNode> onNodeClicked) {
+		// デフォルト実装は何もしない（ConsoleUI向け）
+	}
+
+	/**
+	 * ゾーンマップをサブウィンドウから消去し、通常の画像表示モードに戻す。
+	 * JavaFXUIが実装する。ConsoleUIはno-op。
+	 */
+	default void clearZoneMap() {
+		// デフォルト実装は何もしない（ConsoleUI向け）
+	}
 }

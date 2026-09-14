@@ -42,6 +42,19 @@ public class EventProcessor {
 
 	private DeveloperMode developerMode;
 
+	/** ゾーン探索システム（enter_zone コマンドで呼び出す）。セッターで後から注入する */
+	private com.kh.tbrr.manager.ZoneManager zoneManager;
+
+	/**
+	 * ZoneManager をセッター注入する（循環依存回避のため）。
+	 * GameEngine のコンストラクタで両者を生成した後に呼ぶこと。
+	 *
+	 * @param zoneManager ゾーン探索管理クラス
+	 */
+	public void setZoneManager(com.kh.tbrr.manager.ZoneManager zoneManager) {
+		this.zoneManager = zoneManager;
+	}
+
 	/**
 	 * イベント処理クラス
 	 * 選択肢の表示・結果の分岐・状態変化を担当
@@ -144,6 +157,12 @@ public class EventProcessor {
 		if (!gameState.isInRecursiveEvent()) {
 			ui.print("");
 			ui.waitForEnter();
+		}
+
+		// イベントのトップレベルに command: "exit_zone" がある場合はゾーン退出シグナルを返す
+		if ("exit_zone".equals(event.getCommand())) {
+			System.out.println("[EventProcessor] exit_zone コマンドを検知しました。");
+			return com.kh.tbrr.manager.ZoneManager.EXIT_ZONE_SIGNAL;
 		}
 
 		return null;
@@ -1466,6 +1485,21 @@ public class EventProcessor {
 				if (roll <= drop.getChance()) {
 					handleItemDrop(drop.getItemId(), player, gameState);
 				}
+			}
+		}
+
+		// ★ ゾーン呼び出し（enter_zone コマンド）
+		if ("enter_zone".equals(result.getCommand())) {
+			String targetZoneId = result.getTarget();
+			if (targetZoneId == null || targetZoneId.isEmpty()) {
+				ui.print("【システム】enter_zone コマンドに target が設定されていません。");
+			} else if (zoneManager == null) {
+				ui.print("【システム】ZoneManager が初期化されていません。");
+				System.err.println(
+						"[EventProcessor] ZoneManager が null です。GameEngine での setZoneManager() 呼び出しを確認してください。");
+			} else {
+				System.out.println("[EventProcessor] enter_zone: " + targetZoneId);
+				zoneManager.startZone(targetZoneId, player, gameState);
 			}
 		}
 

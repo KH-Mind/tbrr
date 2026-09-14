@@ -47,6 +47,10 @@ public class GameEvent {
 	private String interaction;
 	private Map<String, Object> interactionParams;
 
+	// イベントトップレベルのコマンド（例: "exit_zone"）
+	// nextEventId と同じ位置に置き、「このイベントが終わったら〇〇する」という自動処理に使う
+	private String command;
+
 	// コンストラクタ
 	public GameEvent() {
 		this.tags = new ArrayList<>();
@@ -194,6 +198,14 @@ public class GameEvent {
 
 	public void setInteractionParams(Map<String, Object> interactionParams) {
 		this.interactionParams = interactionParams;
+	}
+
+	public String getCommand() {
+		return command;
+	}
+
+	public void setCommand(String command) {
+		this.command = command;
 	}
 
 	// ======== 内部クラス: InitialEffects ========
@@ -531,6 +543,11 @@ public class GameEvent {
 
 		// 確率付きドロップ（独立抽選方式）
 		private List<ItemDrop> itemDrops;
+
+		// ゾーン呼び出し用コマンドフィールド
+		// command: "enter_zone" のとき target でゾーンIDを指定する
+		private String command;
+		private String target;
 
 		public Result() {
 			this.description = new ArrayList<>();
@@ -915,6 +932,22 @@ public class GameEvent {
 
 		public void setItemDrops(List<ItemDrop> itemDrops) {
 			this.itemDrops = itemDrops;
+		}
+
+		public String getCommand() {
+			return command;
+		}
+
+		public void setCommand(String command) {
+			this.command = command;
+		}
+
+		public String getTarget() {
+			return target;
+		}
+
+		public void setTarget(String target) {
+			this.target = target;
 		}
 
 	}

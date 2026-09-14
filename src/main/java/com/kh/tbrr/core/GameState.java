@@ -346,6 +346,16 @@ public class GameState {
 		flags.clear();
 	}
 
+	/**
+	 * 指定プレフィックスで始まる全フラグを一括削除する。
+	 * ゾーン終了時に "zone:" プレフィックスのローカルフラグを消去するために使用する。
+	 *
+	 * @param prefix 削除対象のプレフィックス（例: "zone:"）
+	 */
+	public void clearFlagsWithPrefix(String prefix) {
+		flags.removeIf(f -> f.startsWith(prefix));
+	}
+
 	// ========== カウンター管理 ==========
 
 	public void incrementCounter(String key) {

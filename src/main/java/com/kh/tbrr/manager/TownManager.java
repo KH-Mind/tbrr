@@ -15,6 +15,12 @@ import com.kh.tbrr.utils.TextReplacer;
  * 将来の拡張:
  *   - visitWeaponShop() 等を追加して施設を増やす
  *   - TODO: セーブ機能本実装時: runTownPhase() 実行中のセーブ対応を行う
+ *
+ * 設計方針:
+ *   TownManagerはZoneManagerを知らない。
+ *   施設への入場は各施設の入場イベントJSON（例: tavern_enter.json）を
+ *   EventProcessor経由で処理することで行い、そのイベント内の
+ *   command: "enter_zone" をEventProcessorが検知してゾーンに遷移する。
  */
 public class TownManager {
 
@@ -79,19 +85,23 @@ public class TownManager {
         ui.print("━━━━━━━━━━━━━━━━━━━━━━");
         ui.print("どこへ行きますか？");
         ui.print("1. 宿屋に行く");
+        ui.print("2. 酒場に入る");
         // 将来の施設はここに追加する
-        // 2. 武器屋に行く
-        // 3. ...
-        ui.print("2. 出発する（行動力が残っていても出発できます）");
+        // 3. 武器屋に行く
+        // ...
+        ui.print("3. 出発する（行動力が残っていても出発できます）");
         ui.print("━━━━━━━━━━━━━━━━━━━━━━");
 
-        int choice = ui.getPlayerChoice(2, player);
+        int choice = ui.getPlayerChoice(3, player);
 
         switch (choice) {
             case 1:
                 visitInn(player, gameState);
                 break;
             case 2:
+                visitTavern(player, gameState);
+                break;
+            case 3:
                 // 出発を選択：townAPを0にしてループを終了させる
                 gameState.setTownAP(0);
                 break;
@@ -118,4 +128,26 @@ public class TownManager {
         // 施設利用後、行動力を1消費
         gameState.setTownAP(gameState.getTownAP() - 1);
     }
+
+    /**
+     * 酒場に入る。
+     * tavern_enter.json を EventProcessor 経由で処理する。
+     * そのイベント内の command: "enter_zone" を EventProcessor が検知し、
+     * ZoneManager.startZone() を呼び出してゾーン探索へ遷移する。
+     * TownManager 自身は ZoneManager を知らない。
+     *
+     * @param player    プレイヤー
+     * @param gameState ゲーム状態
+     */
+    private void visitTavern(Player player, GameState gameState) {
+        GameEvent tavernEnterEvent = dataManager.loadEvent("tavern_enter");
+        if (tavernEnterEvent != null) {
+            eventProcessor.processEvent(tavernEnterEvent, player, gameState);
+        } else {
+            ui.print("【システム】酒場の入場イベントが見つかりませんでした。");
+        }
+        // ゾーン探索から戻った後、行動力を1消費
+        gameState.setTownAP(gameState.getTownAP() - 1);
+    }
 }
+

@@ -123,6 +123,13 @@ public class GameEngine {
 		this.eventManager = new EventManager(dataManager, eventProcessor, scenarioManager, developerMode);
 		this.townManager = new com.kh.tbrr.manager.TownManager(ui, dataManager, eventProcessor);
 
+		// ZoneManager の初期化と EventProcessor への注入（セッター注入で循環依存を回避）
+		// ZoneManager → EventProcessor はコンストラクタ注入
+		// EventProcessor → ZoneManager はセッター注入（後から設定）
+		com.kh.tbrr.manager.ZoneManager zoneManager =
+				new com.kh.tbrr.manager.ZoneManager(ui, dataManager, eventProcessor);
+		this.eventProcessor.setZoneManager(zoneManager);
+
 		// インタラクションシステム初期化
 		com.kh.tbrr.interaction.InteractionRegistry.initialize();
 	}

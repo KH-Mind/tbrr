@@ -1791,6 +1791,153 @@ public class JavaFXUI implements GameUI {
 		});
 	}
 
+	// ========== ゾーン探索マップ表示 ==========
+
+	/**
+	 * サブウィンドウにゾーンマップを表示する。
+	 * 背景画像の上にノードアイコン（クリック可能なボタン）を重ねて配置する。
+	 *
+	 * @param zone          ゾーン定義データ（背景画像・ノードリスト）
+	 * @param onNodeClicked ノードがクリックされた際に呼ばれるコールバック
+	 */
+	@Override
+	public void showZoneMap(com.kh.tbrr.data.models.ZoneData zone,
+			java.util.function.Consumer<com.kh.tbrr.data.models.ZoneNode> onNodeClicked) {
+		Platform.runLater(() -> {
+			if (subWindowBox == null) return;
+
+			// StackPane を作成してサブウィンドウにセット（背景+ノードを重ねるため）
+			javafx.scene.layout.StackPane zonePane = new javafx.scene.layout.StackPane();
+			zonePane.setPrefSize(450, 450);
+			zonePane.setMaxSize(450, 450);
+			zonePane.setMinSize(450, 450);
+
+			// 背景画像
+			ImageView bgView = new ImageView();
+			bgView.setFitWidth(450);
+			bgView.setFitHeight(450);
+			bgView.setPreserveRatio(false);
+			bgView.setSmooth(true);
+			if (zone.getBackgroundImage() != null && !zone.getBackgroundImage().isEmpty()) {
+				javafx.scene.image.Image bgImg = imageManager.loadZoneImage(zone.getBackgroundImage());
+				if (bgImg != null) {
+					bgView.setImage(bgImg);
+				} else {
+					System.err.println("[JavaFXUI] ゾーン背景画像の読み込みに失敗: " + zone.getBackgroundImage());
+				}
+			}
+			zonePane.getChildren().add(bgView);
+
+			// ノードアイコン（AnchorPaneで絶対座標に配置）
+			javafx.scene.layout.AnchorPane nodeLayer = new javafx.scene.layout.AnchorPane();
+			nodeLayer.setPrefSize(450, 450);
+			nodeLayer.setMaxSize(450, 450);
+			nodeLayer.setMinSize(450, 450);
+			nodeLayer.setStyle("-fx-background-color: transparent;");
+
+			if (zone.getNodes() != null) {
+				for (com.kh.tbrr.data.models.ZoneNode node : zone.getNodes()) {
+					// アイコン（円形ボタン）を作成
+					Button nodeBtn = createZoneNodeButton(node);
+					nodeBtn.setOnAction(e -> {
+						if (onNodeClicked != null) {
+							onNodeClicked.accept(node);
+						}
+					});
+
+					// 座標はノードの中心が(x, y)になるよう半径分オフセット
+					double radius = 20.0;
+					javafx.scene.layout.AnchorPane.setLeftAnchor(nodeBtn, node.getX() - radius);
+					javafx.scene.layout.AnchorPane.setTopAnchor(nodeBtn, node.getY() - radius);
+					nodeLayer.getChildren().add(nodeBtn);
+				}
+			}
+
+			zonePane.getChildren().add(nodeLayer);
+
+			// サブウィンドウをゾーンマップに切り替え
+			subWindowBox.getChildren().clear();
+			subWindowBox.getChildren().add(zonePane);
+		});
+	}
+
+	/**
+	 * ゾーンノード用のボタンを生成する。
+	 * iconType に応じて外観（色）を変える。
+	 */
+	private Button createZoneNodeButton(com.kh.tbrr.data.models.ZoneNode node) {
+		Button btn = new Button();
+		double size = 40.0;
+		btn.setPrefSize(size, size);
+		btn.setMinSize(size, size);
+		btn.setMaxSize(size, size);
+
+		// iconType に応じてスタイルを変える
+		String baseColor;
+		switch (node.getIconType() != null ? node.getIconType() : "default") {
+			case "person":
+				baseColor = "#4a90d9"; // 青：人物
+				break;
+			case "door":
+				baseColor = "#c0a030"; // 金：出口
+				break;
+			default:
+				baseColor = "#888888"; // グレー：デフォルト
+				break;
+		}
+
+		btn.setStyle(
+			"-fx-background-radius: 20;" +
+			"-fx-background-color: " + baseColor + ";" +
+			"-fx-border-radius: 20;" +
+			"-fx-border-color: #ffffff;" +
+			"-fx-border-width: 2px;" +
+			"-fx-cursor: hand;"
+		);
+
+		// ホバー時に明るくなるスタイル
+		String hoverStyle =
+			"-fx-background-radius: 20;" +
+			"-fx-background-color: derive(" + baseColor + ", 40%);" +
+			"-fx-border-radius: 20;" +
+			"-fx-border-color: #ffffff;" +
+			"-fx-border-width: 2px;" +
+			"-fx-cursor: hand;";
+
+		btn.setOnMouseEntered(e -> btn.setStyle(hoverStyle));
+		btn.setOnMouseExited(e -> btn.setStyle(
+			"-fx-background-radius: 20;" +
+			"-fx-background-color: " + baseColor + ";" +
+			"-fx-border-radius: 20;" +
+			"-fx-border-color: #ffffff;" +
+			"-fx-border-width: 2px;" +
+			"-fx-cursor: hand;"
+		));
+
+		// Tooltip でノード名を表示
+		if (node.getDisplayName() != null && !node.getDisplayName().isEmpty()) {
+			Tooltip tooltip = new Tooltip(node.getDisplayName());
+			tooltip.setStyle("-fx-font-size: 13px;");
+			Tooltip.install(btn, tooltip);
+		}
+
+		return btn;
+	}
+
+	/**
+	 * ゾーンマップをサブウィンドウから消去し、通常の画像表示モードに戻す。
+	 */
+	@Override
+	public void clearZoneMap() {
+		Platform.runLater(() -> {
+			if (subWindowBox != null) {
+				subWindowBox.getChildren().clear();
+				subWindowBox.getChildren().add(subWindowImageView);
+				System.out.println("[JavaFXUI] ゾーンマップをクリアしました。");
+			}
+		});
+	}
+
 	/**
 	 * TextAreaのテキスト部分のクリックイベントを消費し、
 	 * キャレット移動による意図しないスクロールを防止します。

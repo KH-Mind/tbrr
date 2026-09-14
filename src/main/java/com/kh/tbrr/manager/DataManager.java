@@ -20,6 +20,7 @@ import com.kh.tbrr.data.models.GameEvent;
 import com.kh.tbrr.data.models.GameMap;
 import com.kh.tbrr.data.models.Item;
 import com.kh.tbrr.data.models.Scenario;
+import com.kh.tbrr.data.models.ZoneData;
 import com.kh.tbrr.system.DeveloperMode;
 
 /**
@@ -61,6 +62,7 @@ public class DataManager {
 	private Map<String, GameEvent> eventCache;
 	private Map<String, Scenario> scenarioCache;
 	private Map<String, GameMap> mapCache;
+	private Map<String, ZoneData> zoneCache;
 
 	/**
 	 * コンストラクタ
@@ -73,6 +75,7 @@ public class DataManager {
 		this.eventCache = new HashMap<>();
 		this.scenarioCache = new HashMap<>();
 		this.mapCache = new HashMap<>();
+		this.zoneCache = new HashMap<>();
 
 	}
 
@@ -354,6 +357,41 @@ public class DataManager {
 			e.printStackTrace();
 			return null;
 		}
+	}
+
+	/**
+	 * ゾーンIDからゾーンデータを取得する。
+	 * loadEvent() と同じ構造で loadResourceContent() を使って読み込む。
+	 *
+	 * @param zoneId ゾーンID（ファイル名と一致すること。例: "tavern" → tavern.json）
+	 * @return ZoneData。見つからない場合はnull
+	 */
+	public ZoneData loadZone(String zoneId) {
+		if (zoneCache.containsKey(zoneId)) {
+			return zoneCache.get(zoneId);
+		}
+
+		String filePath = DATA_ROOT + "zones/" + zoneId + ".json";
+
+		if (resourceExists(filePath)) {
+			try {
+				String json = loadResourceContent(filePath);
+				ZoneData zone = gson.fromJson(json, ZoneData.class);
+				if (zone != null) {
+					zoneCache.put(zoneId, zone);
+					return zone;
+				} else {
+					System.err.println("[ERROR] ゾーンデータのパースに失敗: " + zoneId);
+				}
+			} catch (Exception e) {
+				System.err.println("[ERROR] ゾーンJSON読み込みエラー: " + zoneId + " (" + filePath + ")");
+				e.printStackTrace();
+				return null;
+			}
+		}
+
+		System.err.println("[ERROR] ゾーンファイルが見つかりません: " + filePath);
+		return null;
 	}
 
 	public List<String> getAllMapIds() {

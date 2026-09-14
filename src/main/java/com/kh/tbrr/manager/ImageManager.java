@@ -35,6 +35,7 @@ public class ImageManager {
 	private static final String BG_BASE_PATH = "/data/images/bg/";
 	private static final String EVENT_IMAGES_BASE_PATH = "/data/images/event_images/";
 	private static final String ENEMIES_BASE_PATH = "/data/images/enemies/";
+	private static final String ZONES_BASE_PATH = "/data/images/zones/";
 
 	// カスタム立ち絵用パス（外部ファイルシステム）
 	private static final String USER_PORTRAITS_DIR = "userdata/user_portraits";
@@ -410,6 +411,16 @@ public class ImageManager {
 	 */
 	public Image loadSubImage(String fileName) {
 		return loadEventImage(fileName);
+	}
+
+	/**
+	 * ゾーン背景画像を読み込む（data/images/zones/フォルダから）
+	 *
+	 * @param fileName ファイル名（拡張子含む）
+	 * @return 画像オブジェクト。読み込み失敗時はnull
+	 */
+	public Image loadZoneImage(String fileName) {
+		return loadImage(ZONES_BASE_PATH + fileName);
 	}
 
 }
