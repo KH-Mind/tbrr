@@ -147,7 +147,10 @@ public class EventProcessor {
 			}
 
 			Choice selectedChoice = availableChoices.get(choiceIndex - 1);
-			processChoice(selectedChoice, player, gameState);
+			String signal = processChoice(selectedChoice, player, gameState);
+			if (signal != null) {
+				return signal;
+			}
 		}
 
 		if (!gameState.isInRecursiveEvent()) {
@@ -421,7 +424,7 @@ public class EventProcessor {
 		ui.print("━━━━━━━━━━━━━━━━━━━━━━");
 	}
 
-	private boolean processChoice(Choice choice, Player player, GameState gameState) {
+	private String processChoice(Choice choice, Player player, GameState gameState) {
 		if (choice.getApCost() > 0) {
 			player.modifyAp(-choice.getApCost());
 		}
@@ -429,7 +432,7 @@ public class EventProcessor {
 		Result result = determineResult(choice, player, gameState);
 		if (result == null) {
 			ui.print("【システム】結果の処理に失敗しました。");
-			return false;
+			return null;
 		}
 
 		List<String> resultTexts = TextReplacer.replaceAll(result.getText(), player);
@@ -938,8 +941,8 @@ public class EventProcessor {
 		return 0;
 	}
 
-	private boolean applyEffects(Result result, Player player, GameState gameState) {
-		boolean died = false;
+	private String applyEffects(Result result, Player player, GameState gameState) {
+		String signal = null;
 
 		// ★追加: 結果表示時のSE再生
 		if (result.getSoundEffect() != null && !result.getSoundEffect().isEmpty()) {
@@ -977,7 +980,7 @@ public class EventProcessor {
 							deathCause = result.getDeath().getDeathCause();
 						}
 						deathManager.processDeath(deathCause, player, gameState);
-						return true;
+						return signal;
 					}
 				} else {
 					String logMessage = player.getName() + "のHPは" + hpChange + "回復した。";
@@ -1328,7 +1331,11 @@ public class EventProcessor {
 
 			GameEvent next = dataManager.loadEvent(result.getNextEventId());
 			if (next != null) {
-				processEvent(next, player, gameState);
+				String nextSignal = processEvent(next, player, gameState);
+				if (nextSignal != null) {
+					gameState.setInRecursiveEvent(wasInRecursive);
+					return nextSignal;
+				}
 			}
 
 			gameState.setInRecursiveEvent(wasInRecursive);
@@ -1437,7 +1444,7 @@ public class EventProcessor {
 						}
 						deathManager.processDeath(cause, player, gameState);
 					}
-					died = true;
+					// 死亡時は元のdied=trueと同様にこのまま下へ流す
 				} else if (battleResult == com.kh.tbrr.manager.BattleManager.BattleResult.FLED) {
 					// 逃走成功: fleeEventId があれば連鎖、なければそのまま終了
 					if (result.getFleeEventId() != null && !result.getFleeEventId().isEmpty()) {
@@ -1446,11 +1453,15 @@ public class EventProcessor {
 							gameState.setInRecursiveEvent(true);
 						GameEvent fleeEvent = dataManager.loadEvent(result.getFleeEventId());
 						if (fleeEvent != null) {
-							processEvent(fleeEvent, player, gameState);
+							String nextSignal = processEvent(fleeEvent, player, gameState);
+							if (nextSignal != null) {
+								gameState.setInRecursiveEvent(wasInRecursive);
+								return nextSignal;
+							}
 						}
 						gameState.setInRecursiveEvent(wasInRecursive);
 					}
-					return died;
+					return signal;
 				} else {
 					// 勝利: nextEventId があれば連鎖（戦後イベント等）
 					if (result.getNextEventId() != null && !result.getNextEventId().isEmpty()) {
@@ -1459,10 +1470,14 @@ public class EventProcessor {
 							gameState.setInRecursiveEvent(true);
 						GameEvent nextAfterBattle = dataManager.loadEvent(result.getNextEventId());
 						if (nextAfterBattle != null) {
-							processEvent(nextAfterBattle, player, gameState);
+							String nextSignal = processEvent(nextAfterBattle, player, gameState);
+							if (nextSignal != null) {
+								gameState.setInRecursiveEvent(wasInRecursive);
+								return nextSignal;
+							}
 						}
 						gameState.setInRecursiveEvent(wasInRecursive);
-						return died;
+						return signal;
 					}
 				}
 			} finally {
@@ -1501,9 +1516,14 @@ public class EventProcessor {
 				System.out.println("[EventProcessor] enter_zone: " + targetZoneId);
 				zoneManager.startZone(targetZoneId, player, gameState);
 			}
+		} else if ("exit_zone".equals(result.getCommand())) {
+			System.out.println("[EventProcessor] exit_zone コマンドを検知しました (Result)。");
+			signal = com.kh.tbrr.manager.ZoneManager.EXIT_ZONE_SIGNAL;
+		} else if ("cancel".equals(result.getCommand())) {
+			signal = "CANCEL";
 		}
 
-		return died;
+		return signal;
 	}
 
 	/**

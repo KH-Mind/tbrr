@@ -121,12 +121,14 @@ public class TownManager {
     private void visitInn(Player player, GameState gameState) {
         GameEvent innEvent = dataManager.loadEvent("inn01");
         if (innEvent != null) {
-            eventProcessor.processEvent(innEvent, player, gameState);
+            String signal = eventProcessor.processEvent(innEvent, player, gameState);
+            if (!"CANCEL".equals(signal)) {
+                // 施設利用後、行動力を1消費
+                gameState.setTownAP(gameState.getTownAP() - 1);
+            }
         } else {
             ui.print("【システム】宿屋のイベントが見つかりませんでした。");
         }
-        // 施設利用後、行動力を1消費
-        gameState.setTownAP(gameState.getTownAP() - 1);
     }
 
     /**
@@ -142,12 +144,14 @@ public class TownManager {
     private void visitTavern(Player player, GameState gameState) {
         GameEvent tavernEnterEvent = dataManager.loadEvent("tavern_enter");
         if (tavernEnterEvent != null) {
-            eventProcessor.processEvent(tavernEnterEvent, player, gameState);
+            String signal = eventProcessor.processEvent(tavernEnterEvent, player, gameState);
+            if (!"CANCEL".equals(signal)) {
+                // ゾーン探索から戻った後、行動力を1消費
+                gameState.setTownAP(gameState.getTownAP() - 1);
+            }
         } else {
             ui.print("【システム】酒場の入場イベントが見つかりませんでした。");
         }
-        // ゾーン探索から戻った後、行動力を1消費
-        gameState.setTownAP(gameState.getTownAP() - 1);
     }
 }
 

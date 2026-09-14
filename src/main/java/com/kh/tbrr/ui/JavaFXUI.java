@@ -1872,52 +1872,62 @@ public class JavaFXUI implements GameUI {
 		btn.setMinSize(size, size);
 		btn.setMaxSize(size, size);
 
-		// iconType に応じてスタイルを変える
-		String baseColor;
-		switch (node.getIconType() != null ? node.getIconType() : "default") {
+		// 画像ファイル名の決定
+		String iconFileName = "icon_default.png";
+		String iconType = node.getIconType() != null ? node.getIconType() : "default";
+		switch (iconType) {
 			case "person":
-				baseColor = "#4a90d9"; // 青：人物
+				iconFileName = "icon_person.png";
 				break;
 			case "door":
-				baseColor = "#c0a030"; // 金：出口
+				iconFileName = "icon_door.png";
+				break;
+			case "danger":
+				iconFileName = "icon_danger.png";
 				break;
 			default:
-				baseColor = "#888888"; // グレー：デフォルト
+				iconFileName = "icon_default.png";
 				break;
 		}
 
-		btn.setStyle(
-			"-fx-background-radius: 20;" +
-			"-fx-background-color: " + baseColor + ";" +
-			"-fx-border-radius: 20;" +
-			"-fx-border-color: #ffffff;" +
-			"-fx-border-width: 2px;" +
-			"-fx-cursor: hand;"
-		);
-
-		// ホバー時に明るくなるスタイル
-		String hoverStyle =
-			"-fx-background-radius: 20;" +
-			"-fx-background-color: derive(" + baseColor + ", 40%);" +
-			"-fx-border-radius: 20;" +
-			"-fx-border-color: #ffffff;" +
-			"-fx-border-width: 2px;" +
-			"-fx-cursor: hand;";
-
-		btn.setOnMouseEntered(e -> btn.setStyle(hoverStyle));
-		btn.setOnMouseExited(e -> btn.setStyle(
-			"-fx-background-radius: 20;" +
-			"-fx-background-color: " + baseColor + ";" +
-			"-fx-border-radius: 20;" +
-			"-fx-border-color: #ffffff;" +
-			"-fx-border-width: 2px;" +
-			"-fx-cursor: hand;"
-		));
+		// 画像の読み込みと設定
+		Image iconImg = imageManager.loadUiPartImage(iconFileName);
+		if (iconImg != null) {
+			ImageView iconView = new ImageView(iconImg);
+			iconView.setFitWidth(size);
+			iconView.setFitHeight(size);
+			iconView.setPreserveRatio(true);
+			iconView.setSmooth(true);
+			btn.setGraphic(iconView);
+			// ボタン自体の背景を透明化し、パディングを消す
+			btn.setStyle("-fx-background-color: transparent; -fx-padding: 0; -fx-cursor: hand;");
+			
+			// ホバー時の拡大アニメーション（1.1倍）
+			btn.setOnMouseEntered(e -> {
+				iconView.setScaleX(1.1);
+				iconView.setScaleY(1.1);
+			});
+			btn.setOnMouseExited(e -> {
+				iconView.setScaleX(1.0);
+				iconView.setScaleY(1.0);
+			});
+		} else {
+			// 画像が読み込めなかった場合のフォールバック（従来のグレーの丸）
+			btn.setStyle(
+				"-fx-background-radius: 20;" +
+				"-fx-background-color: #888888;" +
+				"-fx-border-radius: 20;" +
+				"-fx-border-color: #ffffff;" +
+				"-fx-border-width: 2px;" +
+				"-fx-cursor: hand;"
+			);
+		}
 
 		// Tooltip でノード名を表示
 		if (node.getDisplayName() != null && !node.getDisplayName().isEmpty()) {
 			Tooltip tooltip = new Tooltip(node.getDisplayName());
 			tooltip.setStyle("-fx-font-size: 13px;");
+			tooltip.setShowDelay(javafx.util.Duration.millis(300));
 			Tooltip.install(btn, tooltip);
 		}
 
