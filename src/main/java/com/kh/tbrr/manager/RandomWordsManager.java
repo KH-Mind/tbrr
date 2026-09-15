@@ -160,10 +160,6 @@ public class RandomWordsManager {
 					// 既存のカテゴリにマージ(上書きせずに追加)
 					for (Map.Entry<String, List<String>> entry : loadedCategories.entrySet()) {
 						String category = entry.getKey();
-						List<String> words = entry.getValue();
-
-						// デバッグ: カテゴリの内容を表示
-
 
 						if (categories.containsKey(category)) {
 							// 既存のカテゴリに追加

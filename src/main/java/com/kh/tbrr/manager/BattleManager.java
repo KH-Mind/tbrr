@@ -1358,10 +1358,6 @@ public class BattleManager {
             }
             int diceRoll = DiceRoller.roll(dice);
 
-            boolean usesWeaponDice = (ability.getCheck().getDamageDice() == null
-                    || ability.getCheck().getDamageDice().isEmpty()
-                    || "WEAPON".equalsIgnoreCase(ability.getCheck().getDamageDice()));
-
             // アビリティのタグと武器のタグを合算
             java.util.List<String> tagsForMastery = new java.util.ArrayList<>();
             if (ability.getTags() != null) {
@@ -1595,9 +1591,6 @@ public class BattleManager {
         return new HitResult(roll <= hitChance, false);
     }
 
-    private void updateConditions(java.util.List<BattleState.ActiveCombatCondition> conditions) {
-        updateConditionsForTarget(conditions, null, null);
-    }
 
     /**
      * ターン終了時の状態異常更新。DOTダメージを対象に与えてからターンを減算する。

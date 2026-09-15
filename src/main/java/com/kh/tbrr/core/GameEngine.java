@@ -11,7 +11,7 @@ import com.kh.tbrr.event.EventProcessor;
 import com.kh.tbrr.manager.DataManager;
 import com.kh.tbrr.manager.DeathManager;
 import com.kh.tbrr.manager.EventManager;
-import com.kh.tbrr.manager.PersonalityManager;
+// import com.kh.tbrr.manager.PersonalityManager;
 import com.kh.tbrr.manager.RandomWordsManager;
 import com.kh.tbrr.manager.ScenarioManager;
 import com.kh.tbrr.system.CharacterLoader;
@@ -41,7 +41,7 @@ public class GameEngine {
 	private DeathManager deathManager;
 
 	// シナリオ管理
-	private PersonalityManager personalityManager;
+	// private PersonalityManager personalityManager;
 	private ScenarioManager scenarioManager;
 	private RandomWordsManager randomWordsManager;
 	private com.kh.tbrr.manager.ImageManager imageManager;
@@ -106,7 +106,7 @@ public class GameEngine {
 		}
 
 		// 管理クラス初期化
-		this.personalityManager = new PersonalityManager();
+		// this.personalityManager = new PersonalityManager(); 性格はキャラクリで写す方式に。
 		this.scenarioManager = new ScenarioManager(dataManager, developerMode);
 
 		// 追加: RandomWordsManagerの初期化とTextReplacerへの設定
@@ -126,8 +126,8 @@ public class GameEngine {
 		// ZoneManager の初期化と EventProcessor への注入（セッター注入で循環依存を回避）
 		// ZoneManager → EventProcessor はコンストラクタ注入
 		// EventProcessor → ZoneManager はセッター注入（後から設定）
-		com.kh.tbrr.manager.ZoneManager zoneManager =
-				new com.kh.tbrr.manager.ZoneManager(ui, dataManager, eventProcessor);
+		com.kh.tbrr.manager.ZoneManager zoneManager = new com.kh.tbrr.manager.ZoneManager(ui, dataManager,
+				eventProcessor);
 		this.eventProcessor.setZoneManager(zoneManager);
 
 		// インタラクションシステム初期化
