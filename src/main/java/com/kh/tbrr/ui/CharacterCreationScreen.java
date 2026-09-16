@@ -522,8 +522,24 @@ public class CharacterCreationScreen {
             personalityChoice.setValue(personalityChoice.getItems().get(0));
         }
 
-        setupDescriptionHandler(personalityChoice, HELP_PERSONALITY);
         setupDescriptionHandler(personalityLabel, HELP_PERSONALITY);
+
+        // 性格選択時に詳細説明を表示
+        personalityChoice.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && personalityChoice.isFocused()) {
+                descriptionArea.setText(getPersonalityDescription(newVal));
+            }
+        });
+
+        // 性格にフォーカス時の処理
+        personalityChoice.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal) {
+                String selected = personalityChoice.getValue();
+                if (selected != null) {
+                    descriptionArea.setText(getPersonalityDescription(selected));
+                }
+            }
+        });
 
         Label jobLabel = createStyledLabel("職業");
         jobChoice = createStyledComboBox();
@@ -1445,6 +1461,52 @@ public class CharacterCreationScreen {
         if (bonusSkillBox != null) {
             bonusSkillBox.setVisible(visible);
             bonusSkillBox.setManaged(visible);
+        }
+    }
+
+    /**
+     * 性格に応じた詳細説明（説明文＋ランダムセリフ例）を取得
+     */
+    private String getPersonalityDescription(String personalityName) {
+        if (personalityName == null) {
+            return HELP_PERSONALITY;
+        }
+
+        Personality personality = null;
+        for (Personality p : personalityManager.getAllPersonalities()) {
+            if (p.getName().equals(personalityName)) {
+                personality = p;
+                break;
+            }
+        }
+
+        if (personality == null) {
+            return HELP_PERSONALITY;
+        }
+
+        StringBuilder sb = new StringBuilder();
+
+        // 1. 性格の説明文
+        if (personality.getDescription() != null && !personality.getDescription().isEmpty()) {
+            sb.append(personality.getDescription()).append("\n\n");
+        }
+
+        // 2. セリフ例
+        sb.append("【例】\n");
+        appendRandomDialogue(sb, "攻撃時", personality.getDialogue("attack"));
+        appendRandomDialogue(sb, "被ダメージ時", personality.getDialogue("damaged_light"));
+        appendRandomDialogue(sb, "休憩時", personality.getDialogue("rest"));
+
+        return sb.toString().trim();
+    }
+
+    /**
+     * 口上リストからランダムに1件取り出してStringBuilderに追加するヘルパー
+     */
+    private void appendRandomDialogue(StringBuilder sb, String label, List<String> list) {
+        if (list != null && !list.isEmpty()) {
+            String line = list.get(random.nextInt(list.size()));
+            sb.append(label).append("：").append(line).append("\n");
         }
     }
 }
