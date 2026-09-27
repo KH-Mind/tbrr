@@ -21,7 +21,6 @@ import com.google.gson.JsonSerializer;
 import com.kh.tbrr.core.GameState;
 import com.kh.tbrr.data.models.GameEvent;
 import com.kh.tbrr.data.models.GameMap;
-import com.kh.tbrr.data.models.Personality;
 
 /**
  * セーブデータ管理クラス
@@ -40,7 +39,6 @@ public class SaveManager {
                 .setPrettyPrinting()
                 .registerTypeAdapter(GameEvent.class, new GameEventAdapter())
                 .registerTypeAdapter(GameMap.class, new GameMapAdapter())
-                .registerTypeAdapter(Personality.class, new PersonalityAdapter())
                 .registerTypeAdapter(java.time.LocalDateTime.class, new LocalDateTimeAdapter())
                 .create();
     }
@@ -169,33 +167,6 @@ public class SaveManager {
             map.setId(id);
             map.setName("Loading..."); // 仮の名前
             return map;
-        }
-    }
-
-    /**
-     * PersonalityをIDで保存・復元するアダプター
-     */
-    private static class PersonalityAdapter implements JsonSerializer<Personality>, JsonDeserializer<Personality> {
-        @Override
-        public JsonElement serialize(Personality src, Type typeOfSrc, JsonSerializationContext context) {
-            return new JsonPrimitive(src.getId());
-        }
-
-        @Override
-        public Personality deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
-                throws JsonParseException {
-            String id = json.getAsString();
-            
-            try {
-                // new PersonalityManager() を削り、クラス名から直接呼び出す
-                return PersonalityManager.getPersonalityById(id);
-            } catch (Exception e) {
-                // 失敗時はIDだけのダミー
-                Personality p = new Personality();
-                p.setId(id);
-                p.setName("Unknown");
-                return p;
-            }
         }
     }
 }
