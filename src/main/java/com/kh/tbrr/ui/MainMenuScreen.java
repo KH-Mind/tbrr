@@ -1,6 +1,7 @@
 package com.kh.tbrr.ui;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -427,6 +428,23 @@ public class MainMenuScreen {
 					} else {
 						gameUI.print("（説明なし）");
 					}
+
+					// 固定キャラシナリオの場合は追加情報を表示
+					String previewFixedId = (selectedScenario != null) ? selectedScenario.getFixedCharacterId() : null;
+					if (previewFixedId != null) {
+						try {
+							Player fixedChar = CharacterLoader.loadFixedCharacter(previewFixedId);
+							gameUI.print("");
+							gameUI.print("※このシナリオは固有キャラクターでプレイします。");
+							gameUI.print("プレイヤーキャラクター：" + fixedChar.getName());
+							if (fixedChar.getBackground() != null && !fixedChar.getBackground().isEmpty()) {
+								gameUI.print(fixedChar.getBackground());
+							}
+						} catch (IOException e) {
+							// ここでは表示エラーを無視してゲーム開始時のエラーに任せる
+							gameUI.print("（固定キャラクター情報の読み込みに失敗しました）");
+						}
+					}
 					gameUI.print("");
 					gameUI.print("=".repeat(60));
 					gameUI.print("");
@@ -484,8 +502,29 @@ public class MainMenuScreen {
 					}
 				});
 
-				// 9. ゲーム開始（プレイヤーは既に選択済み）
-				engine.startNewGameWithPlayer(selectedScenarioId, player);
+				// 8.5. 固定キャラシナリオの場合は、選択済みキャラをゲーム定義のキャラに差し替える
+				Player actualPlayer = player; // デフォルト：ユーザーのキャラ
+				Scenario confirmedScenario = scenarioManager.getScenario(selectedScenarioId);
+				String fixedId = (confirmedScenario != null) ? confirmedScenario.getFixedCharacterId() : null;
+
+				if (fixedId != null) {
+					try {
+						actualPlayer = CharacterLoader.loadFixedCharacter(fixedId);
+						actualPlayer.fullHeal(); // 固定キャラも初期化する
+						gameUI.printPlayerStatus(actualPlayer); // 画面右のステータス・立ち絵パネルを固定キャラに更新
+					} catch (IOException e) {
+						// 固定キャラ不在はバグ扱い。代替はせず、エラー表示→Enter待ち→メインメニューへ戻る
+						gameUI.printError("シナリオ固定キャラクター「" + fixedId + "」が存在しません。");
+						gameUI.print(e.getMessage()); // 原因の詳細（ファイル不在かJSON不正か）
+						gameUI.print("");
+						gameUI.waitForEnter();
+						Platform.runLater(() -> show());
+						return;
+					}
+				}
+
+				// 9. ゲーム開始（通常はユーザーが選択済みのキャラ、固定キャラシナリオでは差し替え後のキャラ）
+				engine.startNewGameWithPlayer(selectedScenarioId, actualPlayer);
 
 				// ★★★ ゲーム終了後、メインメニューに戻る ★★★
 				gameUI.print("");

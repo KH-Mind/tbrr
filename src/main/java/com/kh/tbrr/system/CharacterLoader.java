@@ -3,7 +3,10 @@ package com.kh.tbrr.system;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -106,6 +109,41 @@ public class CharacterLoader {
 			return gson.fromJson(reader, Player.class);
 		} catch (IOException e) {
 			return null;
+		}
+	}
+
+	/**
+	 * ゲーム定義の固定キャラクターをクラスパスから読み込む。
+	 * /data/characters/{characterId}.json を読む（JAR・jpackage環境でも動作）。
+	 * userdata/character/ のユーザー作成キャラとは完全に別管理。
+	 *
+	 * @param characterId キャラID（拡張子.jsonの有無どちらでも可）
+	 * @return 読み込んだPlayer（nullは返さない）
+	 * @throws IOException データ不在・JSON空・不正の場合
+	 */
+	public static Player loadFixedCharacter(String characterId) throws IOException {
+		// 拡張子が付与されている場合・いない場合の両方に対応
+		String filename = characterId.endsWith(".json") ? characterId : characterId + ".json";
+		String path = "/data/characters/" + filename;
+
+		// クラスローダーフォールバック（開発環境・JAR・jpackage環境の差異を吸収するための保険）
+		InputStream is = CharacterLoader.class.getResourceAsStream(path);
+		if (is == null) {
+			String fallbackPath = path.startsWith("/") ? path.substring(1) : path;
+			is = CharacterLoader.class.getClassLoader().getResourceAsStream(fallbackPath);
+		}
+
+		if (is == null) {
+			throw new IOException("固定キャラデータが見つかりません: " + path);
+		}
+
+		try (InputStream stream = is;
+				InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
+			Player player = new Gson().fromJson(reader, Player.class);
+			if (player == null) {
+				throw new IOException("固定キャラデータの読み込みに失敗しました（JSON形式が空または不正）: " + path);
+			}
+			return player;
 		}
 	}
 

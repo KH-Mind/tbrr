@@ -23,6 +23,11 @@ public class Scenario {
 	// 引継ぎ処理を許可するか（デフォルト: true。falseにするとisFatedOne問わずゲームオーバーのみ）
 	private boolean allowCarryover = true;
 
+	// 固定キャラクターのID（null = 通常シナリオ / 非null = 固定キャラシナリオ）
+	// /data/characters/{fixedCharacterId}.json をクラスパスから読み込み、ユーザーのキャラと差し替える
+	// ※固定キャラシナリオでは allowCarryover:false を必ず併記すること
+	private String fixedCharacterId;
+
 	// JSONの"areas"を"stageConfigs"にマッピング
 	@SerializedName("areas")
 	private List<StageConfig> stageConfigs; // フロア設定リスト
@@ -339,6 +344,18 @@ public class Scenario {
 
 	public void setAllowCarryover(boolean allowCarryover) {
 		this.allowCarryover = allowCarryover;
+	}
+
+	/**
+	 * 固定キャラクターIDを取得する。
+	 * nullの場合は通常シナリオ（ユーザーが選んだキャラで開始）。
+	 */
+	public String getFixedCharacterId() {
+		return fixedCharacterId;
+	}
+
+	public void setFixedCharacterId(String fixedCharacterId) {
+		this.fixedCharacterId = fixedCharacterId;
 	}
 
 	public int getTotalFloors() {
