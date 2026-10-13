@@ -637,23 +637,8 @@ public class BattleManager {
                 int masteryDiceSum = calculateMasteryDice(masteryLevel);
                 int masteryFixedBonus = calculateMasteryFixedBonus(masteryLevel);
 
-                // ステータス加算計算（複合スケーリング対応）
-                int scalingStatVal = 0;
-                java.util.Map<String, Double> scalings = ability.getCheck().getScalings();
-                if (scalings != null && !scalings.isEmpty()) {
-                    // アビリティに scalings が指定されている場合: 複合スケーリング計算
-                    for (java.util.Map.Entry<String, Double> entry : scalings.entrySet()) {
-                        scalingStatVal += (int) (getCombatStat(player, entry.getKey()) * entry.getValue());
-                    }
-                } else {
-                    // アビリティに scalings がない場合: 武器のスケーリング設定にフォールバック
-                    String fallbackStat = (weapon != null && weapon.getWeaponScalingStat() != null
-                            && !weapon.getWeaponScalingStat().isEmpty())
-                            ? weapon.getWeaponScalingStat() : "might";
-                    double fallbackScale = (weapon != null && weapon.getWeaponStatScaling() != null)
-                            ? weapon.getWeaponStatScaling() : 0.5;
-                    scalingStatVal = (int) (getCombatStat(player, fallbackStat) * fallbackScale);
-                }
+                // ステータス加算計算（アビリティscalings＞武器指定＞might×0.5。自動持ち替え後のweaponを参照）
+                int scalingStatVal = calcWeaponScaling(ability, weapon);
                 int baseDamage = diceRoll + masteryDiceSum + masteryFixedBonus + scalingStatVal;
 
                 // クリティカル処理（BONUS判定 または ダイス1〜5）
@@ -826,16 +811,8 @@ public class BattleManager {
             int offMastery = calculateMasteryLevel(offHandWeapon.getTags());
             int offMasteryDice = calculateMasteryDice(offMastery);
             int offMasteryFixed = calculateMasteryFixedBonus(offMastery);
-            // ステータス加算計算（複合スケーリング対応）
-            int offScaling = 0;
-            java.util.Map<String, Double> offScalings = ability.getCheck().getScalings();
-            if (offScalings != null && !offScalings.isEmpty()) {
-                for (java.util.Map.Entry<String, Double> entry : offScalings.entrySet()) {
-                    offScaling += (int) (getCombatStat(player, entry.getKey()) * entry.getValue());
-                }
-            } else {
-                offScaling = (int) (getCombatStat(player, "might") * 0.5);
-            }
+            // ステータス加算計算（アビリティscalings＞オフハンド武器自身の指定＞might×0.5）
+            int offScaling = calcWeaponScaling(ability, offHandWeapon);
             int offBase = offRoll + offMasteryDice + offMasteryFixed + offScaling;
 
             // ダメージ倍率の適用（ペナルティなしなら1.0、ありなら offHandDamageMultiplier）
@@ -982,6 +959,32 @@ public class BattleManager {
                 .max()
                 .orElse(base);
         return override;
+    }
+
+    /**
+     * プレイヤーの攻撃ダメージに加算するステータス補正を算出する（主攻撃・オフハンド・機会攻撃で共通）。
+     * 優先順：アビリティの scalings ＞ 武器の weaponScalingStat / weaponStatScaling ＞ might × 0.5
+     *
+     * @param ability 攻撃に使うアビリティ
+     * @param weapon  スケーリング参照元の武器（null可。nullなら might × 0.5）
+     */
+    private int calcWeaponScaling(AbilityData ability, Item weapon) {
+        java.util.Map<String, Double> scalings = ability.getCheck().getScalings();
+        if (scalings != null && !scalings.isEmpty()) {
+            // アビリティに scalings が指定されている場合: 複合スケーリング計算
+            int total = 0;
+            for (java.util.Map.Entry<String, Double> entry : scalings.entrySet()) {
+                total += (int) (getCombatStat(player, entry.getKey()) * entry.getValue());
+            }
+            return total;
+        }
+        // アビリティに scalings がない場合: 武器のスケーリング設定にフォールバック
+        String fallbackStat = (weapon != null && weapon.getWeaponScalingStat() != null
+                && !weapon.getWeaponScalingStat().isEmpty())
+                ? weapon.getWeaponScalingStat() : "might";
+        double fallbackScale = (weapon != null && weapon.getWeaponStatScaling() != null)
+                ? weapon.getWeaponStatScaling() : 0.5;
+        return (int) (getCombatStat(player, fallbackStat) * fallbackScale);
     }
 
     private int getCombatStat(Player p, String statName) {
@@ -1371,16 +1374,8 @@ public class BattleManager {
             int masteryDiceSum = calculateMasteryDice(masteryLevel);
             int masteryFixedBonus = calculateMasteryFixedBonus(masteryLevel);
 
-            // ステータス加算計算（複合スケーリング対応）
-            int scalingStatVal = 0;
-            java.util.Map<String, Double> oaScalings = ability.getCheck().getScalings();
-            if (oaScalings != null && !oaScalings.isEmpty()) {
-                for (java.util.Map.Entry<String, Double> entry : oaScalings.entrySet()) {
-                    scalingStatVal += (int) (getCombatStat(player, entry.getKey()) * entry.getValue());
-                }
-            } else {
-                scalingStatVal = (int) (getCombatStat(player, "might") * 0.5);
-            }
+            // ステータス加算計算（アビリティscalings＞主武器の指定＞might×0.5）
+            int scalingStatVal = calcWeaponScaling(ability, weapon);
 
             int baseDamage = diceRoll + masteryDiceSum + masteryFixedBonus + scalingStatVal;
             double critMult = result.isCritical ? resolveCritMultiplier(player) : 1.0;
