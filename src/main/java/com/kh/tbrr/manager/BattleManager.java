@@ -653,82 +653,22 @@ public class BattleManager {
                     totalDamage /= 2; // 防御中はダメージ半減
                 }
 
-                // 敵の固定ダメージ軽減（金属系の敵等に設定されるdamageReduction）
-                int enemyDmgReduction = enemy.getDamageReduction();
-                // 敵のTraitによるダメージ軽減
-                for (com.kh.tbrr.data.models.TraitData t : getActiveEnemyTraits()) {
-                    if (t != null) {
-                        enemyDmgReduction += t.getDamageReduction();
-                    }
-                }
-
-                if (enemyDmgReduction > 0) {
-                    totalDamage = Math.max(0, totalDamage - enemyDmgReduction);
-                }
-
-                // 耐性判定（DAMAGE_MODIFIER型Traitによるダメージ補正）
+                // 攻撃属性タグ（アビリティのタグ + 武器継承なら武器のタグ）
                 java.util.List<String> attackTags = new java.util.ArrayList<>();
                 if (ability.getTags() != null) attackTags.addAll(ability.getTags());
                 if (Boolean.TRUE.equals(ability.getInheritWeapon()) && weapon != null && weapon.getTags() != null) {
                     attackTags.addAll(weapon.getTags());
                 }
-                DamageModifierResult modResult = resolveAttackDamageModifier(
-                        getActiveEnemyTraits(), attackTags, totalDamage);
 
-                if (modResult.isAbsorb) {
-                    // 吸収：HPダメージなし、SPを増加
-                    int newSp = Math.min(9999, enemy.getCurrentSp() + modResult.finalDamage);
-                    enemy.setCurrentSp(newSp);
-                    String diceMsg = "(基礎ダイス:" + diceRoll + (masteryLevel > 0 ? " + 習熟追加" + masteryLevel + "d4" : "")
-                            + " + 習熟固定:" + masteryFixedBonus + " + ステ修正:" + scalingStatVal + ")";
-                    String critMsg = isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
-                    String reductionMsg = enemyDmgReduction > 0 ? "（" + enemyDmgReduction + "ダメージ軽減）" : "";
-                    ui.print("　命中！ " + enemy.getName() + " は " + modResult.finalDamage + " ダメージを吸収した！ " + diceMsg + critMsg + reductionMsg);
-                    if (ui instanceof JavaFXUI) {
-                        ((JavaFXUI) ui).appendBattleLog("命中！" + enemy.getName() + "が" + modResult.finalDamage + "ダメージを吸収！SP回復"
-                                + (isCritical ? "　[クリティカル]" : ""));
-                    }
-                } else {
-                    // 通常ダメージ処理（SP→HPの順）
-                    boolean isPenetrating = false;
-                    DamageResult dmgResult = enemy.applyBattleDamage(modResult.finalDamage, isPenetrating);
-                    int hpDamage = dmgResult.actualHpDamage();
-                    int spAbsorbed = dmgResult.actualSpDamage();
+                String diceMsg = "(基礎ダイス:" + diceRoll + (masteryLevel > 0 ? " + 習熟追加" + masteryLevel + "d4" : "")
+                        + " + 習熟固定:" + masteryFixedBonus + " + ステ修正:" + scalingStatVal + ")";
 
-                    String diceMsg = "(基礎ダイス:" + diceRoll + (masteryLevel > 0 ? " + 習熟追加" + masteryLevel + "d4" : "")
-                            + " + 習熟固定:" + masteryFixedBonus + " + ステ修正:" + scalingStatVal + ")";
-                    String critMsg = isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
-                    String reductionMsg = enemyDmgReduction > 0 ? "（" + enemyDmgReduction + "ダメージ軽減）" : "";
-                    String modifierMsg = modResult.modifierName != null ? "（" + modResult.modifierName + "）" : "";
-                    String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
-                    ui.print("　命中！ " + enemy.getName() + " に " + modResult.finalDamage + " のダメージ！ " + diceMsg + critMsg + reductionMsg
-                            + modifierMsg + spMsg);
-                    // サブウィンドウのログに要約を追記
-                    if (ui instanceof JavaFXUI) {
-                        String logSummary = "命中！" + enemy.getName() + "に" + modResult.finalDamage + "ダメージ"
-                                + (isCritical ? "　[クリティカル]" : "")
-                                + (modResult.modifierName != null ? "　[" + modResult.modifierName + "]" : "")
-                                + (spAbsorbed > 0 ? "　SP" + spAbsorbed + "吸収" : "");
-                        ((JavaFXUI) ui).appendBattleLog(logSummary);
-                    }
-                }
+                // ダメージ適用パイプライン（固定軽減 → 耐性Trait → SP/HP適用 → ログ出力）
+                AttackExecutionResult dmgResult = applyAttackDamageToEnemy(
+                        enemy, totalDamage, attackTags, isCritical, critMult, "　命中！ ", diceMsg);
 
-                // --- CombatCondition付与の処理 ---
-                // 吸収（吸収発動）・無効（ダメージ=0）の場合はデバフも発生させない
-                if (ability.getApplyCombatConditions() != null && !modResult.isAbsorb && modResult.finalDamage > 0) {
-                    for (var app : ability.getApplyCombatConditions()) {
-                        int r = random.nextInt(100) + 1; // 1-100
-                        if (r <= app.getChance()) {
-                            applyCondition(state.getEnemyConditions(), app.getConditionId(),
-                                    app.getIntensity(), app.getDuration());
-                            CombatConditionData cData = CombatConditionRegistry
-                                    .getConditionById(app.getConditionId());
-                            if (cData != null) {
-                                ui.print("　★ " + enemy.getName() + " は [" + cData.getName() + "] になった！");
-                            }
-                        }
-                    }
-                }
+                // 状態異常付与パイプライン
+                applyAbilityConditionsToEnemy(enemy, ability, dmgResult);
 
                 // --- アビリティによる強制距離変更（ノックバック等）---
                 if (ability.getForceDistanceTo() != null) {
@@ -816,20 +756,29 @@ public class BattleManager {
             int offBase = offRoll + offMasteryDice + offMasteryFixed + offScaling;
 
             // ダメージ倍率の適用（ペナルティなしなら1.0、ありなら offHandDamageMultiplier）
-            double offDmgMult = penaltyFree ? 1.0 : dualWield.getOffHandDamageMultiplier();
-            if (offResult.isCritical) {
-                offDmgMult *= resolveCritMultiplier(player);
-            }
-            int offDamage = (int) (offBase * offDmgMult);
+            double offPenaltyMult = penaltyFree ? 1.0 : dualWield.getOffHandDamageMultiplier();
+            boolean isCritical = offResult.isCritical;
+            double critMult = isCritical ? resolveCritMultiplier(player) : 1.0;
+            double conditionMult = calcConditionDamageMultiplier(state.getPlayerConditions());
+            int offDamage = (int) (offBase * offPenaltyMult * critMult * conditionMult);
             if (state.isEnemyDefending()) {
                 offDamage /= 2;
             }
 
-            enemy.setHp(enemy.getHp() - offDamage);
+            // 攻撃属性タグ（オフハンド武器のタグ + アビリティのタグ）
+            java.util.List<String> offTags = new java.util.ArrayList<>();
+            if (offHandWeapon.getTags() != null) offTags.addAll(offHandWeapon.getTags());
+            if (ability.getTags() != null) offTags.addAll(ability.getTags());
+
             String penaltyMsg = penaltyFree ? "（ペナルティなし）"
-                    : "（命中" + dualWield.getOffHandHitPenalty() + "%・ダメージ×" + offDmgMult + "）";
-            String critMsg2 = offResult.isCritical ? " 【クリティカル！】" : "";
-            ui.print("　　オフハンド命中！ " + enemy.getName() + " に " + offDamage + " のダメージ！" + penaltyMsg + critMsg2);
+                    : "（命中" + dualWield.getOffHandHitPenalty() + "%・ダメージ×" + dualWield.getOffHandDamageMultiplier() + "）";
+
+            // ダメージ適用パイプライン（固定軽減 → 耐性Trait → SP/HP適用 → ログ出力）
+            AttackExecutionResult dmgResult = applyAttackDamageToEnemy(
+                    enemy, offDamage, offTags, isCritical, critMult, "　　オフハンド命中！ ", penaltyMsg);
+
+            // 状態異常付与パイプライン（強撃等の付与チャンスをオフハンドでも実行）
+            applyAbilityConditionsToEnemy(enemy, ability, dmgResult);
         } else {
             ui.print("　　オフハンドは外れた！");
         }
@@ -1378,7 +1327,8 @@ public class BattleManager {
             int scalingStatVal = calcWeaponScaling(ability, weapon);
 
             int baseDamage = diceRoll + masteryDiceSum + masteryFixedBonus + scalingStatVal;
-            double critMult = result.isCritical ? resolveCritMultiplier(player) : 1.0;
+            boolean isCritical = result.isCritical;
+            double critMult = isCritical ? resolveCritMultiplier(player) : 1.0;
             double conditionMult = calcConditionDamageMultiplier(state.getPlayerConditions());
             int totalDamage = (int) (baseDamage * critMult * conditionMult);
 
@@ -1386,14 +1336,12 @@ public class BattleManager {
                 totalDamage /= 2;
             }
 
-            // 機会攻撃ダメージ処理（SP→HPの順）
-            DamageResult dmgResult = enemy.applyBattleDamage(totalDamage, false);
-            int hpDamage = dmgResult.actualHpDamage();
-            int spAbsorbed = dmgResult.actualSpDamage();
+            // ダメージ適用パイプライン（固定軽減 → 耐性Trait → SP/HP適用 → ログ出力）
+            AttackExecutionResult dmgResult = applyAttackDamageToEnemy(
+                    enemy, totalDamage, tagsForMastery, isCritical, critMult, "　機会攻撃命中！ ", "");
 
-            String critMsg = result.isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
-            String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
-            ui.print("　機会攻撃命中！ " + enemy.getName() + " に " + totalDamage + " のダメージ！" + critMsg + spMsg);
+            // 状態異常付与パイプライン
+            applyAbilityConditionsToEnemy(enemy, ability, dmgResult);
 
             processOffHandAttack(enemy, ability, baseRules);
         } else {
@@ -1401,6 +1349,8 @@ public class BattleManager {
         }
     }
 
+    // NOTE: 敵の機会攻撃は現在アビリティや攻撃タグを持たず、実質的に無属性攻撃として直接ダメージ計算されている。
+    // 将来的にプレイヤーと同様のアビリティパイプラインに揃える予定。
     private void executeEnemyOpportunityAttack(Player p) {
         CombatBaseRules baseRules = CombatDataLoader.getBaseRules();
         HitResult result = checkHit(state.getCurrentEnemy().getFinesse(), p.getCombatStats().finesse(), null,
@@ -1769,6 +1719,117 @@ public class BattleManager {
             case "WEAKNESS" -> new DamageModifierResult((int) (damage * 2.0), false, bestTraitName);
             default         -> new DamageModifierResult(damage, false, null);
         };
+    }
+
+    /**
+     * 攻撃によるダメージ確定・適用結果を保持する内部クラス。
+     */
+    private static class AttackExecutionResult {
+        public final int finalDamage;
+        public final boolean isAbsorb;
+
+        public AttackExecutionResult(int finalDamage, boolean isAbsorb) {
+            this.finalDamage = finalDamage;
+            this.isAbsorb = isAbsorb;
+        }
+
+        public boolean hasDealtDamage() {
+            return !isAbsorb && finalDamage > 0;
+        }
+    }
+
+    /**
+     * プレイヤー側の攻撃ダメージを敵に適用する共通パイプライン。
+     * 固定軽減 → 耐性Trait（DAMAGE_MODIFIER） → SP/HP適用（またはSP吸収回復） → メイン＆サブウィンドウログ出力 を一元管理する。
+     */
+    private AttackExecutionResult applyAttackDamageToEnemy(
+            EnemyData enemy,
+            int preMitigationDamage,
+            java.util.List<String> attackTags,
+            boolean isCritical,
+            double critMult,
+            String hitPrefix,
+            String diceDetailMsg) {
+
+        // 1. 敵の固定ダメージ軽減（金属系の敵本体 + 敵Trait）
+        int enemyDmgReduction = enemy.getDamageReduction();
+        for (com.kh.tbrr.data.models.TraitData t : getActiveEnemyTraits()) {
+            if (t != null) {
+                enemyDmgReduction += t.getDamageReduction();
+            }
+        }
+        int reducedDamage = preMitigationDamage;
+        if (enemyDmgReduction > 0) {
+            reducedDamage = Math.max(0, reducedDamage - enemyDmgReduction);
+        }
+
+        // 2. 耐性判定（DAMAGE_MODIFIER型Trait）
+        DamageModifierResult modResult = resolveAttackDamageModifier(
+                getActiveEnemyTraits(), attackTags, reducedDamage);
+
+        String critMsg = isCritical ? " 【クリティカル！" + (critMult > 1.0 ? critMult + "倍】" : "】") : "";
+        String reductionMsg = enemyDmgReduction > 0 ? "（" + enemyDmgReduction + "ダメージ軽減）" : "";
+        String detailPart = (diceDetailMsg != null && !diceDetailMsg.isEmpty()) ? " " + diceDetailMsg : "";
+
+        if (modResult.isAbsorb) {
+            // 吸収：HPダメージなし、SPを増加
+            int newSp = Math.min(9999, enemy.getCurrentSp() + modResult.finalDamage);
+            enemy.setCurrentSp(newSp);
+            ui.print(hitPrefix + enemy.getName() + " は " + modResult.finalDamage + " ダメージを吸収した！" + detailPart + critMsg + reductionMsg);
+            if (ui instanceof JavaFXUI) {
+                ((JavaFXUI) ui).appendBattleLog(hitPrefix.trim() + enemy.getName() + "が" + modResult.finalDamage + "ダメージを吸収！SP回復"
+                        + (isCritical ? "　[クリティカル]" : ""));
+            }
+            return new AttackExecutionResult(modResult.finalDamage, true);
+        } else {
+            // 通常ダメージ処理（SP→HPの順）
+            boolean isPenetrating = false;
+            DamageResult dmgResult = enemy.applyBattleDamage(modResult.finalDamage, isPenetrating);
+            int hpDamage = dmgResult.actualHpDamage();
+            int spAbsorbed = dmgResult.actualSpDamage();
+
+            String modifierMsg = modResult.modifierName != null ? "（" + modResult.modifierName + "）" : "";
+            String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
+            ui.print(hitPrefix + enemy.getName() + " に " + modResult.finalDamage + " のダメージ！" + detailPart + critMsg + reductionMsg
+                    + modifierMsg + spMsg);
+
+            // サブウィンドウのログに要約を追記
+            if (ui instanceof JavaFXUI) {
+                String logSummary = hitPrefix.trim() + enemy.getName() + "に" + modResult.finalDamage + "ダメージ"
+                        + (isCritical ? "　[クリティカル]" : "")
+                        + (modResult.modifierName != null ? "　[" + modResult.modifierName + "]" : "")
+                        + (spAbsorbed > 0 ? "　SP" + spAbsorbed + "吸収" : "");
+                ((JavaFXUI) ui).appendBattleLog(logSummary);
+            }
+            return new AttackExecutionResult(modResult.finalDamage, false);
+        }
+    }
+
+    /**
+     * アビリティによるCombatCondition付与を判定・適用する共通パイプライン。
+     * 吸収またはダメージ0の場合はデバフを発生させない。
+     * ※後続タスク（implement_sp_condition_immunity.md）にてSP防壁判定を追加予定。
+     */
+    private void applyAbilityConditionsToEnemy(EnemyData enemy, AbilityData ability, AttackExecutionResult dmgResult) {
+        if (ability == null || ability.getApplyCombatConditions() == null) {
+            return;
+        }
+        if (!dmgResult.hasDealtDamage()) {
+            return;
+        }
+
+        for (var app : ability.getApplyCombatConditions()) {
+            int r = random.nextInt(100) + 1; // 1-100
+            if (r <= app.getChance()) {
+                applyCondition(state.getEnemyConditions(), app.getConditionId(),
+                        app.getIntensity(), app.getDuration());
+                CombatConditionData cData = CombatConditionRegistry
+                        .getConditionById(app.getConditionId());
+                if (cData != null) {
+                    ui.print("　★ " + enemy.getName() + " は [" + cData.getName() + "] になった！");
+                }
+            }
+        }
     }
 
     /**
