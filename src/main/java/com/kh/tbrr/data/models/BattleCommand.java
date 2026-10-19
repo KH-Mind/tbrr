@@ -20,6 +20,7 @@ public class BattleCommand {
     
     @Override
     public String toString() {
-        return String.format("[ムーブ: %s | アクション: %s | スタンス: %s | 特殊: %s]", move, action, stance, special);
+        String spStr = (special != null && !special.equals("なし")) ? "［" + special + "］" : "なし";
+        return String.format("［ムーブ: %s | アクション: %s | スタンス: %s | 特殊: %s］", move, action, stance, spStr);
     }
 }

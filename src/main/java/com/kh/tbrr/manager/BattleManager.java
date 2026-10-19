@@ -108,7 +108,8 @@ public class BattleManager {
         // 使用可能なスタンスリストを構築してUIに渡す
         java.util.List<String> stanceNames = new java.util.ArrayList<>();
         for (StanceData sd : CombatDataLoader.getAllStances()) {
-            if (sd.isDefault() || (player.getEffectiveStances() != null && player.getEffectiveStances().contains(sd.getId()))) {
+            if (sd.isDefault()
+                    || (player.getEffectiveStances() != null && player.getEffectiveStances().contains(sd.getId()))) {
                 stanceNames.add(sd.getName());
             }
         }
@@ -187,10 +188,9 @@ public class BattleManager {
             boolean battleEnded = false;
             while (!battleEnded) {
                 ui.print(" ");
-                ui.print("--- ターン " + state.getTurnCount() + " --- [現在距離: " + state.getDistance()
-                        + " | SP: " + player.getCurrentSp()
-                        + " / 敵SP: " + enemy.getCurrentSp() + "]");
-                ui.print("【敵】" + enemy.getName() + " (HP: " + enemy.getHp() + "/" + enemy.getMaxHp() + ")");
+                ui.print("─── ターン " + state.getTurnCount() + " ─── [現在の相対距離: " + state.getDistance() + "]");
+                ui.print("【敵】" + enemy.getName() + "（HP " + enemy.getHp() + "/" + enemy.getMaxHp() + " | SP "
+                        + enemy.getCurrentSp() + "）");
                 ui.print("コマンドを選択してください。");
 
                 // サブウィンドウの戦闘情報をターン開始時に一括更新
@@ -245,8 +245,8 @@ public class BattleManager {
                             ? " (補正 " + (enemyInitBonus > 0 ? "+" : "") + enemyInitBonus + ")"
                             : "";
 
-                    ui.print("　[行動順判定: プレイヤー " + playerInitiative + pBonusStr + " vs 敵 " + enemyInitiative + eBonusStr
-                            + "] " + initMsg);
+                    ui.print("　［行動順判定: プレイヤー " + playerInitiative + pBonusStr + " vs 敵 " + enemyInitiative + eBonusStr
+                            + "］（" + initMsg + "）");
 
                     if (playerGoesFirst) {
                         // プレイヤー先行
@@ -258,7 +258,7 @@ public class BattleManager {
                             continue;
                         }
                         if (enemy.getHp() <= 0) {
-                            ui.print("【勝利！】 " + enemy.getName() + " を倒した！");
+                            ui.print("【勝利】" + enemy.getName() + "を討ち取った！");
                             lastResult = BattleResult.VICTORY;
                             battleEnded = true;
                             continue;
@@ -287,7 +287,7 @@ public class BattleManager {
                             continue;
                         }
                         if (enemy.getHp() <= 0) {
-                            ui.print("【勝利！】 " + enemy.getName() + " を倒した！");
+                            ui.print("【勝利】" + enemy.getName() + "を討ち取った！");
                             lastResult = BattleResult.VICTORY;
                             battleEnded = true;
                             continue;
@@ -302,7 +302,7 @@ public class BattleManager {
                             int regen = calculateSpGainForPlayer(spRegen);
                             int newSp = Math.min(com.kh.tbrr.data.models.Player.SP_MAX, player.getCurrentSp() + regen);
                             player.setCurrentSp(newSp);
-                            ui.print("　[" + trait.getName() + "] SP+" + regen + "（現在SP: " + newSp + "）");
+                            ui.print("　→ 【" + trait.getName() + "】SP+" + regen + "（現在SP: " + newSp + "）");
                         }
                     }
                     ui.printPlayerStatus(player);
@@ -318,7 +318,7 @@ public class BattleManager {
                         continue;
                     }
                     if (state.getCurrentEnemy().getHp() <= 0) {
-                        ui.print("【勝利！】 " + state.getCurrentEnemy().getName() + " を倒した！");
+                        ui.print("【勝利】" + state.getCurrentEnemy().getName() + "を討ち取った！");
                         lastResult = BattleResult.VICTORY;
                         battleEnded = true;
                         continue;
@@ -337,7 +337,8 @@ public class BattleManager {
 
             // ★敗北時のワンクッション追加
             if (lastResult == BattleResult.DEFEAT) {
-                ui.print("【敗北】 " + player.getName() + " は力尽きた……");
+                String pName = player.getName() != null ? player.getName() : "プレイヤー";
+                ui.print("【敗北】" + pName + "は力尽きた……");
                 ui.waitForEnter();
             }
         }
@@ -453,8 +454,7 @@ public class BattleManager {
         int movHindrance = getMaxConditionIntensity(state.getPlayerConditions(), "movement_hindrance");
         if (movHindrance > 0 && !"停止".equals(move)) {
             if (random.nextInt(100) + 1 <= movHindrance) {
-                String pNameMov = player.getName() != null ? player.getName() : "冒険者";
-                ui.print("　移動阻害により、" + pNameMov + " の移動は失敗した！（停止）");
+                ui.print("　［移動阻害］足を取られ、移動できなかった！");
                 move = "停止"; // 前進・後退処理ブロックをスキップ
             }
         }
@@ -468,7 +468,7 @@ public class BattleManager {
                         .anyMatch(t -> t != null && "SYSTEMIC".equals(t.getType())
                                 && "VIGILANCE".equals(t.getSystemicEffect()));
                 if (enemyHasVigilance) {
-                    ui.print("　" + enemy.getName() + " はプレイヤーが離れる隙を見逃さなかった！（警戒心による機会攻撃）");
+                    ui.print("　［機会攻撃］" + enemy.getName() + "は離脱の隙を見逃さなかった！");
                     executeEnemyOpportunityAttack(player);
                 }
             }
@@ -484,19 +484,19 @@ public class BattleManager {
         if ("逃げる".equals(action)) {
             // 逃走条件: 距離4 かつ 敵が逃走可能フラグを持つ
             if (state.getDistance() >= 4 && enemy.isCanFlee()) {
-                ui.print("　戦闘から無事に逃走した！");
+                ui.print("　戦闘から逃走した！");
                 return true;
             } else if (!enemy.isCanFlee()) {
-                ui.print("　この敵からは逃げられない！");
+                ui.print("　この敵からは逃走できない！");
             } else {
-                ui.print("　逃走には距離が足りない！（距離4まで離れる必要がある）");
+                ui.print("　逃走するには距離が足りない！（距離4まで離れる必要がある）");
             }
             return false;
         }
 
         if ("防御".equals(action)) {
             state.setPlayerDefending(true);
-            ui.print("　身を固めた。（次の自身のターンまで回避率上昇、被ダメージ半減）");
+            ui.print("　プレイヤーは身を固めた。（防御姿勢）");
             return false;
         }
 
@@ -510,8 +510,7 @@ public class BattleManager {
             int actHindrance = getMaxConditionIntensity(state.getPlayerConditions(), "action_hindrance");
             if (actHindrance > 0) {
                 if (random.nextInt(100) + 1 <= actHindrance) {
-                    String pNameAct = player.getName() != null ? player.getName() : "冒険者";
-                    ui.print("　行動阻害により、" + pNameAct + " の行動は失敗した！（AP消費なし）");
+                    ui.print("　［行動阻害］体の自由が利かず、行動できなかった！");
                     return false;
                 }
             }
@@ -524,8 +523,8 @@ public class BattleManager {
                 actualApCost = Math.max(1, originalApCost - reduction);
 
                 if (player.getAp() < actualApCost) {
-                    String playerName = player.getName() != null ? player.getName() : "冒険者";
-                    ui.print("　" + playerName + " は満身創痍で「" + ability.getName() + "」を出す気力が無い…。");
+                    String playerName = player.getName() != null ? player.getName() : "プレイヤー";
+                    ui.print("　" + playerName + " は満身創痍で［" + ability.getName() + "］を繰り出す気力がない……");
                     ui.print("　" + playerName + " は無様に転んでしまった！");
 
                     // 転倒 (prone) を1ターン付与
@@ -540,7 +539,7 @@ public class BattleManager {
                     if (!foundProne) {
                         state.getPlayerConditions().add(new BattleState.ActiveCombatCondition("prone", 1));
                     }
-                    ui.print("　★ " + playerName + " は [転倒] になった！");
+                    ui.print("　→ " + playerName + "は［転倒］状態になった！");
 
                     return false; // 以降の攻撃処理をすべて不発にする
                 } else {
@@ -560,7 +559,7 @@ public class BattleManager {
                     String switchedRange = resolveRangeResult(baseRules, ability, switchedWeapon, stanceData,
                             state.getDistance());
                     if (!"MISS".equals(switchedRange)) {
-                        ui.print("　【武器の自動切り替え】" + switchedWeapon.getName() + " で攻撃を解決する。");
+                        ui.print("　【武器の自動切り替え】［" + switchedWeapon.getName() + "］で攻撃を解決する。");
                         weapon = switchedWeapon;
                         rangeResult = switchedRange;
                     }
@@ -568,9 +567,14 @@ public class BattleManager {
             }
 
             if ("MISS".equals(rangeResult)) {
-                ui.print("　ミス！距離が適していません。 (" + ability.getName() + ")");
+                ui.print("　→ ミス！距離が適していない！");
                 return false;
             }
+
+            // 攻撃実行宣言ログ（暫定仕様: ＞[Name]の攻撃！［アビリティ名］［武器名］）
+            String pName = player.getName() != null ? player.getName() : "プレイヤー";
+            String wName = (weapon != null && weapon.getName() != null) ? weapon.getName() : "素手";
+            ui.print("＞" + pName + "の攻撃！［" + ability.getName() + "］［" + wName + "］");
 
             // --- SP増加処理（checkを持たないSPバフ系アビリティはここで終了）---
             ScalingData spGain = ability.getSpGain();
@@ -578,8 +582,7 @@ public class BattleManager {
                 int gain = calculateSpGainForPlayer(spGain);
                 int newSp = Math.min(com.kh.tbrr.data.models.Player.SP_MAX, player.getCurrentSp() + gain);
                 player.setCurrentSp(newSp);
-                String playerName = player.getName() != null ? player.getName() : "冒険者";
-                ui.print("　" + playerName + " のSPが " + gain + " 回復した！（現在SP: " + newSp + "）");
+                ui.print("　→ " + pName + "のSPが " + gain + " 回復した！（現在SP: " + newSp + "）");
                 ui.printPlayerStatus(player);
             }
 
@@ -655,7 +658,8 @@ public class BattleManager {
 
                 // 攻撃属性タグ（アビリティのタグ + 武器継承なら武器のタグ）
                 java.util.List<String> attackTags = new java.util.ArrayList<>();
-                if (ability.getTags() != null) attackTags.addAll(ability.getTags());
+                if (ability.getTags() != null)
+                    attackTags.addAll(ability.getTags());
                 if (Boolean.TRUE.equals(ability.getInheritWeapon()) && weapon != null && weapon.getTags() != null) {
                     attackTags.addAll(weapon.getTags());
                 }
@@ -665,7 +669,7 @@ public class BattleManager {
 
                 // ダメージ適用パイプライン（固定軽減 → 耐性Trait → SP/HP適用 → ログ出力）
                 AttackExecutionResult dmgResult = applyAttackDamageToEnemy(
-                        enemy, totalDamage, attackTags, isCritical, critMult, "　命中！ ", diceMsg);
+                        enemy, totalDamage, attackTags, isCritical, critMult, "", diceMsg);
 
                 // 状態異常付与パイプライン
                 applyAbilityConditionsToEnemy(enemy, ability, dmgResult);
@@ -674,7 +678,7 @@ public class BattleManager {
                 if (ability.getForceDistanceTo() != null) {
                     int forced = Math.max(0, Math.min(4, ability.getForceDistanceTo()));
                     state.setDistance(forced);
-                    ui.print("　★ 吹き飛ばし！ 距離が " + forced + " に変化した。");
+                    ui.print("　→ 吹き飛ばし！ 距離が " + forced + " に変化した。");
                 }
 
                 // --- DUAL_WIELD（二刀流）処理 ---
@@ -685,7 +689,7 @@ public class BattleManager {
                 }
 
             } else {
-                ui.print("　かわされた！（ミス！）");
+                ui.print("　→ 攻撃はかわされた！");
                 // サブウィンドウのログに要約を追記
                 if (ui instanceof JavaFXUI) {
                     ((JavaFXUI) ui).appendBattleLog("攻撃がかわされた！");
@@ -722,7 +726,7 @@ public class BattleManager {
             return; // 予備スロットが空か武器でない → スキップ
         }
 
-        ui.print("　【二刀流】オフハンドで追加攻撃！（" + offHandWeapon.getName() + "）");
+        ui.print("　【二刀流】オフハンドで追加攻撃！（［" + offHandWeapon.getName() + "］）");
 
         // ペナルティ免除条件の判定：offHandFreeTagConditionsのいずれかのタグを持つか
         boolean penaltyFree = false;
@@ -767,20 +771,23 @@ public class BattleManager {
 
             // 攻撃属性タグ（オフハンド武器のタグ + アビリティのタグ）
             java.util.List<String> offTags = new java.util.ArrayList<>();
-            if (offHandWeapon.getTags() != null) offTags.addAll(offHandWeapon.getTags());
-            if (ability.getTags() != null) offTags.addAll(ability.getTags());
+            if (offHandWeapon.getTags() != null)
+                offTags.addAll(offHandWeapon.getTags());
+            if (ability.getTags() != null)
+                offTags.addAll(ability.getTags());
 
             String penaltyMsg = penaltyFree ? "（ペナルティなし）"
-                    : "（命中" + dualWield.getOffHandHitPenalty() + "%・ダメージ×" + dualWield.getOffHandDamageMultiplier() + "）";
+                    : "（命中" + dualWield.getOffHandHitPenalty() + "%・ダメージ×" + dualWield.getOffHandDamageMultiplier()
+                            + "）";
 
             // ダメージ適用パイプライン（固定軽減 → 耐性Trait → SP/HP適用 → ログ出力）
             AttackExecutionResult dmgResult = applyAttackDamageToEnemy(
-                    enemy, offDamage, offTags, isCritical, critMult, "　　オフハンド命中！ ", penaltyMsg);
+                    enemy, offDamage, offTags, isCritical, critMult, "", penaltyMsg);
 
             // 状態異常付与パイプライン（強撃等の付与チャンスをオフハンドでも実行）
             applyAbilityConditionsToEnemy(enemy, ability, dmgResult);
         } else {
-            ui.print("　　オフハンドは外れた！");
+            ui.print("　→ オフハンド攻撃は外れた！");
         }
     }
 
@@ -930,9 +937,11 @@ public class BattleManager {
         // アビリティに scalings がない場合: 武器のスケーリング設定にフォールバック
         String fallbackStat = (weapon != null && weapon.getWeaponScalingStat() != null
                 && !weapon.getWeaponScalingStat().isEmpty())
-                ? weapon.getWeaponScalingStat() : "might";
+                        ? weapon.getWeaponScalingStat()
+                        : "might";
         double fallbackScale = (weapon != null && weapon.getWeaponStatScaling() != null)
-                ? weapon.getWeaponStatScaling() : 0.5;
+                ? weapon.getWeaponStatScaling()
+                : 0.5;
         return (int) (getCombatStat(player, fallbackStat) * fallbackScale);
     }
 
@@ -959,7 +968,6 @@ public class BattleManager {
         String pStanceStr = state.getCurrentPlayerStance();
         // TODO: ここで特注の割り込み処理（魔法の無効化など）を記述する予定
 
-        ui.print("＞【" + enemy.getName() + "の行動】");
         CombatBaseRules baseRules = CombatDataLoader.getBaseRules();
 
         // --- 1. ムーブの実行 ---
@@ -968,7 +976,7 @@ public class BattleManager {
         int enemyMovHindrance = getMaxConditionIntensity(state.getEnemyConditions(), "movement_hindrance");
         if (enemyMovHindrance > 0) {
             if (random.nextInt(100) + 1 <= enemyMovHindrance) {
-                ui.print("　移動阻害により、" + enemy.getName() + " の移動は失敗した！");
+                ui.print("　［移動阻害］足を取られ、移動できなかった！");
                 enemyCanMove = false;
             }
         }
@@ -1004,8 +1012,8 @@ public class BattleManager {
                     if (state.getDistance() == 0 && getActivePlayerTraits().stream().anyMatch(t -> t != null
                             && "SYSTEMIC".equals(t.getType()) && "VIGILANCE".equals(t.getSystemicEffect()))) {
                         String pName = (player.getName() != null && !player.getName().isEmpty()) ? player.getName()
-                                : "冒険者";
-                        ui.print("　" + pName + " は " + enemy.getName() + " が離れる隙を見逃さなかった！（警戒心による機会攻撃）");
+                                : "プレイヤー";
+                        ui.print("　［機会攻撃］" + pName + "は離脱の隙を見逃さなかった！");
                         executePlayerOpportunityAttack(enemy);
                     }
                     if (enemy.getHp() > 0) {
@@ -1050,7 +1058,7 @@ public class BattleManager {
         if (selectedAbilityId != null) {
             int enemyActHindrance = getMaxConditionIntensity(state.getEnemyConditions(), "action_hindrance");
             if (enemyActHindrance > 0 && random.nextInt(100) + 1 <= enemyActHindrance) {
-                ui.print("　行動阻害により、" + enemy.getName() + " の行動は失敗した！");
+                ui.print("　［行動阻害］体の自由が利かず、行動できなかった！");
                 selectedAbilityId = null; // 行動キャンセル
             }
         }
@@ -1125,7 +1133,7 @@ public class BattleManager {
             return;
         }
 
-        ui.print("　" + enemy.getName() + "の攻撃！[" + abilityName + "]");
+        ui.print("　" + enemy.getName() + "の攻撃！［" + abilityName + "］");
 
         if (description != null && !description.isEmpty()) {
             for (String line : description) {
@@ -1138,7 +1146,7 @@ public class BattleManager {
         String rangeResult = resolveRangeResult(baseRules, ability, null, null, distance);
 
         if ("MISS".equals(rangeResult)) {
-            ui.print("　ミス！距離が適していません。 (" + abilityName + ")");
+            ui.print("　→ ミス！距離が適していない！");
             return;
         }
 
@@ -1213,18 +1221,20 @@ public class BattleManager {
             DamageModifierResult modResult = resolveAttackDamageModifier(
                     getActivePlayerTraits(), atkTags, totalDamage);
 
-            String playerName = player.getName() != null ? player.getName() : "冒険者";
-            String reduceMsg = reduction > 0 ? "（" + reduction + "ダメージ軽減）" : "";
-            String critMsg = isCritical ? " 【クリティカル！" + critMult + "倍】" : "";
+            String playerName = player.getName() != null ? player.getName() : "プレイヤー";
+            String reduceMsg = reduction > 0 ? "（" + reduction + " 軽減）" : "";
+            String lead = isCritical ? "　→ クリティカル！ " : "　→ ";
 
             if (modResult.isAbsorb) {
                 // 吸収：HPダメージなし、プレイヤーSPを増加
-                int newSp = Math.min(com.kh.tbrr.data.models.Player.SP_MAX, player.getCurrentSp() + modResult.finalDamage);
+                int newSp = Math.min(com.kh.tbrr.data.models.Player.SP_MAX,
+                        player.getCurrentSp() + modResult.finalDamage);
                 player.setCurrentSp(newSp);
-                ui.print("→ " + playerName + " は " + modResult.finalDamage + " ダメージを吸収した！" + reduceMsg + critMsg);
+                ui.print("　→ " + playerName + "は攻撃を吸収した！（SP " + modResult.finalDamage + " 回復）" + reduceMsg);
                 if (ui instanceof JavaFXUI) {
-                    ((JavaFXUI) ui).appendBattleLog(enemy.getName() + "の攻撃！" + playerName + "が" + modResult.finalDamage + "ダメージを吸収！SP回復"
-                            + (isCritical ? "　[クリティカル]" : ""));
+                    ((JavaFXUI) ui).appendBattleLog(
+                            enemy.getName() + "の攻撃！" + playerName + "が" + modResult.finalDamage + "ダメージ吸収！SP回復"
+                                    + (isCritical ? "［クリティカル］" : ""));
                 }
                 ui.printPlayerStatus(player);
             } else {
@@ -1235,14 +1245,20 @@ public class BattleManager {
                 int spAbsorbed = dmgResult.actualSpDamage();
 
                 String modifierMsg = modResult.modifierName != null ? "（" + modResult.modifierName + "）" : "";
-                String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
-                ui.print("→ " + playerName + " に " + modResult.finalDamage + " のダメージ！" + reduceMsg + critMsg + modifierMsg + spMsg);
+                String spMsg = "";
+                if (spAbsorbed > 0 && hpDamage > 0) {
+                    spMsg = "（SP " + spAbsorbed + " 破壊 / HP " + hpDamage + "）";
+                } else if (spAbsorbed > 0 && hpDamage == 0) {
+                    spMsg = "（SPで防護）";
+                }
+                ui.print(
+                        lead + playerName + "に " + modResult.finalDamage + " のダメージ！" + modifierMsg + spMsg + reduceMsg);
                 // サブウィンドウのログに要約を追記
                 if (ui instanceof JavaFXUI) {
                     String logSummary = enemy.getName() + "の攻撃！" + modResult.finalDamage + "ダメージ"
-                            + (isCritical ? "　[クリティカル]" : "")
-                            + (modResult.modifierName != null ? "　[" + modResult.modifierName + "]" : "")
-                            + (spAbsorbed > 0 ? "　SP" + spAbsorbed + "吸収" : "");
+                            + (isCritical ? "［クリティカル］" : "")
+                            + (modResult.modifierName != null ? "［" + modResult.modifierName + "］" : "")
+                            + (spAbsorbed > 0 ? "（SP " + spAbsorbed + " 破壊 / HP " + hpDamage + "）" : "");
                     ((JavaFXUI) ui).appendBattleLog(logSummary);
                 }
                 ui.printPlayerStatus(player); // 右パネルのHP/AP表示を更新
@@ -1259,14 +1275,14 @@ public class BattleManager {
                         CombatConditionData cData = CombatConditionRegistry
                                 .getConditionById(app.getConditionId());
                         if (cData != null) {
-                            ui.print("　★ " + playerName + " は [" + cData.getName() + "] になった！");
+                            ui.print("　→ " + playerName + "は［" + cData.getName() + "］状態になった！");
                         }
                     }
                 }
             }
         } else {
-            String playerName = player.getName() != null ? player.getName() : "冒険者";
-            ui.print("→ ...しかし、" + playerName + " は回避した！");
+            String playerName = player.getName() != null ? player.getName() : "プレイヤー";
+            ui.print("　→ " + playerName + "は攻撃をかわした！");
             // サブウィンドウのログに要約を追記
             if (ui instanceof JavaFXUI) {
                 ((JavaFXUI) ui).appendBattleLog(enemy.getName() + "の攻撃を回避！");
@@ -1338,14 +1354,14 @@ public class BattleManager {
 
             // ダメージ適用パイプライン（固定軽減 → 耐性Trait → SP/HP適用 → ログ出力）
             AttackExecutionResult dmgResult = applyAttackDamageToEnemy(
-                    enemy, totalDamage, tagsForMastery, isCritical, critMult, "　機会攻撃命中！ ", "");
+                    enemy, totalDamage, tagsForMastery, isCritical, critMult, "", "");
 
             // 状態異常付与パイプライン
             applyAbilityConditionsToEnemy(enemy, ability, dmgResult);
 
             processOffHandAttack(enemy, ability, baseRules);
         } else {
-            ui.print("　機会攻撃はかわされた！");
+            ui.print("　→ 機会攻撃はかわされた！");
         }
     }
 
@@ -1383,12 +1399,18 @@ public class BattleManager {
             int hpDamage = dmgResult.actualHpDamage();
             int spAbsorbed = dmgResult.actualSpDamage();
 
-            String reduceMsg = reduction > 0 ? "（" + reduction + "ダメージ軽減）" : "";
-            String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
-            ui.print("　機会攻撃命中！ プレイヤーに " + totalDamage + " のダメージ！" + reduceMsg + spMsg);
+            String reduceMsg = reduction > 0 ? "（" + reduction + " 軽減）" : "";
+            String spMsg = "";
+            if (spAbsorbed > 0 && hpDamage > 0) {
+                spMsg = "（SP " + spAbsorbed + " 破壊 / HP " + hpDamage + "）";
+            } else if (spAbsorbed > 0 && hpDamage == 0) {
+                spMsg = "（SPで防護）";
+            }
+            String lead = result.isCritical ? "　→ クリティカル！ " : "　→ ";
+            ui.print(lead + "機会攻撃命中！ プレイヤーに " + totalDamage + " のダメージ！" + spMsg + reduceMsg);
             ui.printPlayerStatus(p);
         } else {
-            ui.print("　機会攻撃を回避した！");
+            ui.print("　→ 機会攻撃を回避した！");
         }
     }
 
@@ -1536,7 +1558,6 @@ public class BattleManager {
         return new HitResult(roll <= hitChance, false);
     }
 
-
     /**
      * ターン終了時の状態異常更新。DOTダメージを対象に与えてからターンを減算する。
      * 
@@ -1564,13 +1585,26 @@ public class BattleManager {
                 if (dotDmg > 0) {
                     if (targetPlayer != null) {
                         DamageResult dotResult = targetPlayer.applyBattleDamage(dotDmg, false);
-                        String pName = targetPlayer.getName() != null ? targetPlayer.getName() : "冒険者";
-                        ui.print("　[" + data.getName() + "] " + pName + " が " + dotDmg + " の継続ダメージを受けた！"
-                                + (dotResult.actualSpDamage() > 0 ? "（SP" + dotResult.actualSpDamage() + "吸収）" : ""));
+                        String pName = targetPlayer.getName() != null ? targetPlayer.getName() : "プレイヤー";
+                        String spMsg = "";
+                        if (dotResult.actualSpDamage() > 0 && dotResult.actualHpDamage() > 0) {
+                            spMsg = "（SP " + dotResult.actualSpDamage() + " 破壊 / HP " + dotResult.actualHpDamage()
+                                    + "）";
+                        } else if (dotResult.actualSpDamage() > 0 && dotResult.actualHpDamage() == 0) {
+                            spMsg = "（SPで防護）";
+                        }
+                        ui.print("　→ ［" + data.getName() + "］" + pName + "に " + dotDmg + " のダメージ！" + spMsg);
                     } else if (targetEnemy != null) {
                         DamageResult dotResult = targetEnemy.applyBattleDamage(dotDmg, false);
-                        ui.print("　[" + data.getName() + "] " + targetEnemy.getName() + " が " + dotDmg + " の継続ダメージを受けた！"
-                                + (dotResult.actualSpDamage() > 0 ? "（SP" + dotResult.actualSpDamage() + "吸収）" : ""));
+                        String spMsg = "";
+                        if (dotResult.actualSpDamage() > 0 && dotResult.actualHpDamage() > 0) {
+                            spMsg = "（SP " + dotResult.actualSpDamage() + " 破壊 / HP " + dotResult.actualHpDamage()
+                                    + "）";
+                        } else if (dotResult.actualSpDamage() > 0 && dotResult.actualHpDamage() == 0) {
+                            spMsg = "（SPで防護）";
+                        }
+                        ui.print("　→ ［" + data.getName() + "］" + targetEnemy.getName() + "に " + dotDmg + " のダメージ！"
+                                + spMsg);
                     }
                 }
             }
@@ -1581,7 +1615,7 @@ public class BattleManager {
                 if (c.getDuration() == 0) {
                     it.remove(); // 効果切れ
                     if (data != null) {
-                        ui.print("　[" + data.getName() + "] の効果が切れた。");
+                        ui.print("　→ ［" + data.getName() + "］の効果が切れた。");
                     }
                 }
             }
@@ -1659,7 +1693,7 @@ public class BattleManager {
     }
 
     /**
-     * 攻撃タグと防御側のDAMAGE_MODIFIER型Traitを照らし合わせ、　ダメージ補正結果を返す。
+     * 攻撃タグと防御側のDAMAGE_MODIFIER型Traitを照らし合わせ、 ダメージ補正結果を返す。
      *
      * 優先順位: ABSORB > IMMUNE > RESIST > WEAKNESS（最上位の1つのみ適用）
      *
@@ -1684,18 +1718,22 @@ public class BattleManager {
         String bestTraitName = null;
 
         for (TraitData trait : defenderTraits) {
-            if (trait == null || !"DAMAGE_MODIFIER".equals(trait.getType())) continue;
-            if (trait.getDamageModifierEffect() == null) continue;
-            if (trait.getTargetTags() == null || trait.getTargetTags().isEmpty()) continue;
+            if (trait == null || !"DAMAGE_MODIFIER".equals(trait.getType()))
+                continue;
+            if (trait.getDamageModifierEffect() == null)
+                continue;
+            if (trait.getTargetTags() == null || trait.getTargetTags().isEmpty())
+                continue;
 
             // 攻撃タグとtargetTagsのOR判定
             boolean matched = attackTags.stream().anyMatch(tag -> trait.getTargetTags().contains(tag));
-            if (!matched) continue;
+            if (!matched)
+                continue;
 
             int priority = switch (trait.getDamageModifierEffect()) {
-                case "ABSORB"   -> 4;
-                case "IMMUNE"   -> 3;
-                case "RESIST"   -> 2;
+                case "ABSORB" -> 4;
+                case "IMMUNE" -> 3;
+                case "RESIST" -> 2;
                 case "WEAKNESS" -> 1;
                 default -> 0;
             };
@@ -1713,11 +1751,11 @@ public class BattleManager {
         }
 
         return switch (bestEffect) {
-            case "ABSORB"   -> new DamageModifierResult(damage, true, bestTraitName);
-            case "IMMUNE"   -> new DamageModifierResult(0, false, bestTraitName);
-            case "RESIST"   -> new DamageModifierResult((int) (damage * 0.5), false, bestTraitName);
+            case "ABSORB" -> new DamageModifierResult(damage, true, bestTraitName);
+            case "IMMUNE" -> new DamageModifierResult(0, false, bestTraitName);
+            case "RESIST" -> new DamageModifierResult((int) (damage * 0.5), false, bestTraitName);
             case "WEAKNESS" -> new DamageModifierResult((int) (damage * 2.0), false, bestTraitName);
-            default         -> new DamageModifierResult(damage, false, null);
+            default -> new DamageModifierResult(damage, false, null);
         };
     }
 
@@ -1740,7 +1778,8 @@ public class BattleManager {
 
     /**
      * プレイヤー側の攻撃ダメージを敵に適用する共通パイプライン。
-     * 固定軽減 → 耐性Trait（DAMAGE_MODIFIER） → SP/HP適用（またはSP吸収回復） → メイン＆サブウィンドウログ出力 を一元管理する。
+     * 固定軽減 → 耐性Trait（DAMAGE_MODIFIER） → SP/HP適用（またはSP吸収回復） → メイン＆サブウィンドウログ出力
+     * を一元管理する。
      */
     private AttackExecutionResult applyAttackDamageToEnemy(
             EnemyData enemy,
@@ -1767,18 +1806,19 @@ public class BattleManager {
         DamageModifierResult modResult = resolveAttackDamageModifier(
                 getActiveEnemyTraits(), attackTags, reducedDamage);
 
-        String critMsg = isCritical ? " 【クリティカル！" + (critMult > 1.0 ? critMult + "倍】" : "】") : "";
-        String reductionMsg = enemyDmgReduction > 0 ? "（" + enemyDmgReduction + "ダメージ軽減）" : "";
+        String lead = isCritical ? "　→ クリティカル！ " : "　→ ";
+        String reductionMsg = enemyDmgReduction > 0 ? "（" + enemyDmgReduction + " 軽減）" : "";
         String detailPart = (diceDetailMsg != null && !diceDetailMsg.isEmpty()) ? " " + diceDetailMsg : "";
 
         if (modResult.isAbsorb) {
             // 吸収：HPダメージなし、SPを増加
             int newSp = Math.min(9999, enemy.getCurrentSp() + modResult.finalDamage);
             enemy.setCurrentSp(newSp);
-            ui.print(hitPrefix + enemy.getName() + " は " + modResult.finalDamage + " ダメージを吸収した！" + detailPart + critMsg + reductionMsg);
+            ui.print("　→ " + enemy.getName() + "は攻撃を吸収した！（SP " + modResult.finalDamage + " 回復）" + reductionMsg
+                    + detailPart);
             if (ui instanceof JavaFXUI) {
-                ((JavaFXUI) ui).appendBattleLog(hitPrefix.trim() + enemy.getName() + "が" + modResult.finalDamage + "ダメージを吸収！SP回復"
-                        + (isCritical ? "　[クリティカル]" : ""));
+                ((JavaFXUI) ui).appendBattleLog(enemy.getName() + "の攻撃吸収！SP回復"
+                        + (isCritical ? "［クリティカル］" : ""));
             }
             return new AttackExecutionResult(modResult.finalDamage, true);
         } else {
@@ -1789,16 +1829,21 @@ public class BattleManager {
             int spAbsorbed = dmgResult.actualSpDamage();
 
             String modifierMsg = modResult.modifierName != null ? "（" + modResult.modifierName + "）" : "";
-            String spMsg = spAbsorbed > 0 ? "（SP" + spAbsorbed + "吸収、HPに" + hpDamage + "通った）" : "";
-            ui.print(hitPrefix + enemy.getName() + " に " + modResult.finalDamage + " のダメージ！" + detailPart + critMsg + reductionMsg
-                    + modifierMsg + spMsg);
+            String spMsg = "";
+            if (spAbsorbed > 0 && hpDamage > 0) {
+                spMsg = "（SP " + spAbsorbed + " 破壊 / HP " + hpDamage + "）";
+            } else if (spAbsorbed > 0 && hpDamage == 0) {
+                spMsg = "（SPで防護）";
+            }
+            ui.print(lead + enemy.getName() + "に " + modResult.finalDamage + " のダメージ！"
+                    + modifierMsg + spMsg + reductionMsg + detailPart);
 
             // サブウィンドウのログに要約を追記
             if (ui instanceof JavaFXUI) {
-                String logSummary = hitPrefix.trim() + enemy.getName() + "に" + modResult.finalDamage + "ダメージ"
-                        + (isCritical ? "　[クリティカル]" : "")
-                        + (modResult.modifierName != null ? "　[" + modResult.modifierName + "]" : "")
-                        + (spAbsorbed > 0 ? "　SP" + spAbsorbed + "吸収" : "");
+                String logSummary = enemy.getName() + "に " + modResult.finalDamage + " ダメージ"
+                        + (isCritical ? "［クリティカル］" : "")
+                        + (modResult.modifierName != null ? "［" + modResult.modifierName + "］" : "")
+                        + (spAbsorbed > 0 ? "（SP " + spAbsorbed + " 破壊 / HP " + hpDamage + "）" : "");
                 ((JavaFXUI) ui).appendBattleLog(logSummary);
             }
             return new AttackExecutionResult(modResult.finalDamage, false);
@@ -1826,7 +1871,7 @@ public class BattleManager {
                 CombatConditionData cData = CombatConditionRegistry
                         .getConditionById(app.getConditionId());
                 if (cData != null) {
-                    ui.print("　★ " + enemy.getName() + " は [" + cData.getName() + "] になった！");
+                    ui.print("　→ " + enemy.getName() + "は［" + cData.getName() + "］状態になった！");
                 }
             }
         }
