@@ -129,10 +129,10 @@ public class EventProcessor {
 		if (gameState.hasFlag("system:helper_enabled") && !event.isSuppressHelperHint()) {
 			String hint = event.getHelperHint();
 			if (hint != null && !hint.isEmpty()) {
-				ui.print("【ヘルパー】\n" + TextReplacer.replace(hint, player));
+				ui.print("【ヘルパー】" + TextReplacer.replace(hint, player));
 			} else {
 				// フォールバックメッセージ
-				ui.print("【ヘルパー】\n「う～ん？僕にもちょっとわからないや、ごめんね！」");
+				ui.print("【ヘルパー】「う～ん？僕にもちょっとわからないや、ごめんね！」");
 			}
 		}
 
@@ -160,7 +160,7 @@ public class EventProcessor {
 		if (!gameState.isInRecursiveEvent()) {
 			// 一連のイベント処理が終わったタイミングで、右側パネルのUIを最新状態に一括リフレッシュする
 			ui.printPlayerStatus(player);
-			
+
 			ui.print("");
 			ui.waitForEnter();
 		}
