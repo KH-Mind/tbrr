@@ -221,6 +221,7 @@ public class BattleManager {
                         if (td.getInitiativeBonus() != 0)
                             playerInitBonus += td.getInitiativeBonus();
                     }
+                    playerInitBonus += calcConditionInitiativeBonusForPlayer(state.getPlayerConditions());
 
                     // 敵の行動順ボーナスを計算
                     int enemyInitBonus = 0;
@@ -228,6 +229,7 @@ public class BattleManager {
                         if (td.getInitiativeBonus() != 0)
                             enemyInitBonus += td.getInitiativeBonus();
                     }
+                    enemyInitBonus += calcConditionInitiativeBonusForEnemy(state.getEnemyConditions(), enemy);
 
                     // --- イニシアチブ判定（機敏 + 1d6 + ボーナス） ---
                     int playerFinesse = (player.getCombatStats() != null) ? player.getCombatStats().finesse() : 0;
@@ -571,10 +573,20 @@ public class BattleManager {
                 return false;
             }
 
-            // 攻撃実行宣言ログ（暫定仕様: ＞[Name]の攻撃！［アビリティ名］［武器名］）
+            // 攻撃実行宣言ログ
             String pName = player.getName() != null ? player.getName() : "プレイヤー";
-            String wName = (weapon != null && weapon.getName() != null) ? weapon.getName() : "素手";
-            ui.print("＞" + pName + "の攻撃！［" + ability.getName() + "］［" + wName + "］");
+            if ("self".equals(ability.getRangeType())) {
+                ui.print("＞" + pName + "の［" + ability.getName() + "］！");
+            } else {
+                String wName = (weapon != null && weapon.getName() != null) ? weapon.getName() : "素手";
+                ui.print("＞" + pName + "の攻撃！［" + ability.getName() + "］［" + wName + "］");
+            }
+
+            // --- 強制距離変更処理（forceDistanceTo）---
+            if (ability.getForceDistanceTo() != null) {
+                state.setDistance(ability.getForceDistanceTo());
+                ui.print("　→ 距離が " + state.getDistance() + " になった！");
+            }
 
             // --- SP増加処理（checkを持たないSPバフ系アビリティはここで終了）---
             ScalingData spGain = ability.getSpGain();
@@ -586,7 +598,22 @@ public class BattleManager {
                 ui.printPlayerStatus(player);
             }
 
-            // check が null（SPバフ専用アビリティ等）の場合は攻撃処理を行わず終了
+            // --- 自己対象 CombatCondition 付与処理（self系アビリティ）---
+            if ("self".equals(ability.getRangeType()) && ability.getApplyCombatConditions() != null) {
+                for (var app : ability.getApplyCombatConditions()) {
+                    int r = random.nextInt(100) + 1;
+                    if (r <= app.getChance()) {
+                        applyCondition(state.getPlayerConditions(), app.getConditionId(),
+                                app.getIntensity(), app.getDuration());
+                        CombatConditionData cData = CombatConditionRegistry.getConditionById(app.getConditionId());
+                        if (cData != null) {
+                            ui.print("　→ " + pName + "は［" + cData.getName() + "］状態になった！");
+                        }
+                    }
+                }
+            }
+
+            // check が null（SPバフ・自己バフ・移動専用アビリティ等）の場合は攻撃処理を行わず終了
             if (ability.getCheck() == null) {
                 return false;
             }
@@ -1576,12 +1603,8 @@ public class BattleManager {
             // --- DOTダメージ処理 ---
             if (data != null && data.getModifiers() != null) {
                 // intensity > 0 ならアビリティ側で指定された強度、なければJSON定義のデフォルト値を使用
-                int dotDmg = 0;
-                if (data.getModifiers().getDotDamage() > 0) {
-                    dotDmg = c.getIntensity() > 0
-                            ? c.getIntensity()
-                            : data.getModifiers().getDotDamage();
-                }
+                int defaultDmg = data.getModifiers().getDotDamage();
+                int dotDmg = c.getIntensity() > 0 ? c.getIntensity() : defaultDmg;
                 if (dotDmg > 0) {
                     if (targetPlayer != null) {
                         DamageResult dotResult = targetPlayer.applyBattleDamage(dotDmg, false);
@@ -1959,6 +1982,15 @@ public class BattleManager {
      * @return 計算されたSP増加量（最小値0）
      */
     private int calculateSpGainForPlayer(ScalingData scalingData) {
+        return calculateScalingForPlayer(scalingData);
+    }
+
+    /**
+     * ScalingData に基づいてプレイヤーのステータススケーリング値を計算する。
+     */
+    private int calculateScalingForPlayer(ScalingData scalingData) {
+        if (scalingData == null)
+            return 0;
         int total = scalingData.getBase();
         if (scalingData.getScalings() != null) {
             for (java.util.Map.Entry<String, Double> entry : scalingData.getScalings().entrySet()) {
@@ -1966,5 +1998,43 @@ public class BattleManager {
             }
         }
         return Math.max(0, total);
+    }
+
+    /**
+     * プレイヤーの付与されている CombatCondition からイニシアチブボーナスを合算する。
+     */
+    private int calcConditionInitiativeBonusForPlayer(java.util.List<BattleState.ActiveCombatCondition> conditions) {
+        if (conditions == null)
+            return 0;
+        int bonus = 0;
+        for (BattleState.ActiveCombatCondition c : conditions) {
+            CombatConditionData data = CombatConditionRegistry.getConditionById(c.getConditionId());
+            if (data != null && data.getModifiers() != null) {
+                ScalingData scaling = data.getModifiers().getInitiativeScaling();
+                if (scaling != null) {
+                    bonus += calculateScalingForPlayer(scaling);
+                }
+            }
+        }
+        return bonus;
+    }
+
+    /**
+     * 敵の付与されている CombatCondition からイニシアチブボーナスを合算する。
+     */
+    private int calcConditionInitiativeBonusForEnemy(java.util.List<BattleState.ActiveCombatCondition> conditions, EnemyData enemy) {
+        if (conditions == null || enemy == null)
+            return 0;
+        int bonus = 0;
+        for (BattleState.ActiveCombatCondition c : conditions) {
+            CombatConditionData data = CombatConditionRegistry.getConditionById(c.getConditionId());
+            if (data != null && data.getModifiers() != null) {
+                ScalingData scaling = data.getModifiers().getInitiativeScaling();
+                if (scaling != null) {
+                    bonus += scaling.calculate(enemy);
+                }
+            }
+        }
+        return bonus;
     }
 }

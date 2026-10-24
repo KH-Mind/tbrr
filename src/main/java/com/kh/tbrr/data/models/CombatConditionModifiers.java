@@ -78,4 +78,14 @@ public class CombatConditionModifiers {
     public void setHindranceChance(int hindranceChance) {
         this.hindranceChance = hindranceChance;
     }
+
+    private ScalingData initiativeScaling;
+
+    public ScalingData getInitiativeScaling() {
+        return initiativeScaling;
+    }
+
+    public void setInitiativeScaling(ScalingData initiativeScaling) {
+        this.initiativeScaling = initiativeScaling;
+    }
 }
