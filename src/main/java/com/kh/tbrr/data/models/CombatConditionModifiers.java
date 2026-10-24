@@ -7,34 +7,75 @@ public class CombatConditionModifiers {
     private double damageMultiplier;
     private boolean preventMovement;
     private boolean preventAction;
-    private int dotDamage; // 継続ダメージ（沖、火傍等すべての要因は単一フィールドで管理）
+    private int dotDamage; // 継続ダメージ（フレーバー的に毒や火傷となるすべての「毎ターンダメージ」要因は単一フィールドで管理）
 
     public CombatConditionModifiers() {
         this.damageMultiplier = 1.0;
     }
 
-    public int getAccuracyBonus() { return accuracyBonus; }
-    public void setAccuracyBonus(int accuracyBonus) { this.accuracyBonus = accuracyBonus; }
+    public int getAccuracyBonus() {
+        return accuracyBonus;
+    }
 
-    public int getAvoidanceBonus() { return avoidanceBonus; }
-    public void setAvoidanceBonus(int avoidanceBonus) { this.avoidanceBonus = avoidanceBonus; }
+    public void setAccuracyBonus(int accuracyBonus) {
+        this.accuracyBonus = accuracyBonus;
+    }
 
-    public int getDamageReduction() { return damageReduction; }
-    public void setDamageReduction(int damageReduction) { this.damageReduction = damageReduction; }
+    public int getAvoidanceBonus() {
+        return avoidanceBonus;
+    }
 
-    public double getDamageMultiplier() { return damageMultiplier; }
-    public void setDamageMultiplier(double damageMultiplier) { this.damageMultiplier = damageMultiplier; }
+    public void setAvoidanceBonus(int avoidanceBonus) {
+        this.avoidanceBonus = avoidanceBonus;
+    }
 
-    public boolean isPreventMovement() { return preventMovement; }
-    public void setPreventMovement(boolean preventMovement) { this.preventMovement = preventMovement; }
+    public int getDamageReduction() {
+        return damageReduction;
+    }
 
-    public boolean isPreventAction() { return preventAction; }
-    public void setPreventAction(boolean preventAction) { this.preventAction = preventAction; }
+    public void setDamageReduction(int damageReduction) {
+        this.damageReduction = damageReduction;
+    }
 
-    public int getDotDamage() { return dotDamage; }
-    public void setDotDamage(int dotDamage) { this.dotDamage = dotDamage; }
+    public double getDamageMultiplier() {
+        return damageMultiplier;
+    }
+
+    public void setDamageMultiplier(double damageMultiplier) {
+        this.damageMultiplier = damageMultiplier;
+    }
+
+    public boolean isPreventMovement() {
+        return preventMovement;
+    }
+
+    public void setPreventMovement(boolean preventMovement) {
+        this.preventMovement = preventMovement;
+    }
+
+    public boolean isPreventAction() {
+        return preventAction;
+    }
+
+    public void setPreventAction(boolean preventAction) {
+        this.preventAction = preventAction;
+    }
+
+    public int getDotDamage() {
+        return dotDamage;
+    }
+
+    public void setDotDamage(int dotDamage) {
+        this.dotDamage = dotDamage;
+    }
 
     private int hindranceChance; // 阻害確率デフォルト値（%）。intensity が 0 の場合のフォールバック。
-    public int getHindranceChance() { return hindranceChance; }
-    public void setHindranceChance(int hindranceChance) { this.hindranceChance = hindranceChance; }
+
+    public int getHindranceChance() {
+        return hindranceChance;
+    }
+
+    public void setHindranceChance(int hindranceChance) {
+        this.hindranceChance = hindranceChance;
+    }
 }
