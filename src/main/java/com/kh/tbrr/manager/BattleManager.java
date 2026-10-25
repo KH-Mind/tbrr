@@ -695,7 +695,7 @@ public class BattleManager {
                         + " + 習熟固定:" + masteryFixedBonus + " + ステ修正:" + scalingStatVal + ")";
 
                 // ダメージ適用パイプライン（固定軽減 → 耐性Trait → SP/HP適用 → ログ出力）
-                AttackExecutionResult dmgResult = applyAttackDamageToEnemy(
+                DamageResult dmgResult = applyAttackDamageToEnemy(
                         enemy, totalDamage, attackTags, isCritical, critMult, "", diceMsg);
 
                 // 状態異常付与パイプライン
@@ -808,7 +808,7 @@ public class BattleManager {
                             + "）";
 
             // ダメージ適用パイプライン（固定軽減 → 耐性Trait → SP/HP適用 → ログ出力）
-            AttackExecutionResult dmgResult = applyAttackDamageToEnemy(
+            DamageResult dmgResult = applyAttackDamageToEnemy(
                     enemy, offDamage, offTags, isCritical, critMult, "", penaltyMsg);
 
             // 状態異常付与パイプライン（強撃等の付与チャンスをオフハンドでも実行）
@@ -1373,7 +1373,7 @@ public class BattleManager {
             }
 
             // ダメージ適用パイプライン（固定軽減 → 耐性Trait → SP/HP適用 → ログ出力）
-            AttackExecutionResult dmgResult = applyAttackDamageToEnemy(
+            DamageResult dmgResult = applyAttackDamageToEnemy(
                     enemy, totalDamage, tagsForMastery, isCritical, critMult, "", "");
 
             // 状態異常付与パイプライン
@@ -1778,27 +1778,13 @@ public class BattleManager {
     }
 
     /**
-     * 攻撃によるダメージ確定・適用結果を保持する内部クラス。
-     */
-    private static class AttackExecutionResult {
-        public final int finalDamage;
-        public final boolean isAbsorb;
-        /** SP/HPへの実ダメージ結果。吸収時は null。状態異常付与のSP防壁判定に使用する。 */
-        public final DamageResult dmgResult;
-
-        public AttackExecutionResult(int finalDamage, boolean isAbsorb, DamageResult dmgResult) {
-            this.finalDamage = finalDamage;
-            this.isAbsorb = isAbsorb;
-            this.dmgResult = dmgResult;
-        }
-    }
-
-    /**
      * プレイヤー側の攻撃ダメージを敵に適用する共通パイプライン。
      * 固定軽減 → 耐性Trait（DAMAGE_MODIFIER） → SP/HP適用（またはSP吸収回復） → メイン＆サブウィンドウログ出力
      * を一元管理する。
+     * 
+     * @return SP/HPへの実ダメージ結果（DamageResult）。吸収時は null。
      */
-    private AttackExecutionResult applyAttackDamageToEnemy(
+    private DamageResult applyAttackDamageToEnemy(
             EnemyData enemy,
             int preMitigationDamage,
             java.util.List<String> attackTags,
@@ -1837,7 +1823,7 @@ public class BattleManager {
                 ((JavaFXUI) ui).appendBattleLog(enemy.getName() + "の攻撃吸収！SP回復"
                         + (isCritical ? "［クリティカル］" : ""));
             }
-            return new AttackExecutionResult(modResult.finalDamage, true, null);
+            return null;
         } else {
             // 通常ダメージ処理（SP→HPの順）
             boolean isPenetrating = false;
@@ -1863,7 +1849,7 @@ public class BattleManager {
                         + (spAbsorbed > 0 ? "（SP " + spAbsorbed + " 破壊 / HP " + hpDamage + "）" : "");
                 ((JavaFXUI) ui).appendBattleLog(logSummary);
             }
-            return new AttackExecutionResult(modResult.finalDamage, false, dmgResult);
+            return dmgResult;
         }
     }
 
@@ -1871,7 +1857,7 @@ public class BattleManager {
      * プレイヤー側の攻撃（アビリティ）によるCombatCondition付与。
      * 実処理は共通メソッド {@link #applyCombatConditions} に委譲する（SP防壁判定もそちらで行う）。
      */
-    private void applyAbilityConditionsToEnemy(EnemyData enemy, AbilityData ability, AttackExecutionResult dmgResult) {
+    private void applyAbilityConditionsToEnemy(EnemyData enemy, AbilityData ability, DamageResult dmgResult) {
         if (ability == null || ability.getApplyCombatConditions() == null || dmgResult == null) {
             return;
         }
@@ -1879,7 +1865,7 @@ public class BattleManager {
                 state.getEnemyConditions(),
                 enemy.getName(),
                 ability.getApplyCombatConditions(),
-                dmgResult.dmgResult);
+                dmgResult);
     }
 
     /**
