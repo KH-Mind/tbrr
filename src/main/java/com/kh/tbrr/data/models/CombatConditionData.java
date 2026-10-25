@@ -7,6 +7,7 @@ public class CombatConditionData {
     private String type; // "BUFF", "DEBUFF", "NEUTRAL"
     private int duration; // ターン数（-1で永続）
     private String stackRule; // "ACCUMULATE", "MAX_ONLY", "REFRESH", "EXTEND" (省略時はREFRESH)
+    private boolean spBlockable; // trueの場合、対象にSPが残っている間（SPで受け止め切った一撃）は付与されない（ハードCC用）
     private CombatConditionModifiers modifiers;
 
     public String getId() { return id; }
@@ -26,6 +27,9 @@ public class CombatConditionData {
 
     public String getStackRule() { return stackRule; }
     public void setStackRule(String stackRule) { this.stackRule = stackRule; }
+
+    public boolean isSpBlockable() { return spBlockable; }
+    public void setSpBlockable(boolean spBlockable) { this.spBlockable = spBlockable; }
 
     public CombatConditionModifiers getModifiers() { return modifiers; }
     public void setModifiers(CombatConditionModifiers modifiers) { this.modifiers = modifiers; }

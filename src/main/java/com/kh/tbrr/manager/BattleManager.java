@@ -708,19 +708,19 @@ public class BattleManager {
                     ui.print("　→ 吹き飛ばし！ 距離が " + forced + " に変化した。");
                 }
 
-                // --- DUAL_WIELD（二刀流）処理 ---
-                // アビリティで明示的に許可されている場合のみオフハンド追撃を行う
-                boolean canOffHand = Boolean.TRUE.equals(ability.getTriggerOffHandAttack());
-                if (canOffHand) {
-                    processOffHandAttack(enemy, ability, baseRules);
-                }
-
             } else {
                 ui.print("　→ 攻撃はかわされた！");
                 // サブウィンドウのログに要約を追記
                 if (ui instanceof JavaFXUI) {
                     ((JavaFXUI) ui).appendBattleLog("攻撃がかわされた！");
                 }
+            }
+
+            // --- DUAL_WIELD（二刀流）処理 ---
+            // 主攻撃の命中・ミスに関わらず、オフハンドは独立して命中判定を行う
+            // （アビリティで明示的に許可されている場合のみオフハンド追撃を行う）
+            if (Boolean.TRUE.equals(ability.getTriggerOffHandAttack())) {
+                processOffHandAttack(enemy, ability, baseRules);
             }
         }
         return false;
@@ -1251,6 +1251,8 @@ public class BattleManager {
             String playerName = player.getName() != null ? player.getName() : "プレイヤー";
             String reduceMsg = reduction > 0 ? "（" + reduction + " 軽減）" : "";
             String lead = isCritical ? "　→ クリティカル！ " : "　→ ";
+            // 通常ダメージ処理で確定した結果（吸収時は null のまま。状態異常付与のSP防壁判定に使用）
+            DamageResult dmgResult = null;
 
             if (modResult.isAbsorb) {
                 // 吸収：HPダメージなし、プレイヤーSPを増加
@@ -1267,7 +1269,7 @@ public class BattleManager {
             } else {
                 // 通常ダメージ処理（SP→HPの順）
                 boolean isPenetrating = false;
-                DamageResult dmgResult = player.applyBattleDamage(modResult.finalDamage, isPenetrating);
+                dmgResult = player.applyBattleDamage(modResult.finalDamage, isPenetrating);
                 int hpDamage = dmgResult.actualHpDamage();
                 int spAbsorbed = dmgResult.actualSpDamage();
 
@@ -1291,22 +1293,13 @@ public class BattleManager {
                 ui.printPlayerStatus(player); // 右パネルのHP/AP表示を更新
             }
 
-            // --- 敵アビリティによる CombatCondition 付与 ---
-            // 吸収・無効の場合はデバフも発生させない
-            if (ability.getApplyCombatConditions() != null && !modResult.isAbsorb && modResult.finalDamage > 0) {
-                for (var app : ability.getApplyCombatConditions()) {
-                    int r = random.nextInt(100) + 1;
-                    if (r <= app.getChance()) {
-                        applyCondition(state.getPlayerConditions(), app.getConditionId(),
-                                app.getIntensity(), app.getDuration());
-                        CombatConditionData cData = CombatConditionRegistry
-                                .getConditionById(app.getConditionId());
-                        if (cData != null) {
-                            ui.print("　→ " + playerName + "は［" + cData.getName() + "］状態になった！");
-                        }
-                    }
-                }
-            }
+            // --- 敵アビリティによる CombatCondition 付与（SP防壁判定を含む共通処理） ---
+            // 吸収・無効の場合（dmgResult == null）やダメージ0の場合は、共通メソッド内でデバフも発生させない
+            applyCombatConditions(
+                    state.getPlayerConditions(),
+                    playerName,
+                    ability.getApplyCombatConditions(),
+                    dmgResult);
         } else {
             String playerName = player.getName() != null ? player.getName() : "プレイヤー";
             ui.print("　→ " + playerName + "は攻撃をかわした！");
@@ -1604,7 +1597,9 @@ public class BattleManager {
             if (data != null && data.getModifiers() != null) {
                 // intensity > 0 ならアビリティ側で指定された強度、なければJSON定義のデフォルト値を使用
                 int defaultDmg = data.getModifiers().getDotDamage();
-                int dotDmg = c.getIntensity() > 0 ? c.getIntensity() : defaultDmg;
+                // 継続ダメージを与えるのは dotDamage > 0 を持つ状態（dot）のみ。
+                // 移動阻害・行動阻害など、intensity が「失敗率(%)」の状態をダメージ量と誤解しない。
+                int dotDmg = (defaultDmg > 0 && c.getIntensity() > 0) ? c.getIntensity() : defaultDmg;
                 if (dotDmg > 0) {
                     if (targetPlayer != null) {
                         DamageResult dotResult = targetPlayer.applyBattleDamage(dotDmg, false);
@@ -1788,14 +1783,13 @@ public class BattleManager {
     private static class AttackExecutionResult {
         public final int finalDamage;
         public final boolean isAbsorb;
+        /** SP/HPへの実ダメージ結果。吸収時は null。状態異常付与のSP防壁判定に使用する。 */
+        public final DamageResult dmgResult;
 
-        public AttackExecutionResult(int finalDamage, boolean isAbsorb) {
+        public AttackExecutionResult(int finalDamage, boolean isAbsorb, DamageResult dmgResult) {
             this.finalDamage = finalDamage;
             this.isAbsorb = isAbsorb;
-        }
-
-        public boolean hasDealtDamage() {
-            return !isAbsorb && finalDamage > 0;
+            this.dmgResult = dmgResult;
         }
     }
 
@@ -1843,7 +1837,7 @@ public class BattleManager {
                 ((JavaFXUI) ui).appendBattleLog(enemy.getName() + "の攻撃吸収！SP回復"
                         + (isCritical ? "［クリティカル］" : ""));
             }
-            return new AttackExecutionResult(modResult.finalDamage, true);
+            return new AttackExecutionResult(modResult.finalDamage, true, null);
         } else {
             // 通常ダメージ処理（SP→HPの順）
             boolean isPenetrating = false;
@@ -1869,33 +1863,71 @@ public class BattleManager {
                         + (spAbsorbed > 0 ? "（SP " + spAbsorbed + " 破壊 / HP " + hpDamage + "）" : "");
                 ((JavaFXUI) ui).appendBattleLog(logSummary);
             }
-            return new AttackExecutionResult(modResult.finalDamage, false);
+            return new AttackExecutionResult(modResult.finalDamage, false, dmgResult);
         }
     }
 
     /**
-     * アビリティによるCombatCondition付与を判定・適用する共通パイプライン。
-     * 吸収またはダメージ0の場合はデバフを発生させない。
-     * ※後続タスク（implement_sp_condition_immunity.md）にてSP防壁判定を追加予定。
+     * プレイヤー側の攻撃（アビリティ）によるCombatCondition付与。
+     * 実処理は共通メソッド {@link #applyCombatConditions} に委譲する（SP防壁判定もそちらで行う）。
      */
     private void applyAbilityConditionsToEnemy(EnemyData enemy, AbilityData ability, AttackExecutionResult dmgResult) {
-        if (ability == null || ability.getApplyCombatConditions() == null) {
+        if (ability == null || ability.getApplyCombatConditions() == null || dmgResult == null) {
             return;
         }
-        if (!dmgResult.hasDealtDamage()) {
+        applyCombatConditions(
+                state.getEnemyConditions(),
+                enemy.getName(),
+                ability.getApplyCombatConditions(),
+                dmgResult.dmgResult);
+    }
+
+    /**
+     * 攻撃命中時のCombatCondition付与を判定・適用する共通メソッド（プレイヤー→敵／敵→プレイヤー共通）。
+     * <ul>
+     * <li>吸収（dmgResult == null）またはダメージ0の場合は付与しない。</li>
+     * <li>SP防壁：SPで受け止め切った一撃（SPが1以上削られ、HPには通らなかった）では、
+     * spBlockable な状態異常は付与されない。ただし付与設定の ignoreSpBlock が true なら貫通する。</li>
+     * <li>各付与エントリは完全に独立して判定し、防がれても break せず continue で次の付与へ進む。</li>
+     * </ul>
+     * ※AP不足の自爆転倒や self 系アビリティの自己付与は別経路のため、本メソッドの対象外。
+     */
+    private void applyCombatConditions(
+            java.util.List<BattleState.ActiveCombatCondition> targetConditions,
+            String targetName,
+            java.util.List<ConditionApplication> applications,
+            DamageResult dmgResult) {
+        if (applications == null || applications.isEmpty()) {
+            return;
+        }
+        if (dmgResult == null || (dmgResult.actualHpDamage() == 0 && dmgResult.actualSpDamage() == 0)) {
             return;
         }
 
-        for (var app : ability.getApplyCombatConditions()) {
+        // SPで受け止め切った一撃か（現在SPではなく DamageResult で判定する）
+        boolean spBlocked = dmgResult.actualSpDamage() > 0 && dmgResult.actualHpDamage() == 0;
+
+        for (ConditionApplication app : applications) {
             int r = random.nextInt(100) + 1; // 1-100
-            if (r <= app.getChance()) {
-                applyCondition(state.getEnemyConditions(), app.getConditionId(),
-                        app.getIntensity(), app.getDuration());
-                CombatConditionData cData = CombatConditionRegistry
-                        .getConditionById(app.getConditionId());
-                if (cData != null) {
-                    ui.print("　→ " + enemy.getName() + "は［" + cData.getName() + "］状態になった！");
+            if (r > app.getChance()) {
+                continue;
+            }
+
+            CombatConditionData cData = CombatConditionRegistry.getConditionById(app.getConditionId());
+
+            // SP防壁判定（確率判定に成功した後で行う）
+            if (cData != null && cData.isSpBlockable() && !app.isIgnoreSpBlock() && spBlocked) {
+                ui.print("　→ " + targetName + "は［" + cData.getName() + "］から即座に立ち直った！");
+                if (ui instanceof JavaFXUI) {
+                    ((JavaFXUI) ui).appendBattleLog(targetName + "は［" + cData.getName() + "］を防いだ（SP残存）");
                 }
+                continue;
+            }
+
+            applyCondition(targetConditions, app.getConditionId(),
+                    app.getIntensity(), app.getDuration());
+            if (cData != null) {
+                ui.print("　→ " + targetName + "は［" + cData.getName() + "］状態になった！");
             }
         }
     }
